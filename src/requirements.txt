@@ -1,0 +1,35 @@
+# ─── Web framework ───────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+python-multipart==0.0.12
+
+# ─── AWS ─────────────────────────────────────────────────────────────────────
+boto3==1.35.74
+mangum==0.19.0          # FastAPI → AWS Lambda adapter
+
+# ─── Database ────────────────────────────────────────────────────────────────
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.9
+alembic==1.14.0
+
+# ─── Computer Vision / YOLO ──────────────────────────────────────────────────
+ultralytics==8.3.44
+opencv-python-headless==4.10.0.84
+Pillow==11.0.0
+
+# ─── Machine Learning ────────────────────────────────────────────────────────
+scikit-learn==1.5.2
+pandas==2.2.3
+numpy==1.26.4
+joblib==1.4.2
+
+# ─── HTTP / APIs ─────────────────────────────────────────────────────────────
+httpx==0.28.0
+requests==2.32.3
+
+# ─── Dev / Test ──────────────────────────────────────────────────────────────
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx                   # test client for FastAPI

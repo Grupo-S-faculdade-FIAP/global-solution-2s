@@ -1,0 +1,244 @@
+---
+description: Spec-Driven Development — TLC methodology. Apply to all features, bug fixes, and significant changes. Triggers on any development request.
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Spec-Driven Development — TLC Methodology
+
+> Based on the TLC Spec-Driven skill by Tech Leads Club.
+> Reference: https://agent-skills.techleads.club/skills/tlc-spec-driven/
+
+---
+
+## Core Workflow: SPECIFY → DESIGN → TASKS → EXECUTE
+
+```
+┌──────────┐   ┌──────────┐   ┌─────────┐   ┌─────────┐
+│ SPECIFY  │ → │  DESIGN  │ → │  TASKS  │ → │ EXECUTE │
+└──────────┘   └──────────┘   └─────────┘   └─────────┘
+   required      optional*      optional*     required
+
+* Auto-skip when scope doesn't need it
+```
+
+**Follow this workflow for every feature or significant change.**
+
+---
+
+## Auto-Sizing: Match Depth to Complexity
+
+| Scope | What | Specify | Design | Tasks | Execute |
+|-------|------|---------|--------|-------|---------|
+| **Small** | ≤3 files, one sentence | Quick mode — skip pipeline | — | — | — |
+| **Medium** | Clear feature, <10 tasks | Spec (brief) | Skip (inline) | Skip (implicit) | Implement + verify |
+| **Large** | Multi-component | Full spec + requirement IDs | Architecture + components | Full breakdown + dependencies | Implement + verify per task |
+| **Complex** | Ambiguous, new domain | Full spec + discuss gray areas | Research + architecture | Breakdown + parallel plan | Implement + interactive UAT |
+
+**Rules:**
+- Specify and Execute are ALWAYS required
+- Design is skipped when straightforward
+- Tasks is skipped when ≤3 obvious steps
+- Safety valve: If inline steps reveal >5 items, STOP and create `tasks.md`
+
+---
+
+## Project Structure
+
+```
+.specs/
+├── project/
+│   ├── PROJECT.md      # Vision & goals
+│   ├── ROADMAP.md      # Features & milestones
+│   └── STATE.md        # Persistent memory across sessions
+├── codebase/           # Brownfield docs (existing projects)
+│   ├── STACK.md
+│   ├── ARCHITECTURE.md
+│   ├── CONVENTIONS.md
+│   ├── STRUCTURE.md
+│   ├── TESTING.md
+│   ├── INTEGRATIONS.md
+│   └── CONCERNS.md
+├── features/
+│   └── [feature-slug]/
+│       ├── spec.md     # Requirements with traceable IDs
+│       ├── context.md  # User decisions for gray areas
+│       ├── design.md   # Architecture (Large/Complex only)
+│       └── tasks.md    # Atomic tasks (Large/Complex only)
+└── quick/
+    └── NNN-slug/
+        ├── TASK.md
+        └── SUMMARY.md
+```
+
+---
+
+## Context Loading
+
+**Session start — always load:**
+- `.specs/project/STATE.md`
+- `.specs/project/PROJECT.md`
+
+**On-demand:**
+- `ROADMAP.md` — when planning features
+- Codebase docs — when working in existing project
+- `CONCERNS.md` — when touching risky/fragile areas
+- `TESTING.md` — when creating tasks or executing
+- Feature files — when working on that feature
+
+---
+
+## Phase 1 — SPECIFY
+
+**Goal:** Capture WHAT to build with testable, traceable requirements.
+
+1. Be a thinking partner — start with "What problem are you solving?"
+2. Challenge vagueness. Make the abstract concrete.
+3. User stories with **P1 = MVP**, P2 = should have, P3 = nice to have
+4. Acceptance criteria in **WHEN/THEN/SHALL** format
+5. Assign Requirement IDs: `[CATEGORY]-[NUMBER]` (e.g., `AUTH-01`)
+6. Write `.specs/features/[slug]/spec.md`
+
+---
+
+## Phase 2 — DESIGN (skip for Small/Medium)
+
+**Goal:** Define HOW to build it.
+
+1. Read `spec.md` — map requirement IDs to components
+2. Define data model changes
+3. Define API contract
+4. Identify reusable code from codebase
+5. Write `.specs/features/[slug]/design.md`
+
+---
+
+## Phase 3 — TASKS (skip when ≤3 obvious steps)
+
+**Goal:** GRANULAR, ATOMIC tasks with clear dependencies.
+
+**One task = ONE of:** one component | one function | one API endpoint | one file change
+
+Every task has: What, Where, Depends on, Reuses, Requirement ID, Done when, Tests, Gate
+- Mark parallel tasks with `[P]`
+- Co-locate tests — do NOT separate them into separate tasks
+
+Write `.specs/features/[slug]/tasks.md`
+
+---
+
+## Phase 4 — EXECUTE
+
+**Goal:** Implement ONE task at a time. Verify. Commit. Repeat.
+
+For every task:
+1. **STATE** — Assumptions, files to touch, success criteria (MANDATORY before coding)
+2. **RED** — Write tests FIRST. Confirm they FAIL.
+3. **GREEN** — Write minimum code to pass. Do NOT modify tests.
+4. **VERIFY** — Run gate check from `TESTING.md`. Non-zero = STOP and fix.
+5. **POST-GATE** — Verify test count, add `SPEC_DEVIATION` if diverged
+6. **COMMIT** — One atomic commit per task (Conventional Commits)
+7. **GUARDRAIL** — Out-of-scope improvements → log in `STATE.md`, do NOT act
+8. **UPDATE** — Mark task done in `tasks.md`
+
+**Gate levels:**
+| Level | When |
+|-------|------|
+| quick | unit tests only |
+| full | unit + integration + e2e |
+| build | build + lint + all tests (last task in phase) |
+
+---
+
+## Quick Mode (≤3 files, one-sentence scope)
+
+1. Create `.specs/quick/[NNN]-[slug]/TASK.md`
+2. Implement
+3. Verify
+4. Commit
+5. Write `.specs/quick/[NNN]-[slug]/SUMMARY.md`
+
+---
+
+## Commit Format
+
+```
+<type>(<scope>): <description>
+```
+
+Types: `feat` `fix` `refactor` `test` `docs` `style` `perf` `build` `ci` `chore`
+
+- Imperative mood ("add", not "added")
+- One task = one commit
+- Tests included in same commit as the code they test
+
+---
+
+## STATE.md — Persistent Memory
+
+Update every session:
+- **Current focus** — active feature, last/next task, blockers
+- **Decisions** — architectural decisions with rationale
+- **Blockers** — issues + steps to resolve
+- **Lessons learned** — what went wrong and what to do differently
+- **Deferred ideas** — out-of-scope improvements captured during implementation
+- **Todos** — short-term tasks without a spec
+
+---
+
+## Coding Principles
+
+- **Simplest code that works** — no gold-plating
+- **Touch ONLY files listed in the task** — no scope creep
+- **Reuse patterns** from `CONVENTIONS.md` — don't reinvent
+- **No `any` in TypeScript** — use `unknown` + type guards
+- **No hardcoded secrets** — environment variables only
+- **No `console.log` in production** — use structured logger
+- Out-of-scope improvements → **log in STATE.md as deferred ideas**
+
+---
+
+## Knowledge Verification Chain
+
+```
+Step 1: Codebase → existing code, conventions, patterns
+Step 2: Project docs → README, docs/, .specs/codebase/
+Step 3: Library docs → current API/patterns
+Step 4: Web search → official docs, reputable sources
+Step 5: Flag as uncertain → state explicitly, never fabricate
+```
+
+**NEVER assume or fabricate. Uncertainty is always preferable to fabrication.**
+
+---
+
+## Trigger Phrases
+
+| User says... | Action |
+|-------------|--------|
+| "initialize project" / "setup project" | Create PROJECT.md + ROADMAP.md |
+| "map codebase" / "analyze existing code" | Populate `.specs/codebase/` docs |
+| "specify feature" / "define requirements" | Run Specify → write spec.md |
+| "discuss feature" / "how should this work" | Run Discuss → write context.md |
+| "design" / "architecture" | Run Design → write design.md |
+| "break into tasks" / "create tasks" | Run Tasks → write tasks.md |
+| "implement" / "build" / "execute" | Run Execute |
+| "validate" / "verify" / "UAT" | Run Validate |
+| "quick fix" / "bug fix" / "small change" | Run Quick mode |
+| "pause work" / "end session" | Update STATE.md |
+| "resume work" / "continue" | Load STATE.md, continue |
+| "record decision" / "log blocker" | Update STATE.md |
+
+---
+
+## Session Start
+
+1. Load `STATE.md` — current focus, blockers, todos
+2. Load `PROJECT.md` — project context
+3. If continuing a feature: load `spec.md`, `design.md`, `tasks.md`
+
+## Session End
+
+1. Update `STATE.md`
+2. Mark completed tasks in `tasks.md`
+3. Commit uncommitted work
