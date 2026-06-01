@@ -12,18 +12,18 @@
 
 # global-solution-2s
 
-## Grupo TerraSense
+## Grupo GS2
 
 ## 👨‍🎓 Integrantes:
-- <a href="https://www.linkedin.com/in/caroline-de-castro-correa/">Caroline de Castro Corrêa</a>
-- <a href="https://www.linkedin.com/in/rodrigo-dias-figueiroa/">Rodrigo Dias Figueiroa</a>
-- <a href="https://www.linkedin.com/in/enzo-franca-sader/">Enzo França Sader</a>
-- <a href="https://www.linkedin.com/in/lucas-hideki-oliveira-koyama/">Lucas Hideki Oliveira Koyama</a>
-- <a href="https://www.linkedin.com/in/tiago-lindgren-curi/">Tiago Lindgren Curi</a>
+- <a href="https://github.com/carolineccorrea">Caroline de Castro Corrêa</a>
+- <a href="https://github.com/figueiroa-fiap">Rodrigo Dias Figueiroa</a>
+- <a href="https://github.com/EnzF">Enzo França Sader</a>
+- <a href="https://github.com/lucasKoyama">Lucas Hideki Oliveira Koyama</a>
+- <a href="https://github.com/kyber-me">Tiago Lindgren Curi</a>
 
 ## 👩‍🏫 Professores:
 ### Tutor(a)
-- <a href="https://www.linkedin.com/in/caique-nonato/">Caique Nonato</a>
+- <a href="https://github.com/SabrinaOtoni">Sabrina Otoni</a>
 ### Coordenador(a)
 - <a href="https://www.linkedin.com/in/andregodoichiovato/">Andre Godoi</a>
 
@@ -31,17 +31,16 @@
 
 ## 📜 Descrição
 
-O **TerraSense** é uma plataforma de inteligência ambiental e agrícola que combina dados de satélite, visão computacional (YOLOv8) e sensores IoT (ESP32) para monitorar o clima, detectar queimadas e desmatamento, e prever riscos agrícolas — conectando a economia espacial ao impacto direto na Terra.
+O **GS2** é uma plataforma de monitoramento climático inteligente que combina visão computacional (YOLOv5), computação em nuvem (AWS) e sensores IoT (ESP32) para detectar padrões de nuvens chuvosas em imagens de satélite e gerar alertas de chuva em tempo real.
 
-O projeto endereça a fragmentação e a demora no acesso a inteligência ambiental acionável: os dados de satélite existem, mas não são processados, analisados e visualizados de forma integrada e acessível para pesquisadores, produtores rurais, órgãos de monitoramento ambiental e gestores de risco.
+O projeto endereça a falta de sistemas acessíveis que integrem imagens de satélite, inteligência artificial e sensores de campo para antecipar eventos climáticos com impacto direto na agricultura e no cotidiano — conectando dados orbitais a ações práticas no solo.
 
 **Principais componentes da solução:**
 
-- **Módulo Computer Vision (CV):** pipeline de ingestão de imagens de satélite (NASA FIRMS / INPE) com modelo YOLOv8 treinado para detecção de focos de queimada e áreas desmatadas.
-- **Módulo Machine Learning (ML):** modelo de regressão/classificação para previsão de risco agrícola (seca, geada, produtividade) utilizando dados climáticos e de satélite.
-- **Módulo Cloud/Backend:** API REST construída com FastAPI, hospedada na AWS (Lambda + API Gateway), conectada a banco de dados PostgreSQL (RDS) e DynamoDB (dados IoT).
-- **Módulo Dashboard/Frontend:** visualização climática em tempo real via widget Windy API integrado a um painel Streamlit com dados e alertas ambientais.
-- **Módulo IoT:** ESP32 com MicroPython coletando dados de temperatura, umidade e solo, enviando para AWS IoT Core via HTTP.
+- **Módulo Computer Vision (CV):** pipeline de captura de imagens de satélite (Windy.com / AWS EC2) com modelo YOLOv5 treinado para detectar padrões de nuvens chuvosas;
+- **Módulo Cloud/Backend:** API REST construída com FastAPI, hospedada na AWS (EC2 para captura de imagens + Lambda para processamento serverless + SNS para envio de alertas de chuva em tempo real).
+- **Módulo IoT:** ESP32 com sensores de umidade do solo para monitoramento remoto de campo, com dados enviados para a nuvem via HTTP.
+- **Módulo Análise de Dados:** armazenamento dos alertas em banco SQL/NoSQL (dia e horário) com visualização em gráficos de barras para identificação de padrões recorrentes de chuva por dia da semana e faixa de horário.
 
 A solução foi desenvolvida como projeto Global Solution da Graduação ON em Inteligência Artificial da FIAP.
 
@@ -51,13 +50,11 @@ A solução foi desenvolvida como projeto Global Solution da Graduação ON em I
 
 Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
-- **`docs/`**: Documentação textual do projeto — brainstorm, diagramas de arquitetura, desenhos de fluxo, prints, storyboard, estratégia de IA, especificações de hardware (ESP32/Wokwi), atas de reunião e decisões técnicas.
+- **`docs/`**: Documentação textual do projeto — como: brainstorm, diagramas de arquitetura, desenhos de fluxo, prints, storyboard, estratégia de IA, especificações de hardware (ESP32/Wokwi), atas de reunião e decisões técnicas.
 
-- **`src/`**: Todo o código-fonte desenvolvido — API FastAPI (routers de CV, ML, IoT e Dashboard), scripts de treinamento YOLO, notebooks de exploração de dados, código MicroPython para ESP32 e modelos serializados.
+- **`src/`**: Todo o código-fonte desenvolvido — API FastAPI (routers de CV, IoT e Dashboard), scripts de treinamento YOLO, notebooks de exploração e análise de dados, código para ESP32 e modelos serializados.
 
-- **`data/`**: Dados utilizados no projeto — amostras de imagens de satélite (FIRMS/INPE), CSVs climáticos, datasets de treino/validação do modelo YOLO e bases sintéticas para testes.
-
-- **`Ir Além/`**: Arquivos referentes às atividades de aprofundamento e experimentações extras, além do escopo mínimo da entrega principal.
+- **`data/`**: Dados utilizados no projeto — amostras de imagens de satélite (Windy.com), datasets de treino/validação do modelo YOLO (imagens rotuladas de nuvens chuvosas) e registros de alertas para análise posterior.
 
 - **`assets/`**: Imagens e recursos estáticos utilizados na documentação (logo FIAP, etc.).
 
@@ -68,19 +65,18 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 ## 📎 Links e Observações
 
 - **Repositório GitHub:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s
-- **Vídeo de demonstração:** *(link a ser adicionado após gravação)*
-- **Dataset NASA FIRMS:** https://firms.modaps.eosdis.nasa.gov/
+- **Vídeo de demonstração (5min):** *(link a ser adicionado após gravação)*
 - **Dashboard (Streamlit):** *(link a ser adicionado após deploy)*
 - **API Backend (AWS):** *(link a ser adicionado após deploy)*
 
 **Decisões técnicas relevantes:**
-- YOLOv8 (Ultralytics) foi escolhido para detecção de queimadas por ser estado da arte em detecção de objetos, com boa documentação e suporte a datasets públicos (FIRMS/INPE).
-- Windy API utilizada via widget embarcado (plano free não disponibiliza REST completo), cobrindo a visualização climática em mapa de forma gratuita.
-- Arquitetura serverless na AWS (Lambda + API Gateway) reduz custo operacional; o free tier é suficiente para o POC.
-- Config de segredos via `pydantic-settings` + `.env` — nenhum segredo hardcodado no código.
+- YOLOv5 foi escolhido para detecção de padrões de nuvens chuvosas por ser estado da arte em detecção de objetos, com suporte a pipelines customizados de rotulagem e treino.
+- AWS EC2 realiza a captura periódica de imagens de satélite; AWS Lambda processa os dados de forma serverless; AWS SNS dispara as notificações de alerta de chuva.
+- O banco de dados SQL/NoSQL armazena dia e horário de cada alerta, alimentando a análise de padrões de recorrência de chuva.
+- Config de segredos via `pydantic-settings` + `.env` — nenhum segredo hard-coded no código.
 
 **Observações gerais:**
-- Este projeto foi desenvolvido no contexto da Global Solution da FIAP (Graduação ON em IA) e aceita participação na avaliação da competição.
+- Este projeto foi desenvolvido no contexto da Global Solution da FIAP (Graduação ON em IA)
 
 ---
 
@@ -96,8 +92,8 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 ```bash
 # Clone o repositório
-git clone <URL-DO-REPOSITÓRIO>
-cd global-solutions
+git clone git@github.com:Grupo-S-faculdade-FIAP/global-solution-2s.git
+cd global-solution-2s
 
 # Instale as dependências
 cd src
@@ -124,17 +120,3 @@ A API estará disponível em `http://localhost:8000`.
 Documentação interativa (Swagger): `http://localhost:8000/docs`
 
 ---
-
-## 🗃 Histórico de lançamentos
-
-* 0.1.0 - 01/06/2026
-    * Scaffold inicial FastAPI com routers para CV, ML, IoT e Dashboard
-    * Configuração via pydantic-settings + .env
-    * Estrutura de pastas conforme template TIAO-2026
-    * Testes base com pytest
-
----
-
-## 📋 Licença
-
-<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"><p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><a property="dct:title" rel="cc:attributionURL" href="https://github.com/SabrinaOtoni/TEMPLATE-FIAP-GRAD-ON-IA">MODELO GIT FIAP</a> por <a rel="cc:attributionURL dct:creator" property="cc:attributionName" href="https://fiap.com.br">FIAP</a> está licenciado sobre <a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">Attribution 4.0 International</a>.</p>
