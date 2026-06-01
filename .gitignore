@@ -1,0 +1,23 @@
+# Segredos e estado de infraestrutura — nunca commitar
+.env
+docs/AWS-STATE.md
+
+# Chaves SSH
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+venv/
+.venv/
+
+# Lambda packaging
+src/package/
+src/lambda_package.zip
+
+# Modelos treinados
+src/models/*.pt
+data/models/

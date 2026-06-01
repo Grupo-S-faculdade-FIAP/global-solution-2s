@@ -7,3 +7,7 @@ __pycache__/
 venv/
 .venv/
 models/*.pt
+
+# Lambda packaging artifacts
+package/
+lambda_package.zip
