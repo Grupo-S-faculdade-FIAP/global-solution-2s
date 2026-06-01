@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** —
-**Last updated:** 2026-06-01 (atualizado: estrutura base criada)
+**Last updated:** 2026-06-01 (estrutura de repositório ajustada conforme template TIAO-2026)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -57,8 +57,8 @@
 ## Todos
 
 - [ ] Verificar prazo exato de entrega na plataforma FIAP
-- [ ] Clonar template TIAO-2026: https://github.com/CaiqueFiap-2026/TEMPLATE-TIAO-2026
-- [ ] Criar estrutura de pastas do repositório conforme template
+- [x] Clonar template TIAO-2026: https://github.com/CaiqueFiap-2026/TEMPLATE-TIAO-2026
+- [x] Criar estrutura de pastas do repositório conforme template (README.md, docs/, data/, assets/, Ir Além/)
 - [x] Criar scaffold FastAPI base (src/)
 - [ ] Instalar dependências e rodar testes base
 - [ ] Especificar feature: módulo Computer Vision (YOLO + queimadas)

@@ -1,0 +1,9 @@
+# Manter pasta data/ rastreada pelo Git mesmo quando vazia.
+# Adicione aqui padrões de arquivos a ignorar dentro de data/
+# (ex.: arquivos grandes de dataset que não devem ir para o repositório).
+*.csv
+*.parquet
+*.h5
+*.zip
+*.tar.gz
+!sample_*.csv
