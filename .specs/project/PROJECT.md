@@ -34,12 +34,12 @@
 - Language: Python 3.11
 - Framework: FastAPI (backend API)
 - ML/CV: Ultralytics YOLOv8, scikit-learn, pandas, numpy
-- Cloud: AWS (Lambda, S3, RDS, API Gateway)
-- Database: PostgreSQL (RDS) + DynamoDB (dados IoT time-series)
+- Cloud: AWS (Lambda, S3, API Gateway)
+- Database: DynamoDB (alertas + dados IoT time-series) — 100% NoSQL
 - Frontend: HTML/JS + Windy API widget + Streamlit (dashboard)
 - IoT: ESP32 + MicroPython (sensores de temperatura, umidade, solo)
 
-**Key dependencies:** ultralytics, fastapi, boto3, psycopg2, streamlit, requests
+**Key dependencies:** ultralytics, fastapi, boto3, streamlit, requests
 
 ---
 
@@ -51,7 +51,7 @@
 - Modelo de ML para previsão de risco agrícola (regressão/classificação)
 - Dashboard com Windy API (visualização climática em tempo real no mapa)
 - Backend FastAPI na AWS (Lambda + API Gateway) conectado ao banco de dados
-- ESP32 enviando leituras de sensor para AWS IoT Core ou endpoint HTTP
+- ESP32 enviando leituras de sensor para endpoint HTTP (API Gateway → Lambda)
 - README completo + PDF de entrega + vídeo demonstrativo
 
 **Explicitamente fora do escopo:**
@@ -65,7 +65,7 @@
 ## Constraints
 
 - Timeline: Prazo da plataforma FIAP (GS 2026.1) — entregar antes do fechamento
-- Technical: Tier gratuito da AWS (Lambda, S3, RDS free tier); Windy API free plan
+- Technical: Tier gratuito da AWS (Lambda, S3, DynamoDB free tier); Windy API free plan
 - Resources: 5 integrantes, trabalho paralelo por módulo
 - Compliance: Código não pode ser plágio; vídeo como "não listado" no YouTube
 

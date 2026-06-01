@@ -14,9 +14,8 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = ""
     S3_BUCKET_IMAGES: str = ""
     DYNAMODB_TABLE_IOT: str = "iot"
-
-    # Database
-    DATABASE_URL: str = "postgresql://user:password@localhost:5432/db"
+    DYNAMODB_TABLE_ALERTS: str = "alerts"
+    SNS_TOPIC_ARN: str = ""
 
     # ML / CV
     YOLO_MODEL_PATH: str = "models/yolov8_fire.pt"

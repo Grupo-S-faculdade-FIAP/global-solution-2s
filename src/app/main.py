@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from mangum import Mangum
 
 from app.core.config import settings
 from app.routers import cv, ml, iot, dashboard
@@ -27,3 +28,7 @@ app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "ok"}
+
+
+# AWS Lambda handler — wraps the FastAPI app via Mangum
+handler = Mangum(app)
