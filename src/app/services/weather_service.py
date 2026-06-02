@@ -3,7 +3,7 @@
 Abstracts the Open-Meteo API client for use in routes/lambdas.
 """
 
-from src.app.clients.openmeteo import OpenMeteoClient
+from app.clients.openmeteo import OpenMeteoClient
 
 
 class WeatherService:

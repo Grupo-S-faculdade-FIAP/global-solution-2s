@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
 from app.core.config import settings
-from app.routers import cv, ml, iot, dashboard
+from app.routers import cv, ml, iot, dashboard, data_integration
 from app.routers.cv import process_s3_image
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ app.include_router(cv.router, prefix="/cv", tags=["Computer Vision"])
 app.include_router(ml.router, prefix="/ml", tags=["Machine Learning"])
 app.include_router(iot.router, prefix="/iot", tags=["IoT"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
+app.include_router(data_integration.router, prefix="", tags=["Data Integration"])
 
 
 @app.get("/health", tags=["Health"])

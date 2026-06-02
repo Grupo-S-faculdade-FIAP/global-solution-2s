@@ -7,7 +7,7 @@ import requests
 from datetime import datetime
 from functools import lru_cache
 
-from src.app.core.config import settings
+from app.core.config import settings
 
 
 class OpenMeteoClient:
