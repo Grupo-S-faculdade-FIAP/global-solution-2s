@@ -1,5 +1,9 @@
+# Specifications & Documentation (local only)
+.specs/
+
 # Segredos e estado de infraestrutura — nunca commitar
 .env
+.env.local
 docs/AWS-STATE.md
 
 # Chaves SSH
@@ -7,12 +11,46 @@ docs/AWS-STATE.md
 
 # Python
 __pycache__/
+*.py[cod]
 *.pyc
 *.pyo
+*$py.class
+*.so
+.Python
 .pytest_cache/
 .ruff_cache/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
 venv/
+env/
+ENV/
 .venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Lambda packaging
 src/package/
@@ -21,3 +59,7 @@ src/lambda_package.zip
 # Modelos treinados
 src/models/*.pt
 data/models/
+
+# Node/npm (if applicable)
+node_modules/
+npm-debug.log
