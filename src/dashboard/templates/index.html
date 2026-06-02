@@ -442,6 +442,46 @@
       <div class="kpi-card"><div class="kpi-label text-purple"><i class="bi bi-clock-fill"></i>Hora pico</div><div class="kpi-value text-purple" id="kpi-hour" style="font-size:22px;padding-top:5px">—</div><div class="kpi-sub">faixa horária crítica</div></div>
     </div>
 
+    <!-- ── Real-Time Data (Weather & Risk) ───────────────────────────────── -->
+    <p class="section-title">Dados em tempo real</p>
+    <div class="chart-grid-2">
+      <!-- Weather Card -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-head-title">🌡️ Condições atuais — São Paulo</div>
+            <div class="card-head-sub">Temperatura, umidade, pressão</div>
+          </div>
+        </div>
+        <div id="weather-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; font-size: 13px; line-height: 1.8;">
+          <div><span style="color: var(--text-sec);">Temperatura</span><br><span style="font-size: 18px; font-weight: 600;" id="weather-temp">—</span></div>
+          <div><span style="color: var(--text-sec);">Umidade</span><br><span style="font-size: 18px; font-weight: 600;" id="weather-humidity">—</span></div>
+          <div><span style="color: var(--text-sec);">Pressão</span><br><span style="font-size: 18px; font-weight: 600;" id="weather-pressure">—</span></div>
+          <div><span style="color: var(--text-sec);">Vento</span><br><span style="font-size: 18px; font-weight: 600;" id="weather-wind">—</span></div>
+        </div>
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 10px; color: var(--text-sec);">
+          <span id="weather-timestamp">—</span>
+        </div>
+      </div>
+
+      <!-- Risk Assessment Card -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-head-title">⚠️ Avaliação de risco</div>
+            <div class="card-head-sub">Nível previsto para a região</div>
+          </div>
+        </div>
+        <div id="risk-container" style="display: flex; flex-direction: column; gap: 1rem; justify-content: center; padding: 1rem 0;">
+          <div style="text-align: center;">
+            <div style="font-size: 48px; font-weight: 700; margin-bottom: 0.5rem;" id="risk-badge">—</div>
+            <div style="font-size: 13px; color: var(--text-sec);" id="risk-category">—</div>
+          </div>
+          <div style="padding: 0.75rem; background: rgba(88,166,255,.1); border-radius: 6px; font-size: 12px; line-height: 1.6; color: var(--text-prim);" id="risk-recommendation">—</div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Linha 1: Tendência 30d + Semanal ──────────────────────────────── -->
     <p class="section-title">Tendência &amp; Distribuição</p>
     <div class="chart-grid-2">
@@ -607,6 +647,63 @@
       document.getElementById("kpi-hour").textContent  = d.peak_hour;
     }
 
+    // ── Real-Time Weather Data ─────────────────────────────────────────────────
+    async function loadWeatherData() {
+      try {
+        const r = await fetch("/api/weather/current?lat=-23.55&lon=-46.63");
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        
+        document.getElementById("weather-temp").textContent = `${data.temperature}°C`;
+        document.getElementById("weather-humidity").textContent = `${data.humidity}%`;
+        document.getElementById("weather-pressure").textContent = `${data.pressure} hPa`;
+        document.getElementById("weather-wind").textContent = `${data.wind_speed} m/s`;
+        
+        const ts = new Date(data.timestamp).toLocaleString("pt-BR", { 
+          dateStyle: "short", 
+          timeStyle: "short" 
+        });
+        document.getElementById("weather-timestamp").textContent = `Atualizado: ${ts}`;
+      } catch (err) {
+        console.error("Failed to load weather data:", err);
+        document.getElementById("weather-container").innerHTML = 
+          '<div style="grid-column: 1/-1; color: var(--text-sec); text-align: center;">Indisponível</div>';
+      }
+    }
+
+    // ── Real-Time Risk Assessment ──────────────────────────────────────────────
+    async function loadRiskData() {
+      try {
+        const r = await fetch("/api/risk/forecast?lat=-23.55&lon=-46.63");
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        
+        // Determine badge color based on risk category
+        const categoryColors = {
+          "LOW": { bg: "#3fb950", text: "BAIXO" },
+          "MEDIUM": { bg: "#d29922", text: "MÉDIO" },
+          "HIGH": { bg: "#f85149", text: "ALTO" }
+        };
+        
+        const colorSet = categoryColors[data.risk_category] || categoryColors.LOW;
+        
+        document.getElementById("risk-badge").textContent = 
+          `${(data.risk_score * 100).toFixed(0)}%`;
+        document.getElementById("risk-badge").style.color = colorSet.bg;
+        
+        document.getElementById("risk-category").textContent = 
+          `Risco ${colorSet.text}`;
+        document.getElementById("risk-category").style.color = colorSet.bg;
+        
+        document.getElementById("risk-recommendation").textContent = 
+          data.recommendation;
+      } catch (err) {
+        console.error("Failed to load risk data:", err);
+        document.getElementById("risk-container").innerHTML = 
+          '<div style="color: var(--text-sec); text-align: center;">Indisponível</div>';
+      }
+    }
+
     // ── Trend chart ───────────────────────────────────────────────────────────
     async function loadTrend() {
       const r = await fetch("/api/alerts/daily", { cache: "force-cache" });
@@ -754,7 +851,7 @@
 
     // ── Bootstrap ─────────────────────────────────────────────────────────────
     lazyLoadWindy();
-    Promise.all([loadKPIs(), loadTrend(), loadWeekly(), loadHourly(), loadHeatmap()]);
+    Promise.all([loadKPIs(), loadTrend(), loadWeekly(), loadHourly(), loadHeatmap(), loadWeatherData(), loadRiskData()]);
   </script>
 </body>
 </html>

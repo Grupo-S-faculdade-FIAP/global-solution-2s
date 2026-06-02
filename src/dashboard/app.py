@@ -1,9 +1,15 @@
 import random
+import requests
 from datetime import datetime, timedelta
 
 from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
+
+# ─── FastAPI Backend Configuration ────────────────────────────────────────────
+FASTAPI_BASE_URL = "http://localhost:8000"
+DEFAULT_WEATHER_LAT = -23.55  # São Paulo
+DEFAULT_WEATHER_LON = -46.63
 
 # ─── Cache middleware ─────────────────────────────────────────────────────────
 @app.after_request
@@ -104,6 +110,101 @@ def alerts_heatmap():
 def alerts_summary():
     """KPIs consolidados."""
     return jsonify(SUMMARY)
+
+
+# ─── Proxy Routes to FastAPI Backend ─────────────────────────────────────────
+@app.route("/api/weather/current")
+def weather_current():
+    """
+    Proxy to FastAPI /weather/current endpoint.
+    Returns current weather data for specified location.
+    """
+    try:
+        lat = request.args.get("lat", default=DEFAULT_WEATHER_LAT, type=float)
+        lon = request.args.get("lon", default=DEFAULT_WEATHER_LON, type=float)
+        
+        response = requests.get(
+            f"{FASTAPI_BASE_URL}/weather/current",
+            params={"lat": lat, "lon": lon},
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": "Failed to fetch weather data"}), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Backend connection error: {str(e)}"}), 503
+
+
+@app.route("/api/risk/forecast")
+def risk_forecast():
+    """
+    Proxy to FastAPI /risk/forecast endpoint.
+    Returns risk score, category, and recommendations.
+    """
+    try:
+        lat = request.args.get("lat", default=DEFAULT_WEATHER_LAT, type=float)
+        lon = request.args.get("lon", default=DEFAULT_WEATHER_LON, type=float)
+        
+        response = requests.get(
+            f"{FASTAPI_BASE_URL}/risk/forecast",
+            params={"lat": lat, "lon": lon},
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": "Failed to fetch risk forecast"}), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Backend connection error: {str(e)}"}), 503
+
+
+@app.route("/api/storms/recent")
+def storms_recent():
+    """
+    Proxy to FastAPI /storms/recent endpoint.
+    Returns recent storm detections.
+    """
+    try:
+        hours = request.args.get("hours", default=24, type=int)
+        
+        response = requests.get(
+            f"{FASTAPI_BASE_URL}/storms/recent",
+            params={"hours": hours},
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": "Failed to fetch storm data"}), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Backend connection error: {str(e)}"}), 503
+
+
+@app.route("/api/map/overlay")
+def map_overlay():
+    """
+    Proxy to FastAPI /map/overlay endpoint.
+    Returns GeoJSON features for map overlay.
+    """
+    try:
+        bbox = request.args.get("bbox", default="-25,-50,-20,-40")
+        
+        response = requests.get(
+            f"{FASTAPI_BASE_URL}/map/overlay",
+            params={"bbox": bbox},
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({"error": "Failed to fetch map overlay"}), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Backend connection error: {str(e)}"}), 503
 
 
 if __name__ == "__main__":
