@@ -2,6 +2,7 @@ import logging
 import os
 import pathlib
 import datetime
+from typing import Optional
 
 import boto3
 from fastapi import APIRouter
@@ -9,13 +10,14 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
 class DetectStormRequest(BaseModel):
     s3_key: str
-    bucket: str | None = None
+    bucket: Optional[str] = None
 
 # /tmp persists across warm Lambda invocations — model is only downloaded once per container.
 _TMP = pathlib.Path("/tmp")
