@@ -1,4 +1,4 @@
-# Roadmap
+﻿# Roadmap
 
 **Project:** —
 **Last updated:** 2026-06-01
@@ -14,13 +14,12 @@
 | Feature | Disciplina | Prioridade | Status | Notas |
 |---------|-----------|------------|--------|-------|
 | Pipeline de ingestão de imagens de satélite | Python / Automação | P1 | Not started | NASA FIRMS ou INPE via API/dataset |
-| Modelo YOLO para detecção de queimadas | Computer Vision / YOLO | P1 | Not started | YOLOv8 fine-tuned em dataset de fogo |
+| Modelo YOLO para detecção de tempestades | Computer Vision / YOLO | P1 | Not started | YOLOv8 fine-tuned em dataset de nuvens chuvosas (Windy.com) |
 | Modelo ML de previsão de risco agrícola | Machine Learning | P1 | Not started | Regressão/classificação com dados climáticos |
 | Backend FastAPI + endpoints REST | Python / Automação | P1 | Not started | Deploy na AWS Lambda via API Gateway |
 | Dashboard com Windy API (frontend) | Análise de Dados / Dashboards | P1 | Not started | Widget Windy + gráficos de dados locais |
-| Armazenamento S3 (imagens) + PostgreSQL (RDS) | Banco de Dados | P1 | Not started | Free tier AWS |
-| ESP32 — coleta de sensores e envio para AWS | IoT / ESP32 | P1 | Not started | Temperatura, umidade, solo → HTTP ou MQTT |
-| DynamoDB para dados IoT time-series | Banco de Dados | P2 | Not started | Alternativa ao RDS para dados de sensor |
+| Armazenamento S3 (imagens) + DynamoDB (alertas + IoT) | Banco de Dados | P1 | Not started | 100% NoSQL, sem RDS |
+| ESP32 — coleta de sensores e envio para AWS | IoT / ESP32 | P1 | Not started | Temperatura, umidade, solo → HTTP POST para /iot/readings |
 | Serviço cognitivo / Rekognition ou Comprehend | APIs / Serviços Cognitivos | P2 | Not started | Classificação auxiliar ou análise de texto |
 | README + estrutura do repositório | Documentação | P1 | Not started | Seguir template TIAO-2026 |
 | PDF de entrega | Documentação | P1 | Not started | Introdução, Desenvolvimento, Resultados, Conclusão |
