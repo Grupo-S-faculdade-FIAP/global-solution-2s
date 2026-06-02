@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     SNS_TOPIC_ARN: str = ""
 
     # ML / CV
-    YOLO_MODEL_PATH: str = "models/yolov8_fire.pt"
+    YOLO_MODEL_PATH: str = "models/yolov8_storm.pt"
     FIRMS_API_KEY: str = ""
 
     class Config:

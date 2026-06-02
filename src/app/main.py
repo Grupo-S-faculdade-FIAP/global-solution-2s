@@ -1,9 +1,14 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
 from app.core.config import settings
 from app.routers import cv, ml, iot, dashboard
+from app.routers.cv import process_s3_image
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="API",
@@ -30,5 +35,28 @@ def health_check():
     return {"status": "ok"}
 
 
-# AWS Lambda handler — wraps the FastAPI app via Mangum
-handler = Mangum(app)
+_http_handler = Mangum(app)
+
+
+def _handle_s3_trigger(event: dict, context: object) -> dict:
+    """Processa eventos de trigger do S3 — chamado quando uma imagem é enviada ao bucket."""
+    results = []
+    for record in event.get("Records", []):
+        bucket = record["s3"]["bucket"]["name"]
+        key = record["s3"]["object"]["key"]
+        logger.info("S3 trigger recebido: s3://%s/%s", bucket, key)
+        result = process_s3_image(bucket=bucket, key=key)
+        results.append(result)
+    return {"processed": len(results), "results": results}
+
+
+def handler(event: dict, context: object) -> dict:
+    """
+    Ponto de entrada do Lambda.
+    Roteia eventos S3 (upload de imagem) para o pipeline de CV,
+    e eventos HTTP do API Gateway para o app FastAPI via Mangum.
+    """
+    records = event.get("Records", [])
+    if records and records[0].get("eventSource") == "aws:s3":
+        return _handle_s3_trigger(event, context)
+    return _http_handler(event, context)

@@ -1,6 +1,6 @@
 # Projeto
 
-**Vision:** Plataforma de inteligência ambiental e agrícola que combina dados de satélite, visão computacional e sensores IoT para monitorar clima, detectar queimadas/desmatamento e prever riscos agrícolas — conectando a economia espacial ao impacto direto na Terra.
+**Vision:** Plataforma de inteligência ambiental e agrícola que combina dados de satélite, visão computacional e sensores IoT para monitorar clima, detectar tempestades/padrões de nuvens chuvosas e prever riscos agrícolas — conectando a economia espacial ao impacto direto na Terra.
 **For:** Pesquisadores, produtores rurais, órgãos de monitoramento ambiental e gestores de risco.
 **Solves:** A fragmentação e a demora no acesso a inteligência ambiental acionável — hoje dados de satélite existem mas não são processados, analisados e visualizados de forma integrada e acessível.
 
@@ -20,7 +20,7 @@
 
 ## Goals
 
-- [ ] **G1** — Detectar queimadas e desmatamento em imagens de satélite com YOLO (precisão ≥ 70% no conjunto de validação)
+- [ ] **G1** — Detectar tempestades e padrões de nuvens chuvosas em imagens de satélite com YOLO (precisão ≥ 70% no conjunto de validação)
 - [ ] **G2** — Prever risco agrícola (seca, geada, produtividade) com modelo ML usando dados climáticos de satélite
 - [ ] **G3** — Visualizar dados climáticos em tempo real via Windy API em dashboard web integrado
 - [ ] **G4** — Coletar dados de solo/ambiente com ESP32 e enviá-los para pipeline cloud na AWS
@@ -47,7 +47,7 @@
 
 **MVP (v1) inclui:**
 - Pipeline de ingestão e análise de imagens de satélite (INPE/NASA via API ou dataset público)
-- Modelo YOLO treinado para detecção de queimadas/áreas desmatadas
+- Modelo YOLO treinado para detecção de tempestades/padrões de nuvens chuvosas
 - Modelo de ML para previsão de risco agrícola (regressão/classificação)
 - Dashboard com Windy API (visualização climática em tempo real no mapa)
 - Backend FastAPI na AWS (Lambda + API Gateway) conectado ao banco de dados
