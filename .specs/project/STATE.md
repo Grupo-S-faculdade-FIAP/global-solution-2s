@@ -12,8 +12,8 @@
 ## Current Focus
 
 **Active feature:** data-integration-dashboard (integração Dataset YOLO + Open-Meteo API + Dashboard)
-**Last task completed:** Design + Spec + Tasks criados para data-integration-dashboard (2026-06-02)
-**Next task:** T-01 (Setup DynamoDB) → T-02 (Setup S3) → T-03 (Setup FastAPI structure)
+**Last task completed:** ✅ T-06 (Open-Meteo API client implementado; 7 testes passando) (2026-06-02)
+**Next task:** T-07 (Create CloudWatch cron → Lambda weather ingestion) OU T-01 (DynamoDB setup em paralelo)
 **Blockers:** nenhum
 
 ---
@@ -34,6 +34,7 @@
 | 2026-06-02 | D-010 | Lambda para YOLO (vs SageMaker) | Custo menor; modelo v8s ~25MB; reutiliza código FastAPI | CV Pipeline |
 | 2026-06-02 | D-011 | Correlação ML simples (não deep learning) | Reduz complexidade; mais interpretável para MVP | ML Module |
 | 2026-06-02 | D-012 | Windy API widget (não REST) | Free tier + widget interativo; widget é suficiente | Dashboard |
+| 2026-06-02 | D-013 | T-11/T-12 revisadas para usar Flask dashboard existente | Reutilizar codebase; não recriar do zero | Frontend |
 
 ---
 
