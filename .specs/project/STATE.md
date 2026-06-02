@@ -12,8 +12,8 @@
 ## Current Focus
 
 **Active feature:** data-integration-dashboard (integração Dataset YOLO + Open-Meteo API + Dashboard)
-**Last task completed:** ✅ T-06 (Open-Meteo API client implementado; 7 testes passando) (2026-06-02)
-**Next task:** T-07 (Create CloudWatch cron → Lambda weather ingestion) OU T-01 (DynamoDB setup em paralelo)
+**Last task completed:** ✅ T-07 (CloudWatch Lambda para ingestão weather; 7 testes passando) (2026-06-02)
+**Next task:** T-01 (Setup DynamoDB) — Foundation para T-06 e T-07 produzirem dados
 **Blockers:** nenhum
 
 ---
