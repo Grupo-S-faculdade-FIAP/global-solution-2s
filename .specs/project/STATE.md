@@ -12,8 +12,8 @@
 ## Current Focus
 
 **Active feature:** data-integration-dashboard (integração Dataset YOLO + Open-Meteo API + Dashboard)
-**Last task completed:** ✅ T-07 (CloudWatch Lambda para ingestão weather; 7 testes passando) (2026-06-02)
-**Next task:** T-01 (Setup DynamoDB) — Foundation para T-06 e T-07 produzirem dados
+**Last task completed:** ✅ T-09 (Endpoints API para weather/storms/risk; 21 testes passando) (2026-06-02)
+**Next task:** T-11 (Integrar FastAPI backend com Flask dashboard) — Conectar endpoints reais ao frontend
 **Blockers:** nenhum
 
 ---
