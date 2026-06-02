@@ -1,6 +1,8 @@
 import random
 import requests
+import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
 
@@ -10,6 +12,29 @@ app = Flask(__name__)
 FASTAPI_BASE_URL = "http://localhost:8000"
 DEFAULT_WEATHER_LAT = -23.55  # São Paulo
 DEFAULT_WEATHER_LON = -46.63
+
+# ─── YOLO Storm Detector Configuration ────────────────────────────────────────
+# Tentar importar o detector de tempestades
+STORM_DETECTOR = None
+try:
+    # Adicionar src ao path para importar módulos da app
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from app.services.storm_detector import StormDetector
+    
+    # Caminho do modelo YOLO (usar modelo padrão se existir)
+    YOLO_MODEL_PATH = "models/yolov8-storm-detector/weights/best.pt"
+    if Path(YOLO_MODEL_PATH).exists():
+        STORM_DETECTOR = StormDetector(
+            model_path=YOLO_MODEL_PATH,
+            confidence_threshold=0.5,
+            device="cpu"
+        )
+        print(f"✅ Storm Detector carregado: {YOLO_MODEL_PATH}")
+    else:
+        print(f"⚠️  Modelo YOLO não encontrado em {YOLO_MODEL_PATH}")
+except Exception as e:
+    print(f"⚠️  Storm Detector não disponível: {e}")
+    STORM_DETECTOR = None
 
 # ─── Cache middleware ─────────────────────────────────────────────────────────
 @app.after_request
@@ -205,6 +230,171 @@ def map_overlay():
             return jsonify({"error": "Failed to fetch map overlay"}), response.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({"error": f"Backend connection error: {str(e)}"}), 503
+
+
+# ─── YOLO Storm Detection Endpoints ────────────────────────────────────────────
+@app.route("/api/storms/detect", methods=["POST"])
+def detect_storm():
+    """
+    Detecta tempestades em uma imagem usando YOLO.
+    
+    Body (JSON):
+      - image_url: URL ou caminho local da imagem
+      - save_visualization: Se deve salvar imagem com bounding boxes (opcional, default: false)
+    
+    Returns:
+        {
+          "success": bool,
+          "num_detections": int,
+          "detections": [...],
+          "has_storm": bool,
+          "average_confidence": float,
+          "message": str
+        }
+    """
+    if not STORM_DETECTOR:
+        return jsonify({
+            "success": False,
+            "error": "Storm Detector não está disponível. Treine o modelo primeiro.",
+            "message": "Modelo YOLO não encontrado"
+        }), 503
+
+    try:
+        data = request.get_json() or {}
+        image_url = data.get("image_url")
+        
+        if not image_url:
+            return jsonify({
+                "success": False,
+                "error": "Campo obrigatório 'image_url' não fornecido"
+            }), 400
+        
+        # Fazer predição
+        result = STORM_DETECTOR.predict(image_url)
+        
+        return jsonify({
+            "success": True,
+            "num_detections": result.num_detections,
+            "detections": [
+                {
+                    "x": d.x,
+                    "y": d.y,
+                    "width": d.width,
+                    "height": d.height,
+                    "confidence": d.confidence,
+                    "class_name": d.class_name
+                }
+                for d in result.detections
+            ],
+            "has_storm": result.has_storm,
+            "average_confidence": result.average_confidence,
+            "timestamp": result.timestamp,
+            "message": f"Detectadas {result.num_detections} tempestades" if result.has_storm else "Nenhuma tempestade detectada"
+        })
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/storms/batch-detect", methods=["POST"])
+def batch_detect_storms():
+    """
+    Detecta tempestades em múltiplas imagens.
+    
+    Body (JSON):
+      - image_urls: Lista de URLs/caminhos de imagens
+    
+    Returns:
+        Lista de resultados de detecção
+    """
+    if not STORM_DETECTOR:
+        return jsonify({
+            "success": False,
+            "error": "Storm Detector não está disponível"
+        }), 503
+
+    try:
+        data = request.get_json() or {}
+        image_urls = data.get("image_urls", [])
+        
+        if not image_urls:
+            return jsonify({
+                "success": False,
+                "error": "Campo obrigatório 'image_urls' não fornecido"
+            }), 400
+        
+        results = STORM_DETECTOR.predict_batch(image_urls)
+        
+        return jsonify({
+            "success": True,
+            "total_images": len(results),
+            "total_detections": sum(r.num_detections for r in results),
+            "images_with_storm": sum(1 for r in results if r.has_storm),
+            "results": [
+                {
+                    "image_path": r.image_path,
+                    "num_detections": r.num_detections,
+                    "has_storm": r.has_storm,
+                    "average_confidence": r.average_confidence,
+                    "timestamp": r.timestamp
+                }
+                for r in results
+            ]
+        })
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/alerts/simulate-detection", methods=["POST"])
+def simulate_storm_detection():
+    """
+    Simula uma detecção de tempestade e gera um alerta.
+    Útil para testes quando não há modelo treinado ou sem imagens disponíveis.
+    
+    Body (JSON, opcional):
+      - confidence: Confiança da detecção simulada (0-1), default: 0.85
+      - lat: Latitude, default: -23.55 (São Paulo)
+      - lon: Longitude, default: -46.63
+    
+    Returns:
+        Alerta gerado com timestamp
+    """
+    try:
+        data = request.get_json() or {}
+        confidence = data.get("confidence", 0.85)
+        lat = data.get("lat", -23.55)
+        lon = data.get("lon", -46.63)
+        
+        # Adicionar alerta simulado ao histórico de alertas
+        alert = {
+            "id": f"alert_{datetime.now().timestamp()}",
+            "type": "storm_detection",
+            "confidence": confidence,
+            "latitude": lat,
+            "longitude": lon,
+            "timestamp": datetime.now().isoformat(),
+            "message": f"Tempestade detectada com confiança {confidence:.1%}",
+            "simulated": True
+        }
+        
+        return jsonify({
+            "success": True,
+            "alert": alert,
+            "message": "Alerta de tempestade simulado com sucesso"
+        })
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 if __name__ == "__main__":
