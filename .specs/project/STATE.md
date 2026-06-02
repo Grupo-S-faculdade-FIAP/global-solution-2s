@@ -25,8 +25,8 @@
 | 2026-06-01 | D-001 | Nome do projeto: sem nome definido | Pendente de definição | Nome nos READMEs e PDF |
 | 2026-06-01 | D-002 | Arquitetura: FastAPI + AWS Lambda + API Gateway | Cobre disciplina Cloud/AWS; serverless reduz custo; free tier suficiente para POC | Backend inteiro |
 | 2026-06-01 | D-003 | Windy API como widget no frontend (não REST) | Plano free do Windy não libera REST API completa; widget free cobre visualização no mapa | Frontend / dashboard |
-| 2026-06-01 | D-004 | YOLOv8 (Ultralytics) para detecção de queimadas | Estado da arte para detecção de objetos; boa documentação; funciona com dataset FIRMS/INPE | Módulo CV |
-| 2026-06-01 | D-005 | Dataset de imagens: NASA FIRMS (Fire Information for Resource Management System) | Público, gratuito, cobre o Brasil, fornece imagens e coordenadas de focos de calor | Módulo CV + ML |
+| 2026-06-01 | D-004 | YOLOv8 (Ultralytics) para detecção de tempestades/nuvens chuvosas | Estado da arte para detecção de objetos; boa documentação; dataset de nuvens do Windy.com | Módulo CV |
+| 2026-06-01 | D-005 | Dataset de imagens: screenshots do Windy.com (nuvens chuvosas) | Gratuito; cobre o Brasil; upload manual para S3 dispara o pipeline via trigger | Módulo CV + ML |
 | 2026-06-01 | D-006 | Estrutura base: FastAPI com routers por módulo (cv, ml, iot, dashboard) | Separação de responsabilidades; facilita divisão de trabalho entre integrantes | Toda a API |
 | 2026-06-01 | D-007 | Config via pydantic-settings + .env | Sem segredos hardcodados; segue boas práticas de segurança | Toda a API |
 
@@ -48,7 +48,7 @@
 
 ## Deferred Ideas
 
-- Alertas em tempo real por push/email quando YOLO detectar queimada
+- Alertas em tempo real por push/email quando YOLO detectar tempestade
 - Cobertura de outros países da América do Sul
 - App mobile para visualização no campo
 
@@ -61,7 +61,7 @@
 - [x] Criar estrutura de pastas do repositório conforme template (README.md, docs/, data/, assets/, Ir Além/)
 - [x] Criar scaffold FastAPI base (src/)
 - [ ] Instalar dependências e rodar testes base
-- [ ] Especificar feature: módulo Computer Vision (YOLO + queimadas)
+- [ ] Especificar feature: módulo Computer Vision (YOLO + detecção de tempestades)
 - [ ] Especificar feature: módulo Machine Learning (previsão agrícola)
 - [ ] Especificar feature: módulo Cloud/Backend (FastAPI + AWS)
 - [ ] Especificar feature: módulo Frontend/Dashboard (Windy API + visualizações)

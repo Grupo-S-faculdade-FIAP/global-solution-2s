@@ -37,8 +37,8 @@ O projeto endereça a falta de sistemas acessíveis que integrem imagens de sat�
 
 **Principais componentes da solução:**
 
-- **Módulo Computer Vision (CV):** pipeline de captura de imagens de satélite (Windy.com / AWS EC2) com modelo YOLOv5 treinado para detectar padrões de nuvens chuvosas;
-- **Módulo Cloud/Backend:** API REST construída com FastAPI, hospedada na AWS (EC2 para captura de imagens + Lambda para processamento serverless + SNS para envio de alertas de chuva em tempo real).
+- **Módulo Computer Vision (CV):** pipeline de análise de imagens de satélite (Windy.com) com modelo YOLOv5 treinado para detectar padrões de nuvens chuvosas. As imagens são enviadas manualmente ao S3, que aciona automaticamente o processamento via Lambda;
+- **Módulo Cloud/Backend:** API REST construída com FastAPI, hospedada na AWS (Lambda serverless para processamento + SNS para envio de alertas de chuva em tempo real). O fluxo é iniciado pelo upload manual de uma imagem ao bucket S3.
 - **Módulo IoT:** ESP32 com sensores de umidade do solo para monitoramento remoto de campo, com dados enviados para a nuvem via HTTP.
 - **Módulo Análise de Dados:** armazenamento dos alertas em banco SQL/NoSQL (dia e horário) com visualização em gráficos de barras para identificação de padrões recorrentes de chuva por dia da semana e faixa de horário.
 
@@ -51,6 +51,7 @@ A solução foi desenvolvida como projeto Global Solution da Graduação ON em I
 Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 - **`docs/`**: Documentação textual do projeto — como: brainstorm, diagramas de arquitetura, desenhos de fluxo, prints, storyboard, estratégia de IA, especificações de hardware (ESP32/Wokwi), atas de reunião e decisões técnicas.
+  - setup da AWS: https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki/AWS%E2%80%90STATE
 
 - **`src/`**: Todo o código-fonte desenvolvido — API FastAPI (routers de CV, IoT e Dashboard), scripts de treinamento YOLO, notebooks de exploração e análise de dados, código para ESP32 e modelos serializados.
 
@@ -71,7 +72,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 **Decisões técnicas relevantes:**
 - YOLOv5 foi escolhido para detecção de padrões de nuvens chuvosas por ser estado da arte em detecção de objetos, com suporte a pipelines customizados de rotulagem e treino.
-- AWS EC2 realiza a captura periódica de imagens de satélite; AWS Lambda processa os dados de forma serverless; AWS SNS dispara as notificações de alerta de chuva.
+- AWS Lambda processa as imagens de satélite de forma serverless (acionado por S3 trigger); AWS SNS dispara as notificações de alerta de chuva. O upload manual de screenshots do Windy.com para o S3 inicia todo o pipeline.
 - O banco de dados SQL/NoSQL armazena dia e horário de cada alerta, alimentando a análise de padrões de recorrência de chuva.
 - Config de segredos via `pydantic-settings` + `.env` — nenhum segredo hard-coded no código.
 
