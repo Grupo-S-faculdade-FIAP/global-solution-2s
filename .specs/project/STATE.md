@@ -11,9 +11,9 @@
 
 ## Current Focus
 
-**Active feature:** estrutura base do projeto
-**Last task completed:** scaffold FastAPI criado (main.py, routers, config, requirements, Makefile, tests)
-**Next task:** instalar dependências e rodar os testes base; depois especificar feature Computer Vision (YOLO)
+**Active feature:** data-integration-dashboard (integração Dataset YOLO + Open-Meteo API + Dashboard)
+**Last task completed:** Design + Spec + Tasks criados para data-integration-dashboard (2026-06-02)
+**Next task:** T-01 (Setup DynamoDB) → T-02 (Setup S3) → T-03 (Setup FastAPI structure)
 **Blockers:** nenhum
 
 ---
@@ -29,6 +29,11 @@
 | 2026-06-01 | D-005 | Dataset de imagens: screenshots do Windy.com (nuvens chuvosas) | Gratuito; cobre o Brasil; upload manual para S3 dispara o pipeline via trigger | Módulo CV + ML |
 | 2026-06-01 | D-006 | Estrutura base: FastAPI com routers por módulo (cv, ml, iot, dashboard) | Separação de responsabilidades; facilita divisão de trabalho entre integrantes | Toda a API |
 | 2026-06-01 | D-007 | Config via pydantic-settings + .env | Sem segredos hardcodados; segue boas práticas de segurança | Toda a API |
+| 2026-06-02 | D-008 | Open-Meteo API (100% free, sem API key) | Não requer autenticação; cobertura global; open-source | Data Ingestion |
+| 2026-06-02 | D-009 | DynamoDB com 3 tabelas (time-series otimizada) | Serverless; TTL automático; queries rápidas por timestamp | Database |
+| 2026-06-02 | D-010 | Lambda para YOLO (vs SageMaker) | Custo menor; modelo v8s ~25MB; reutiliza código FastAPI | CV Pipeline |
+| 2026-06-02 | D-011 | Correlação ML simples (não deep learning) | Reduz complexidade; mais interpretável para MVP | ML Module |
+| 2026-06-02 | D-012 | Windy API widget (não REST) | Free tier + widget interativo; widget é suficiente | Dashboard |
 
 ---
 
@@ -61,11 +66,14 @@
 - [x] Criar estrutura de pastas do repositório conforme template (README.md, docs/, data/, assets/, Ir Além/)
 - [x] Criar scaffold FastAPI base (src/)
 - [ ] Instalar dependências e rodar testes base
-- [ ] Especificar feature: módulo Computer Vision (YOLO + detecção de tempestades)
-- [ ] Especificar feature: módulo Machine Learning (previsão agrícola)
-- [ ] Especificar feature: módulo Cloud/Backend (FastAPI + AWS)
-- [ ] Especificar feature: módulo Frontend/Dashboard (Windy API + visualizações)
-- [ ] Especificar feature: módulo IoT (ESP32 + sensores)
+- [x] Especificar feature: Data Integration Dashboard (YOLO + Open-Meteo + Dashboard)
+- [ ] **NEXT:** Implementar T-01 a T-03 (Setup DynamoDB, S3, FastAPI)
+- [ ] **NEXT:** Implementar T-04 a T-05 (YOLO inference pipeline)
+- [ ] **NEXT:** Implementar T-06 a T-07 (Weather ingestion)
+- [ ] **NEXT:** Implementar T-08 (ML risk prediction)
+- [ ] **NEXT:** Implementar T-09 a T-10 (API endpoints)
+- [ ] **NEXT:** Implementar T-11 a T-12 (Dashboard + deployment)
+- [ ] Especificar feature: módulo IoT (ESP32 + sensores) — se tempo permitir
 
 ---
 
