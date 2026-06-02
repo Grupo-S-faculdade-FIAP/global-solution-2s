@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <meta name="theme-color" content="#0d1117" />
+  <title>Global Solutions — Alertas de Chuva</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Tema: Dark (padrão) ─────────────────────────────────────────────── */
+    html[data-theme="dark"] {
+      --bg-base:    #0d1117;
+      --bg-card:    #161b22;
+      --bg-card-2:  #1c2330;
+      --border:     #30363d;
+      --text-prim:  #e6edf3;
+      --text-sec:   #8b949e;
+      --blue:       #58a6ff;
+      --green:      #3fb950;
+      --yellow:     #d29922;
+      --red:        #f85149;
+      --purple:     #bc8cff;
+    }
+
+    /* ── Tema: Light ─────────────────────────────────────────────────────── */
+    html[data-theme="light"] {
+      --bg-base:    #ffffff;
+      --bg-card:    #f6f8fb;
+      --bg-card-2:  #eaeef2;
+      --border:     #d0d7de;
+      --text-prim:  #24292f;
+      --text-sec:   #57606a;
+      --blue:       #0969da;
+      --green:      #1a7f37;
+      --yellow:     #9e6a03;
+      --red:        #cf222e;
+      --purple:     #8250df;
+    }
+
+    /* ── Base ────────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg-base);
+      color: var(--text-prim);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* ── Topbar (sticky) ─────────────────────────────────────────────────── */
+    .topbar {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      height: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-wrap: wrap;
+    }
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-prim);
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .topbar-brand .icon-satellite {
+      color: var(--blue);
+      font-size: 20px;
+    }
+    .topbar-badge {
+      font-size: 10px;
+      background: rgba(88,166,255,.15);
+      color: var(--blue);
+      border: 1px solid rgba(88,166,255,.3);
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .topbar-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+    .topbar-meta {
+      font-size: 11px;
+      color: var(--text-sec);
+      display: none;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .theme-toggle {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-prim);
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .theme-toggle:hover {
+      border-color: var(--blue);
+      background: rgba(88,166,255,.1);
+    }
+    .pulse {
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────────────── */
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    @media (min-width: 768px) {
+      .page { padding: 1.5rem; }
+    }
+    .section-title {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-sec);
+      margin-bottom: 0.75rem;
+      margin-top: 1.25rem;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    /* ── KPI Grid (mobile-first) ────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    @media (min-width: 640px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 1024px) {
+      .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.9rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .kpi-card:hover {
+      border-color: var(--blue);
+      background: var(--bg-card-2);
+    }
+    .kpi-label {
+      font-size: 10px;
+      color: var(--text-sec);
+      font-weight: 500;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .kpi-label i { font-size: 12px; }
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    @media (min-width: 768px) {
+      .kpi-value { font-size: 32px; }
+    }
+    .kpi-sub {
+      font-size: 10px;
+      color: var(--text-sec);
+    }
+    .text-blue { color: var(--blue); }
+    .text-green { color: var(--green); }
+    .text-yellow { color: var(--yellow); }
+    .text-purple { color: var(--purple); }
+
+    /* ── Chart Grid (mobile-first) ────────────────────────────────────────── */
+    .chart-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    @media (min-width: 1024px) {
+      .chart-grid-2 { grid-template-columns: 2fr 1fr; }
+    }
+
+    .chart-grid-2b {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    @media (min-width: 1024px) {
+      .chart-grid-2b { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── Cards ───────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.9rem;
+      transition: border-color 0.2s;
+    }
+    @media (min-width: 768px) {
+      .card { padding: 1.25rem; }
+    }
+    .card:hover { border-color: var(--blue); }
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .card-head-title {
+      font-weight: 600;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    @media (min-width: 768px) {
+      .card-head-title { font-size: 13px; }
+    }
+    .card-head-sub {
+      font-size: 10px;
+      color: var(--text-sec);
+    }
+    canvas {
+      max-height: 240px;
+      width: 100% !important;
+    }
+    @media (min-width: 768px) {
+      canvas { max-height: 320px; }
+    }
+
+    /* ── Heatmap ─────────────────────────────────────────────────────────── */
+    .heatmap-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: -0.5rem;
+      padding: 0.5rem;
+    }
+    .heatmap-table {
+      border-collapse: separate;
+      border-spacing: 2px;
+      min-width: 400px;
+    }
+    .heatmap-table th {
+      font-size: 8px;
+      color: var(--text-sec);
+      text-align: center;
+      padding: 0 1px;
+      font-weight: 500;
+      height: 24px;
+    }
+    .heatmap-table td {
+      width: 18px;
+      height: 16px;
+      border-radius: 3px;
+      background: var(--bg-card-2);
+      cursor: default;
+      transition: transform 0.1s;
+    }
+    @media (min-width: 768px) {
+      .heatmap-table td {
+        width: 22px;
+        height: 18px;
+      }
+    }
+    .heatmap-table td:hover {
+      transform: scale(1.2);
+      z-index: 1;
+      position: relative;
+    }
+    .hm-day {
+      font-size: 9px;
+      color: var(--text-sec);
+      padding-right: 4px;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    @media (min-width: 768px) {
+      .hm-day { font-size: 10px; padding-right: 6px; }
+    }
+
+    /* ── Windy Card ──────────────────────────────────────────────────────── */
+    .windy-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+      transition: border-color 0.2s;
+    }
+    .windy-card:hover { border-color: var(--blue); }
+    .windy-head {
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .windy-head span {
+      font-weight: 600;
+      font-size: 12px;
+    }
+    @media (min-width: 768px) {
+      .windy-head span { font-size: 13px; }
+    }
+    .windy-head small {
+      color: var(--text-sec);
+      font-size: 10px;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+    .windy-frame {
+      display: block;
+      width: 100%;
+      height: 350px;
+      border: none;
+      background: var(--bg-card-2);
+    }
+    @media (min-width: 768px) {
+      .windy-frame { height: 480px; }
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    .footer {
+      text-align: center;
+      padding: 1.5rem 1rem;
+      color: var(--text-sec);
+      font-size: 10px;
+      border-top: 1px solid var(--border);
+      margin-top: 1.5rem;
+    }
+
+    /* ── Responsive adjustments ──────────────────────────────────────────── */
+    @media (min-width: 768px) {
+      .topbar-meta { display: flex; }
+    }
+
+    /* ── Page heading ────────────────────────────────────────────────────── */
+    .page-heading {
+      margin-bottom: 1rem;
+      margin-top: 0.5rem;
+    }
+    .page-heading h5 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    @media (min-width: 768px) {
+      .page-heading h5 { font-size: 20px; }
+    }
+    .page-heading p {
+      color: var(--text-sec);
+      font-size: 11px;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Topbar ───────────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <a class="topbar-brand" href="#">
+      <i class="bi bi-broadcast icon-satellite"></i>
+      Global Solutions
+      <span class="topbar-badge">FIAP 2026</span>
+    </a>
+    <div class="topbar-controls">
+      <button class="theme-toggle" id="theme-toggle" title="Alternar tema" aria-label="Alternar tema">
+        <i class="bi bi-moon-stars-fill"></i>
+      </button>
+      <div class="topbar-meta">
+        <span class="pulse"></span>
+        Ao vivo &nbsp;·&nbsp; <span id="ts">—</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- ── Subtítulo ──────────────────────────────────────────────────────── -->
+    <div class="page-heading">
+      <h5>🌧️ Dashboard — Alertas de Chuva</h5>
+      <p>Distribuição temporal de alertas climáticos (últimos 30 dias)</p>
+    </div>
+
+    <!-- ── KPI Cards ──────────────────────────────────────────────────────── -->
+    <p class="section-title">Indicadores</p>
+    <div class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label text-blue"><i class="bi bi-bell-fill"></i>Total (30 dias)</div><div class="kpi-value text-blue" id="kpi-total">—</div><div class="kpi-sub">alertas emitidos</div></div>
+      <div class="kpi-card"><div class="kpi-label text-green"><i class="bi bi-bar-chart-line-fill"></i>Média diária</div><div class="kpi-value text-green" id="kpi-avg">—</div><div class="kpi-sub">alertas / dia</div></div>
+      <div class="kpi-card"><div class="kpi-label text-yellow"><i class="bi bi-calendar-week-fill"></i>Dia pico</div><div class="kpi-value text-yellow" id="kpi-day" style="font-size:22px;padding-top:5px">—</div><div class="kpi-sub">maior incidência semanal</div></div>
+      <div class="kpi-card"><div class="kpi-label text-purple"><i class="bi bi-clock-fill"></i>Hora pico</div><div class="kpi-value text-purple" id="kpi-hour" style="font-size:22px;padding-top:5px">—</div><div class="kpi-sub">faixa horária crítica</div></div>
+    </div>
+
+    <!-- ── Linha 1: Tendência 30d + Semanal ──────────────────────────────── -->
+    <p class="section-title">Tendência &amp; Distribuição</p>
+    <div class="chart-grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-head-title">Tendência — Últimos 30 dias</div>
+            <div class="card-head-sub">Alertas emitidos por dia</div>
+          </div>
+        </div>
+        <canvas id="trendChart"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-head-title">Por Dia da Semana</div>
+            <div class="card-head-sub">Distribuição acumulada</div>
+          </div>
+        </div>
+        <canvas id="weeklyChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ── Linha 2: Horário + Heatmap ────────────────────────────────────── -->
+    <div class="chart-grid-2b">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-head-title">Por Hora do Dia</div>
+            <div class="card-head-sub">Pico convectivo à tarde</div>
+          </div>
+        </div>
+        <canvas id="hourlyChart"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-head-title">Heatmap — Dia × Hora</div>
+            <div class="card-head-sub">Intensidade de alertas</div>
+          </div>
+        </div>
+        <div class="heatmap-wrap">
+          <table class="heatmap-table" id="heatmap-table">
+            <thead><tr><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Mapa Windy ─────────────────────────────────────────────────────── -->
+    <p class="section-title">Mapa climático em tempo real</p>
+    <div class="windy-card">
+      <div class="windy-head">
+        <i class="bi bi-globe2 text-blue"></i>
+        <span>Precipitação — Brasil</span>
+        <small>via Windy.com &nbsp;·&nbsp; overlay: chuva</small>
+      </div>
+      <iframe
+        class="windy-frame"
+        src="https://embed.windy.com/embed2.html?lat=-15.77&lon=-51.93&detailLat=-15.77&detailLon=-47.92&zoom=4&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1"
+        allowfullscreen
+        loading="lazy"
+      ></iframe>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    Global Solutions · FIAP 2026 · dados mockados para demonstração
+  </footer>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <script>
+    // ── Theme Management ─────────────────────────────────────────────────────
+    (function () {
+      const THEME_KEY = "dashboard-theme";
+      const savedTheme = localStorage.getItem(THEME_KEY) || "dark";
+      const html = document.documentElement;
+      
+      function setTheme(theme) {
+        html.setAttribute("data-theme", theme);
+        localStorage.setItem(THEME_KEY, theme);
+        updateChartDefaults();
+        updateWindyIframe();
+      }
+
+      function toggleTheme() {
+        const current = html.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+        setTheme(next);
+        updateThemeIcon(next);
+      }
+
+      function updateThemeIcon(theme) {
+        const btn = document.getElementById("theme-toggle");
+        btn.innerHTML = theme === "dark" 
+          ? '<i class="bi bi-sun-fill"></i>' 
+          : '<i class="bi bi-moon-stars-fill"></i>';
+      }
+
+      // Initialize theme
+      setTheme(savedTheme);
+      updateThemeIcon(savedTheme);
+      document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
+    })();
+
+    // ── Chart Defaults (tema-aware) ────────────────────────────────────────────
+    function getThemeColors() {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      return isDark
+        ? { text: "#8b949e", border: "#21262d", blue: "#58a6ff", green: "#3fb950" }
+        : { text: "#57606a", border: "#d0d7de", blue: "#0969da", green: "#1a7f37" };
+    }
+
+    function updateChartDefaults() {
+      const colors = getThemeColors();
+      Chart.defaults.color = colors.text;
+      Chart.defaults.borderColor = colors.border;
+      // Redraw active charts if needed (aqui seria necessário invalidar cache)
+    }
+
+    // ── Lazy-load Windy iframe ────────────────────────────────────────────────
+    function lazyLoadWindy() {
+      const iframe = document.querySelector(".windy-frame");
+      if (!iframe) return;
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !iframe.src) {
+            iframe.src = "https://embed.windy.com/embed2.html?lat=-15.77&lon=-51.93&detailLat=-15.77&detailLon=-47.92&zoom=4&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1";
+            observer.unobserve(iframe);
+          }
+        });
+      }, { rootMargin: "100px" });
+
+      observer.observe(iframe);
+    }
+
+    function updateWindyIframe() {
+      // Windy pode ter seu próprio tema; este é apenas um placeholder
+      // Para mudanças reais, seria necessário recarregar o iframe
+    }
+
+    // ── Defaults ─────────────────────────────────────────────────────────────
+    const colors = getThemeColors();
+    Chart.defaults.color = colors.text;
+    Chart.defaults.font.family = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
+    // ── Timestamp ─────────────────────────────────────────────────────────────
+    document.getElementById("ts").textContent =
+      new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+    // ── KPIs ──────────────────────────────────────────────────────────────────
+    async function loadKPIs() {
+      const r = await fetch("/api/alerts/summary", { cache: "force-cache" });
+      const d = await r.json();
+      document.getElementById("kpi-total").textContent = d.total_30d;
+      document.getElementById("kpi-avg").textContent   = d.daily_avg;
+      document.getElementById("kpi-day").textContent   = d.peak_day;
+      document.getElementById("kpi-hour").textContent  = d.peak_hour;
+    }
+
+    // ── Trend chart ───────────────────────────────────────────────────────────
+    async function loadTrend() {
+      const r = await fetch("/api/alerts/daily", { cache: "force-cache" });
+      const d = await r.json();
+      const c = getThemeColors();
+      new Chart(document.getElementById("trendChart"), {
+        type: "line",
+        data: {
+          labels: Object.keys(d),
+          datasets: [{
+            label: "Alertas",
+            data: Object.values(d),
+            borderColor: c.blue,
+            backgroundColor: `${c.blue}15`,
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            tension: 0.35,
+            fill: true,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: c.text }, grid: { color: c.border } },
+            y: { beginAtZero: true, ticks: { color: c.text }, grid: { color: c.border } },
+          },
+        },
+      });
+    }
+
+    // ── Weekly chart ──────────────────────────────────────────────────────────
+    async function loadWeekly() {
+      const r = await fetch("/api/alerts/weekly", { cache: "force-cache" });
+      const d = await r.json();
+      const c = getThemeColors();
+      new Chart(document.getElementById("weeklyChart"), {
+        type: "bar",
+        data: {
+          labels: Object.keys(d),
+          datasets: [{
+            data: Object.values(d),
+            backgroundColor: `${c.blue}b3`,
+            borderColor: c.blue,
+            borderWidth: 1,
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: c.text }, grid: { color: c.border } },
+            y: { beginAtZero: true, ticks: { color: c.text }, grid: { color: c.border } },
+          },
+        },
+      });
+    }
+
+    // ── Hourly chart ──────────────────────────────────────────────────────────
+    async function loadHourly() {
+      const r = await fetch("/api/alerts/hourly", { cache: "force-cache" });
+      const d = await r.json();
+      const c = getThemeColors();
+      new Chart(document.getElementById("hourlyChart"), {
+        type: "bar",
+        data: {
+          labels: Object.keys(d),
+          datasets: [{
+            data: Object.values(d),
+            backgroundColor: `${c.green}b3`,
+            borderColor: c.green,
+            borderWidth: 1,
+            borderRadius: 3,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: c.text, maxTicksLimit: 12 }, grid: { color: c.border } },
+            y: { beginAtZero: true, ticks: { color: c.text }, grid: { color: c.border } },
+          },
+        },
+      });
+    }
+
+    // ── Heatmap ───────────────────────────────────────────────────────────────
+    async function loadHeatmap() {
+      const r    = await fetch("/api/alerts/heatmap", { cache: "force-cache" });
+      const data = await r.json();
+
+      const DAYS  = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
+      const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2,"0")}h`);
+
+      // Build lookup
+      const map = {};
+      data.forEach(({ x, y, v }) => { map[`${y}-${x}`] = v; });
+      const maxV = Math.max(...data.map(d => d.v), 1);
+
+      // Interpolate blue → cyan for intensity
+      function cell_color(v) {
+        const t = v / maxV;
+        if (t === 0) return "rgba(28,35,48,.6)";
+        const r = Math.round(20  + t * 38);
+        const g = Math.round(60  + t * 185);
+        const b = Math.round(130 + t * 120);
+        return `rgba(${r},${g},${b},${0.3 + t * 0.7})`;
+      }
+
+      const thead = document.querySelector("#heatmap-table thead tr");
+      const tbody = document.querySelector("#heatmap-table tbody");
+
+      // Header: hours
+      thead.innerHTML = "<th></th>";
+      HOURS.forEach(h => {
+        const th = document.createElement("th");
+        th.textContent = h.replace("h","");
+        thead.appendChild(th);
+      });
+
+      // Rows
+      DAYS.forEach((day, dy) => {
+        const tr = document.createElement("tr");
+        const label = document.createElement("td");
+        label.className = "hm-day";
+        label.textContent = day;
+        tr.appendChild(label);
+
+        HOURS.forEach((_, hx) => {
+          const v  = map[`${dy}-${hx}`] ?? 0;
+          const td = document.createElement("td");
+          td.style.background = cell_color(v);
+          td.title = `${day} ${HOURS[hx]}: ${v} alerta(s)`;
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ── Bootstrap ─────────────────────────────────────────────────────────────
+    lazyLoadWindy();
+    Promise.all([loadKPIs(), loadTrend(), loadWeekly(), loadHourly(), loadHeatmap()]);
+  </script>
+</body>
+</html>
+
