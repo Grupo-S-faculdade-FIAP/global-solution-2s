@@ -1,0 +1,5 @@
+train: /content/drive/MyDrive/FIAP/2026/images/train/
+val: /content/drive/MyDrive/FIAP/2026/images/val/
+
+names: # Defina aqui as labels do seu dataset
+  0: "storm"
