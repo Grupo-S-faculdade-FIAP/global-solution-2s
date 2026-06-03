@@ -43,6 +43,7 @@ Nosso grupo copiou literalmente as secções **"A solução poderá abordar tema
       - Fará o **vídeo de 5min**;
     - [Caroline de Castro Corrêa]()
       - **Análise de dados:** plotar em gráfico de barras o padrão de quando tem alerta de chuva, dias da semana e horário
+      - Code reviewer
     - [Rodrigo Dias Figueiroa]()
       - **ESP32:** Integração de sensores de umidade do solo para monitoramento remoto usando ESP32
     - [Lucas Hideki Oliveira Koyama]()
@@ -52,4 +53,4 @@ Nosso grupo copiou literalmente as secções **"A solução poderá abordar tema
       - **NoSQL:** armazenar em banco AWS DynamoDB tabela "iot" as mensagens de alerta de chuva (dia da mensagem e horário) para uso em posterior analise de dados
       - **README.md** organizado
     - [Tiago Lindgren Curi]()
-      - Code reviewer / pair programmer / orientações técnicas com AWS
+      - Code reviewer / orientações técnicas com AWS
