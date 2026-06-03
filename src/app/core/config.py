@@ -45,8 +45,8 @@ class Settings(BaseSettings):
     # Format: lat1,lon1,lat2,lon2,...
     WEATHER_RETENTION_DAYS: int = 90
     
-    # ─── Computer Vision (YOLO) ───────────────────────────────────────────
-    YOLO_MODEL_PATH: str = "s3://model-artifacts/yolov8s-storm-best.pt"
+    # ─── Computer Vision (YOLOv5) ──────────────────────────────────────────
+    YOLO_MODEL_PATH: str = "s3://model-artifacts/yolov5s-storm-best.pt"
     YOLO_CONFIDENCE_THRESHOLD: float = 0.5
     YOLO_INPUT_SIZE: int = 640
     YOLO_MODEL_RETENTION_DAYS: int = 30

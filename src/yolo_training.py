@@ -128,7 +128,7 @@ def export_model(model_path: str, export_format: str = "onnx"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Treina um modelo YOLOv8 para detecção de tempestades"
+        description="Treina um modelo YOLOv5 para detecção de tempestades"
     )
     parser.add_argument(
         "--dataset",

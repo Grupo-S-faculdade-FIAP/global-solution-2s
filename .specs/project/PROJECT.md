@@ -33,13 +33,13 @@
 **Core:**
 - Language: Python 3.11
 - Framework: FastAPI (backend API)
-- ML/CV: Ultralytics YOLOv8, scikit-learn, pandas, numpy
+- ML/CV: YOLOv5 (PyTorch Hub), scikit-learn, pandas, numpy
 - Cloud: AWS (Lambda, S3, API Gateway)
 - Database: DynamoDB (alertas + dados IoT time-series) — 100% NoSQL
 - Frontend: HTML/JS + Windy API widget + Streamlit (dashboard)
 - IoT: ESP32 + MicroPython (sensores de temperatura, umidade, solo)
 
-**Key dependencies:** ultralytics, fastapi, boto3, streamlit, requests
+**Key dependencies:** torch, torchvision, fastapi, boto3, streamlit, requests
 
 ---
 

@@ -157,8 +157,8 @@ curl -X POST http://localhost:5000/api/alerts/simulate-detection \
 
 Após o treinamento, os gráficos estarão em:
 ```
-models/yolov8-storm-detector/results.csv
-models/yolov8-storm-detector/plots/
+models/yolov5-storm-detector/results.csv
+models/yolov5-storm-detector/plots/
   ├── confusion_matrix.png
   ├── pr_curve.png
   ├── results.png
@@ -172,7 +172,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 # Abrir matriz de confusão
-img = Image.open("models/yolov8-storm-detector/plots/confusion_matrix.png")
+img = Image.open("models/yolov5-storm-detector/plots/confusion_matrix.png")
 plt.imshow(img)
 plt.axis('off')
 plt.show()
@@ -201,7 +201,7 @@ plt.show()
 
 3. **Usar modelo maior**
    ```bash
-   python3 yolo_training.py --model yolov8l
+  python3 yolo_training.py --model yolov5l
    ```
 
 ### Reduzir tamanho do modelo (para Lambda)
@@ -218,9 +218,9 @@ python3 yolo_training.py --export tflite
 
 ## ⚠️ Troubleshooting
 
-### ❌ "ultralytics not found"
+### ❌ "torch not found"
 ```bash
-pip install ultralytics
+pip install torch torchvision
 ```
 
 ### ❌ "Dataset path not found"
@@ -245,7 +245,7 @@ python3 yolo_training.py --batch 4
 
 ## 📚 Referências
 
-- **Documentação YOLOv8:** https://docs.ultralytics.com/
+- **Documentação YOLOv5:** https://github.com/ultralytics/yolov5
 - **Windy.com API:** https://www.windy.com/
 - **Formato YOLO Dataset:** https://roboflow.com/formats/yolo-darknet-txt
 
@@ -254,8 +254,8 @@ python3 yolo_training.py --batch 4
 ## 📋 Checklist de Conclusão
 
 - [ ] Dataset preparado em `data/model-dataset/`
-- [ ] Dependências instaladas (`pip install ultralytics`)
-- [ ] Modelo treinado: `models/yolov8-storm-detector/weights/best.pt`
+- [ ] Dependências instaladas (`pip install torch torchvision`)
+- [ ] Modelo treinado: `models/yolov5-storm-detector/weights/best.pt`
 - [ ] Validação concluída com métricas aceitáveis
 - [ ] Dashboard Flask rodando e detectando com sucesso
 - [ ] Testes manuais dos endpoints funcionando

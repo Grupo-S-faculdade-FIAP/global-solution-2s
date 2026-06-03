@@ -14,7 +14,7 @@
 | Feature | Disciplina | Prioridade | Status | Notas |
 |---------|-----------|------------|--------|-------|
 | Pipeline de ingestão de imagens de satélite | Python / Automação | P1 | Not started | NASA FIRMS ou INPE via API/dataset |
-| Modelo YOLO para detecção de tempestades | Computer Vision / YOLO | P1 | Not started | YOLOv8 fine-tuned em dataset de nuvens chuvosas (Windy.com) |
+| Modelo YOLO para detecção de tempestades | Computer Vision / YOLO | P1 | Not started | YOLOv5 fine-tuned em dataset de nuvens chuvosas (Windy.com) |
 | Modelo ML de previsão de risco agrícola | Machine Learning | P1 | Not started | Regressão/classificação com dados climáticos |
 | Backend FastAPI + endpoints REST | Python / Automação | P1 | Not started | Deploy na AWS Lambda via API Gateway |
 | Dashboard com Windy API (frontend) | Análise de Dados / Dashboards | P1 | Not started | Widget Windy + gráficos de dados locais |
