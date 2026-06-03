@@ -7,6 +7,8 @@ import requests
 from datetime import datetime
 from functools import lru_cache
 
+from app.core.config import settings
+
 
 class OpenMeteoClient:
     """Client for Open-Meteo free weather API.
@@ -16,8 +18,6 @@ class OpenMeteoClient:
     - Global coverage
     - Hourly + forecast data
     """
-    
-    BASE_URL = "https://api.open-meteo.com/v1/forecast"
     
     # Hourly data fields to request
     HOURLY_FIELDS = [
@@ -32,6 +32,8 @@ class OpenMeteoClient:
     
     def __init__(self):
         """Initialize Open-Meteo client."""
+        self.base_url = settings.OPENMETEO_API_URL
+        self.timezone = settings.OPENMETEO_TIMEZONE
         self.session = requests.Session()
         self.session.timeout = 10  # 10s timeout
         
@@ -79,11 +81,11 @@ class OpenMeteoClient:
             "latitude": lat,
             "longitude": lon,
             "hourly": ",".join(self.HOURLY_FIELDS),
-            "timezone": "auto"  # Automatic timezone detection
+            "timezone": self.timezone
         }
         
         try:
-            response = self.session.get(self.BASE_URL, params=params, timeout=10)
+            response = self.session.get(self.base_url, params=params, timeout=10)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             raise Exception(f"Failed to fetch weather data: {str(e)}")

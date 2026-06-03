@@ -7,7 +7,11 @@ It fetches weather data from Open-Meteo API and stores in DynamoDB.
 import pytest
 from unittest.mock import patch, MagicMock
 from datetime import datetime
-from src.app.lambdas.ingest_weather import lambda_handler, WeatherMetricsRepository
+from src.app.lambdas.ingest_weather import (
+    lambda_handler,
+    WeatherMetricsRepository,
+    parse_locations,
+)
 
 
 class TestWeatherIngestLambda:
@@ -165,3 +169,36 @@ class TestWeatherMetricsRepository:
         }
         
         assert set(metric.keys()) == required_fields
+
+
+class TestParseLocations:
+    """Test location parsing from settings."""
+    
+    @patch("src.app.lambdas.ingest_weather.settings")
+    def test_parse_locations_valid(self, mock_settings):
+        """Test parsing valid location string."""
+        mock_settings.WEATHER_LOCATIONS = "-23.5505,-46.6333,-22.9068,-43.1729"
+        
+        locations = parse_locations()
+        
+        assert len(locations) == 2
+        assert locations[0] == (-23.5505, -46.6333)
+        assert locations[1] == (-22.9068, -43.1729)
+        
+    @patch("src.app.lambdas.ingest_weather.settings")
+    def test_parse_locations_single(self, mock_settings):
+        """Test parsing single location."""
+        mock_settings.WEATHER_LOCATIONS = "-23.5505,-46.6333"
+        
+        locations = parse_locations()
+        
+        assert len(locations) == 1
+        assert locations[0] == (-23.5505, -46.6333)
+        
+    @patch("src.app.lambdas.ingest_weather.settings")
+    def test_parse_locations_invalid(self, mock_settings):
+        """Test that odd number of values raises error."""
+        mock_settings.WEATHER_LOCATIONS = "-23.5505,-46.6333,-22.9068"
+        
+        with pytest.raises(ValueError):
+            parse_locations()

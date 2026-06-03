@@ -12,8 +12,8 @@
 ## Current Focus
 
 **Active feature:** data-integration-dashboard (integração Dataset YOLO + Open-Meteo API + Dashboard)
-**Last task completed:** ✅ T-07 (CloudWatch Lambda para ingestão weather; 7 testes passando) (2026-06-02)
-**Next task:** T-01 (Setup DynamoDB) — Foundation para T-06 e T-07 produzirem dados
+**Last task completed:** ✅ T-11 (Integrar FastAPI com Flask dashboard; proxy routes + real-time cards) (2026-06-02)
+**Next task:** T-01 (Setup DynamoDB) — Foundation para persistência de dados de tempo real
 **Blockers:** nenhum
 
 ---
@@ -35,6 +35,7 @@
 | 2026-06-02 | D-011 | Correlação ML simples (não deep learning) | Reduz complexidade; mais interpretável para MVP | ML Module |
 | 2026-06-02 | D-012 | Windy API widget (não REST) | Free tier + widget interativo; widget é suficiente | Dashboard |
 | 2026-06-02 | D-013 | T-11/T-12 revisadas para usar Flask dashboard existente | Reutilizar codebase; não recriar do zero | Frontend |
+| 2026-06-02 | D-014 | Centralizar variáveis de ambiente em .env (pydantic-settings) | Sem hardcoding; fácil deployment; team-friendly | Toda a API |
 
 ---
 

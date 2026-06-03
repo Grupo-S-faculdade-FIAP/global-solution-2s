@@ -5,7 +5,7 @@ Upstream: Open-Meteo API
 Downstream: DynamoDB table (weather_metrics)
 
 Flow:
-1. Get list of target locations
+1. Get list of target locations from settings
 2. For each location, call Open-Meteo API via WeatherService
 3. Format each response as weather metric
 4. Store in DynamoDB
@@ -16,38 +16,28 @@ import json
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 
 import boto3
 
+from src.app.core.config import settings
 from src.app.services.weather_service import WeatherService
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Configuration
-WEATHER_TABLE_NAME = os.getenv("WEATHER_TABLE_NAME", "weather_metrics")
-TTL_DAYS = 90  # Retention period for DynamoDB records
-
-# Default locations to monitor (lat, lon, name)
-DEFAULT_LOCATIONS = [
-    (-23.5505, -46.6333, "São Paulo"),
-    (-22.9068, -43.1729, "Rio de Janeiro"),
-    (-15.8267, -47.8711, "Brasília"),
-    (-30.0346, -51.2177, "Porto Alegre"),
-    (-9.9794, -49.8623, "Palmas"),
-]
-
 
 class WeatherMetricsRepository:
     """Repository for weather metrics in DynamoDB."""
     
-    def __init__(self, table_name: str = WEATHER_TABLE_NAME):
+    def __init__(self, table_name: str = None):
         """Initialize repository.
         
         Args:
-            table_name: DynamoDB table name
+            table_name: DynamoDB table name (uses settings if None)
         """
+        if table_name is None:
+            table_name = settings.DYNAMODB_WEATHER_TABLE
         self.dynamodb = boto3.resource("dynamodb")
         self.table = self.dynamodb.Table(table_name)
         
@@ -84,7 +74,7 @@ def format_weather_metric(
     
     # Parse timestamp to compute TTL (Unix timestamp)
     dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-    ttl_timestamp = int((dt + timedelta(days=TTL_DAYS)).timestamp())
+    ttl_timestamp = int((dt + timedelta(days=settings.WEATHER_RETENTION_DAYS)).timestamp())
     
     # Partition key: timestamp#location
     pk = f"{timestamp}#lat-{lat}_lon-{lon}"
@@ -109,6 +99,31 @@ def format_weather_metric(
     }
 
 
+def parse_locations() -> List[Tuple[float, float]]:
+    """Parse locations from settings.
+    
+    Format: lat1,lon1,lat2,lon2,...
+    Example: "-23.5505,-46.6333,-22.9068,-43.1729"
+    
+    Returns:
+        List of (lat, lon) tuples
+    """
+    coords = [float(x) for x in settings.WEATHER_LOCATIONS.split(",")]
+    
+    if len(coords) % 2 != 0:
+        raise ValueError(
+            f"WEATHER_LOCATIONS must have even number of values (lat,lon pairs). "
+            f"Got: {len(coords)}"
+        )
+    
+    locations = []
+    for i in range(0, len(coords), 2):
+        locations.append((coords[i], coords[i + 1]))
+    
+    logger.info(f"Parsed {len(locations)} locations from settings")
+    return locations
+
+
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Lambda handler: Ingest weather data from Open-Meteo.
     
@@ -128,10 +143,21 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     error_count = 0
     errors = []
     
+    try:
+        locations = parse_locations()
+    except Exception as e:
+        logger.error(f"Failed to parse locations from settings: {str(e)}")
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "error": f"Configuration error: {str(e)}"
+            })
+        }
+    
     # Fetch weather for each location
-    for lat, lon, location_name in DEFAULT_LOCATIONS:
+    for lat, lon in locations:
         try:
-            logger.info(f"Fetching weather for {location_name} ({lat}, {lon})")
+            logger.info(f"Fetching weather for ({lat}, {lon})")
             
             # Get weather from Open-Meteo
             weather = service.get_current(lat=lat, lon=lon)
@@ -143,18 +169,18 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             repository.put_item(metric)
             
             success_count += 1
-            logger.info(f"✓ Stored weather for {location_name}")
+            logger.info(f"✓ Stored weather for ({lat}, {lon})")
             
         except Exception as e:
             error_count += 1
-            error_msg = f"{location_name}: {str(e)}"
+            error_msg = f"({lat}, {lon}): {str(e)}"
             errors.append(error_msg)
-            logger.error(f"✗ Failed to ingest weather for {location_name}: {str(e)}")
+            logger.error(f"✗ Failed to ingest weather for ({lat}, {lon}): {str(e)}")
     
     # Prepare response
     body = {
         "timestamp": datetime.now().isoformat(),
-        "locations_processed": len(DEFAULT_LOCATIONS),
+        "locations_processed": len(locations),
         "records_stored": success_count,
         "errors": error_count,
         "error_details": errors if errors else None
@@ -176,5 +202,5 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         "body": json.dumps(body)
     }
     
-    logger.info(f"Weather ingestion completed: {success_count}/{len(DEFAULT_LOCATIONS)} success")
+    logger.info(f"Weather ingestion completed: {success_count}/{len(locations)} success")
     return response
