@@ -8,10 +8,10 @@ pathlib.PosixPath = pathlib.WindowsPath
 
 BASE_DIR = Path(__file__).parent
 weights_path = str(BASE_DIR / 'weights' / 'best.pt')
-image_path = str(BASE_DIR.parent.parent / 'data' / 'model-dataset' / 'images' / 'test' / 'test-storm.png')
+image_path = str(BASE_DIR.parent.parent / 'data' / 'model-dataset' / 'images' / 'test' / 'test-storm.jpg')
 
 model = torch.hub.load('ultralytics/yolov5', 'custom', weights_path, force_reload=True)
-model.conf = 0.04
+model.conf = 0.1
 
 print(f"Weights: {weights_path}")
 print(f"Image:   {image_path}")
