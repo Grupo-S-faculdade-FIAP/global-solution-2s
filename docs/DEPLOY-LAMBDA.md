@@ -1,0 +1,190 @@
+# Deploy da Lambda `gs2-api` — passo a passo
+
+Guia para o time republicar a API na AWS após mudanças no backend.
+
+**Referência de infraestrutura:** [AWS-STATE.md](https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki/AWS%E2%80%90STATE) (ARNs, armadilhas, permissões).
+
+---
+
+## Pré-requisitos
+
+| Ferramenta | Uso |
+|------------|-----|
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Build e push da imagem |
+| [AWS CLI v1/v2](https://docs.aws.amazon.com/cli/) | Login ECR, `update-function-code`, testes |
+| Credenciais AWS | Perfil com acesso a ECR + Lambda (`gs2-dev` ou equivalente) |
+
+Região do projeto: **`us-east-1`**.
+
+```powershell
+aws configure list   # conferir região e credenciais
+```
+
+---
+
+## O que entra (e o que não entra) no deploy
+
+A Lambda roda a **imagem Docker** definida em `src/Dockerfile`. Só o código copiado para a imagem é publicado:
+
+| Entra no deploy | Não entra no deploy |
+|-----------------|---------------------|
+| `src/app/**` (FastAPI, routers, `main.py`) | `src/app/cron/capture_satellite_data.py` (script local + Playwright) |
+| Dependências de `src/requirements-lambda.txt` + layers do Dockerfile | `src/dashboard/`, notebooks, scripts de treino |
+| Handler: `app.main.handler` | Upload manual de `.env` — variáveis vão no console/CLI da Lambda |
+
+Após alterar apenas o cron de captura do Windy, **não** é necessário redeploy da Lambda. Após alterar `cv.py`, `main.py`, `config.py`, etc., **sim**.
+
+---
+
+## Redeploy após mudança de código
+
+Execute na pasta **`src/`** do repositório.
+
+### 1. Build da imagem
+
+```powershell
+cd src
+docker build -t gs2-api:latest .
+```
+
+A primeira build pode demorar vários minutos (torch, OpenCV, YOLOv5).
+
+### 2. Tag para o ECR
+
+**Obrigatório após cada build novo.** Sem este passo, o `push` pode enviar uma imagem antiga.
+
+```powershell
+docker tag gs2-api:latest 544785076353.dkr.ecr.us-east-1.amazonaws.com/gs2-api:latest
+```
+
+### 3. Login no ECR
+
+Uma vez por sessão de terminal:
+
+```powershell
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 544785076353.dkr.ecr.us-east-1.amazonaws.com
+```
+
+### 4. Push da imagem
+
+```powershell
+docker push 544785076353.dkr.ecr.us-east-1.amazonaws.com/gs2-api:latest
+```
+
+O primeiro push é grande (~600 MB); pushes seguintes costumam ser bem mais rápidos (cache de layers).
+
+### 5. Atualizar a função Lambda
+
+```powershell
+aws lambda update-function-code `
+  --function-name gs2-api `
+  --image-uri 544785076353.dkr.ecr.us-east-1.amazonaws.com/gs2-api:latest `
+  --region us-east-1
+```
+
+### 6. Aguardar status Active
+
+```powershell
+aws lambda get-function --function-name gs2-api --region us-east-1 `
+  --query "Configuration.{State:State,LastUpdateStatus:LastUpdateStatus,LastModified:LastModified}"
+```
+
+Repita até `State` = `Active` e `LastUpdateStatus` = `Successful`.
+
+### 7. Teste de sanidade (HTTP)
+
+```powershell
+Invoke-RestMethod -Uri "https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health"
+```
+
+Resposta esperada: `status` = `ok`.
+
+### 8. Teste do pipeline S3 → Lambda (opcional)
+
+Na **raiz** do repositório (ajuste o caminho da imagem se necessário):
+
+para enviar uma imagem especifica
+```powershell
+aws s3 cp data/model-dataset/images/test/test-storm.jpg `
+  s3://satellite-images-gs2/screenshots/test-storm.jpg `
+  --region us-east-1 `
+  --content-type "image/jpeg"
+```
+
+ou
+
+para auto captura com python + playwright + windy.com
+```powershell
+python src/app/cron/capture_satellite_data.py
+```
+
+O trigger do S3 só reage a arquivos **`.jpg`** no bucket. Na primeira invocação (cold start + download do modelo) pode levar **60–90 s**.
+
+Ver logs:
+
+```powershell
+aws logs filter-log-events `
+  --log-group-name '/aws/lambda/gs2-api' `
+  --region us-east-1 `
+  --limit 20
+```
+
+---
+
+## Atualizar só variáveis de ambiente (sem rebuild)
+
+Use quando mudou configuração, mas **não** mudou código em `src/app/`:
+
+```powershell
+aws lambda update-function-configuration `
+  --function-name gs2-api `
+  --region us-east-1 `
+  --environment "Variables={ENVIRONMENT=production,S3_BUCKET_IMAGES=satellite-images-gs2,DYNAMODB_TABLE_IOT=iot}"
+```
+
+---
+
+## Conferir o que está publicado na AWS
+
+| Objetivo | Comando |
+|----------|---------|
+| Estado da função | `aws lambda get-function --function-name gs2-api --region us-east-1` |
+| Env vars | `aws lambda get-function-configuration --function-name gs2-api --region us-east-1 --query Environment` |
+| URI da imagem em uso | `aws lambda get-function --function-name gs2-api --region us-east-1 --query "Code.ImageUri"` |
+| Logs recentes | `aws logs filter-log-events --log-group-name '/aws/lambda/gs2-api' --region us-east-1 --limit 20` |
+
+No console AWS: **Lambda → Functions → gs2-api → Code / Monitor**.
+
+---
+
+## Checklist rápido
+
+```
+[ ] Código alterado em src/app/ (ou Dockerfile / requirements-lambda.txt)
+[ ] docker build -t gs2-api:latest .     (dentro de src/)
+[ ] docker tag ... ECR ...:latest        ← não pular
+[ ] aws ecr get-login-password + docker login
+[ ] docker push ...:latest
+[ ] aws lambda update-function-code ...
+[ ] State = Active / LastUpdateStatus = Successful
+[ ] GET /health OK
+[ ] (opcional) upload .jpg no S3 e verificar logs/alertas
+```
+
+---
+
+## Problemas comuns
+
+| Sintoma | O que verificar |
+|---------|-----------------|
+| Lambda com código antigo após deploy | Fez `docker tag` depois do `build`? |
+| `docker push` negado | Login ECR expirado — repetir passo 3 |
+| `AccessDenied` no push/update | Credenciais do `gs2-dev` e policy `gs2-policy` |
+| `/health` falha após recriar a Lambda | Permissões API Gateway + `create-deployment` — ver [AWS-STATE.md](https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki/AWS%E2%80%90STATE) |
+| S3 não dispara a Lambda | Objeto deve ser `.jpg`; permissão `lambda:InvokeFunction` do S3 |
+| Cold start muito lento | Normal na 1ª execução (~60–90 s); modelo em `s3://satellite-images-gs2/models/best.pt` |
+
+**PowerShell (Windows):** use `;` para encadear comandos, não `&&`. ARNs com `$` em aspas simples (`'...'`).
+
+---
+

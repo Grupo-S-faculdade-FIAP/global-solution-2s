@@ -52,6 +52,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 - **`docs/`**: Documentação textual do projeto — como: brainstorm, diagramas de arquitetura, desenhos de fluxo, prints, storyboard, estratégia de IA, especificações de hardware (ESP32/Wokwi), atas de reunião e decisões técnicas.
   - setup da AWS: https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki/AWS%E2%80%90STATE
+  - **Deploy da Lambda:** [docs/DEPLOY-LAMBDA.md](docs/DEPLOY-LAMBDA.md)
 
 - **`src/`**: Todo o código-fonte desenvolvido — API FastAPI (routers de CV, IoT e Dashboard), scripts de treinamento YOLO, notebooks de exploração e análise de dados, código para ESP32 e modelos serializados.
 
@@ -68,7 +69,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 - **Repositório GitHub:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s
 - **Vídeo de demonstração (5min):** *(link a ser adicionado após gravação)*
 - **Dashboard (Streamlit):** *(link a ser adicionado após deploy)*
-- **API Backend (AWS):** *(link a ser adicionado após deploy)*
+- **API Backend (AWS):** https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com
 
 **Decisões técnicas relevantes:**
 - YOLOv5 foi escolhido para detecção de padrões de nuvens chuvosas por ser estado da arte em detecção de objetos, com suporte a pipelines customizados de rotulagem e treino.
@@ -87,37 +88,124 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) ou `pip`
-- Arquivo `.env` configurado (copiar `.env.example` e preencher as variáveis)
+- Pesos do modelo em `src/models/weights/best.pt`
+- Imagem de teste em `data/model-dataset/images/test/test-storm.png` (ou ajustar o caminho no script)
+- Para a API local: arquivo `.env` (copiar `src/.env.example`)
+- Para o teste na AWS: [AWS CLI](https://docs.aws.amazon.com/cli/) configurado (`aws configure`) com credenciais que tenham acesso ao bucket `satellite-images-gs2` e leitura em CloudWatch/DynamoDB
 
-### Instalação e execução
+### Instalação
 
 ```bash
-# Clone o repositório
 git clone git@github.com:Grupo-S-faculdade-FIAP/global-solution-2s.git
-cd global-solution-2s
+cd global-solution-2s/src
 
-# Instale as dependências
-cd src
 pip install -r requirements.txt
-# ou, usando o Makefile:
-make install
+# ou: make install
 
-# Configure as variáveis de ambiente
-cp .env.example .env
-# Edite o .env com suas chaves
-
-# Inicie a API
-make run
-# ou:
-uvicorn app.main:app --reload
-
-# Rode os testes
-make test
-# ou:
-pytest tests/ -v
+cp .env.example .env   # apenas se for subir a API local
 ```
 
-A API estará disponível em `http://localhost:8000`.  
-Documentação interativa (Swagger): `http://localhost:8000/docs`
+---
+
+### 1. Detecção local (YOLOv5)
+
+Script de referência: `src/models/stormdetector.py`. Carrega `best.pt`, roda inferência na imagem de teste e abre uma janela com as detecções.
+
+**Dependências mínimas** (se não quiser instalar o `requirements.txt` completo):
+
+```bash
+pip install torch torchvision opencv-python numpy
+```
+
+> Use `opencv-python` (com GUI), não `opencv-python-headless`, para que `cv2.imshow` funcione no seu SO.
+
+**Executar** (a partir de `src/`):
+
+```bash
+cd src
+python models/stormdetector.py
+```
+
+O script usa por padrão:
+
+| Item | Caminho |
+|------|---------|
+| Pesos | `src/models/weights/best.pt` |
+| Imagem | `data/model-dataset/images/test/test-storm.png` |
+| Confiança | `0.035` (mesmo valor usado na Lambda) |
+
+Na primeira execução o PyTorch Hub baixa o repositório `ultralytics/yolov5` (requer internet). Saída esperada: lista de detecções no terminal e janela **Deteccao** com bounding boxes.
+
+**Windows:** o script já aplica o patch `pathlib.PosixPath = pathlib.WindowsPath` para carregar checkpoints treinados no Windows.
+
+---
+
+**Produção (API Gateway):** `https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health`
+
+---
+
+### 3. Teste end-to-end na AWS (S3 → Lambda → SNS + DynamoDB)
+
+Fluxo: upload de um `.jpg` no bucket dispara a Lambda `gs2-api`, que baixa a imagem e o modelo (`models/best.pt` no S3), roda o mesmo pipeline de CV e, se houver detecções, grava em DynamoDB e publica no SNS.
+
+**Pré-requisito na AWS:** pesos em `s3://satellite-images-gs2/models/best.pt`.
+
+**1. Enviar imagem de teste** (na raiz do repositório):
+
+```bash
+aws s3 cp data/model-dataset/images/test/test-storm.png \
+  s3://satellite-images-gs2/screenshots/test-storm.jpg \
+  --region us-east-1 \
+  --content-type "image/jpeg"
+```
+
+O trigger do S3 só reage a arquivos **`.jpg`** no bucket — por isso o destino usa extensão `.jpg` mesmo sendo um PNG local.
+
+**2. Aguardar o processamento** — na primeira execução (cold start + download do modelo) pode levar **~60–90 s**. Invocações seguintes no mesmo container são bem mais rápidas.
+
+**3. Verificar logs** (PowerShell: use aspas simples no nome do log group):
+
+```bash
+aws logs describe-log-streams \
+  --log-group-name '/aws/lambda/gs2-api' \
+  --region us-east-1 \
+  --order-by LastEventTime \
+  --descending \
+  --max-items 1
+
+# Troque LOG_STREAM pelo valor retornado em logStreamName
+aws logs filter-log-events \
+  --log-group-name '/aws/lambda/gs2-api' \
+  --log-stream-names 'LOG_STREAM' \
+  --region us-east-1 \
+  --filter-pattern 'ERROR'
+
+aws logs filter-log-events \
+  --log-group-name '/aws/lambda/gs2-api' \
+  --log-stream-names 'LOG_STREAM' \
+  --region us-east-1 \
+  --filter-pattern 'REPORT'
+```
+
+Ausência de `ERROR` e linha `REPORT` com duração em dezenas de segundos indicam sucesso.
+
+**4. Verificar alerta no DynamoDB:**
+
+```bash
+aws dynamodb scan \
+  --table-name alerts \
+  --region us-east-1 \
+  --limit 5
+```
+
+Procure um item com `s3_key` = `screenshots/test-storm.jpg`, `alert_type` = `storm_detection` e `detection_count` > 0.
+
+**5. (Opcional) E-mail SNS** — confirme a inscrição no tópico `rain-alerts`. Sem confirmação, o alerta é gravado no DynamoDB mas o e-mail não chega.
+
+**Sanidade da API na nuvem:**
+
+```bash
+curl https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health
+```
 
 ---
