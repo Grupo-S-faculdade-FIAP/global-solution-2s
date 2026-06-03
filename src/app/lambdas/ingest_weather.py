@@ -20,8 +20,8 @@ from typing import Dict, List, Any, Tuple
 
 import boto3
 
-from src.app.core.config import settings
-from src.app.services.weather_service import WeatherService
+from app.core.config import settings
+from app.services.weather_service import WeatherService
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

@@ -47,9 +47,13 @@ class Settings(BaseSettings):
     
     # ─── Computer Vision (YOLOv5) ──────────────────────────────────────────
     YOLO_MODEL_PATH: str = "s3://model-artifacts/yolov5s-storm-best.pt"
+    YOLO_MODEL_S3_KEY: str = "models/yolov5s-storm-best.pt"   # S3 object key para cold-start download
     YOLO_CONFIDENCE_THRESHOLD: float = 0.5
     YOLO_INPUT_SIZE: int = 640
     YOLO_MODEL_RETENTION_DAYS: int = 30
+
+    # ─── DynamoDB — Alertas (CV pipeline) ─────────────────────────────────
+    DYNAMODB_TABLE_ALERTS: str = "storm_alerts"
     
     # ─── Machine Learning (Risk Prediction) ────────────────────────────────
     ML_MODEL_PATH: str = "models/risk_predictor.pkl"

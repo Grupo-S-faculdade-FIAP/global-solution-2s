@@ -1,203 +1,193 @@
 """
 Script de treinamento do modelo YOLOv5 para detecção de tempestades.
 
-Uso:
-    python3 yolo_training.py --epochs 50 --img-size 640 --batch 8
+Pré-requisitos:
+    pip install torch torchvision
+
+Uso (a partir do root do projeto — global-solutions/):
+    python src/yolo_training.py
+    python src/yolo_training.py --epochs 100 --batch 16
+    python src/yolo_training.py --validate
 """
 
 import argparse
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
-try:
-    import torch
-except ImportError:
-    print("❌ torch não instalado. Execute:")
-    print("   pip install torch torchvision")
-    sys.exit(1)
+# Root do projeto = dois níveis acima deste arquivo (src/yolo_training.py)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _ensure_yolov5(yolov5_dir: Path) -> Path:
+    """
+    Garante que o repositório YOLOv5 existe localmente.
+    Clona se necessário.
+    """
+    if yolov5_dir.exists() and (yolov5_dir / "train.py").exists():
+        return yolov5_dir
+
+    print("📦 Clonando repositório YOLOv5...")
+    try:
+        subprocess.run(
+            ["git", "clone", "--depth", "1",
+             "https://github.com/ultralytics/yolov5",
+             str(yolov5_dir)],
+            check=True,
+        )
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install",
+             "-r", str(yolov5_dir / "requirements.txt"),
+             "--quiet"],
+            check=True,
+        )
+        print("✅ YOLOv5 clonado com sucesso")
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            f"Não foi possível clonar o YOLOv5: {e}\n"
+            "Verifique sua conexão ou clone manualmente em 'yolov5/'."
+        )
+    return yolov5_dir
 
 
 def train_yolo_storm_detector(
-    dataset_yaml: str = "data/model-dataset/storm.yaml",
-    model_name: str = "yolov5s",
-    epochs: int = 50,
-    img_size: int = 640,
-    batch_size: int = 8,
-    device: int = 0,
-    patience: int = 20,
-    output_dir: str = "models",
-) -> str:
+    dataset_yaml: str  = "data/model-dataset/storm.yaml",
+    model_name: str    = "yolov5s",
+    epochs: int        = 50,
+    img_size: int      = 640,
+    batch_size: int    = 8,
+    device: str        = "cpu",
+    patience: int      = 20,
+    project_dir: str   = "runs/train",
+    run_name: str      = "storm-detector",
+) -> Path:
     """
-    Treina um modelo YOLOv5 para detecção de tempestades.
-
-    Args:
-        dataset_yaml: Caminho para o arquivo YAML do dataset
-        model_name: Tamanho do modelo ('yolov5n', 'yolov5s', 'yolov5m', 'yolov5l', 'yolov5x')
-        epochs: Número de épocas de treinamento
-        img_size: Tamanho das imagens (default 640)
-        batch_size: Tamanho do batch
-        device: GPU/CPU device (0 para GPU, -1 para CPU)
-        patience: Early stopping patience (em épocas)
-        output_dir: Diretório para salvar modelos
+    Treina YOLOv5 para detecção de tempestades.
 
     Returns:
-        Caminho para o modelo treinado (.pt)
+        Path para o melhor modelo treinado (best.pt)
     """
-    print(f"🚀 Iniciando treinamento do YOLOv5-Storm Detector...")
-    print(f"   Dataset: {dataset_yaml}")
-    print(f"   Modelo: {model_name}")
-    print(f"   Épocas: {epochs}")
-    print(f"   Batch size: {batch_size}")
-    print()
+    yolov5_dir  = PROJECT_ROOT / "yolov5"
+    dataset_abs = PROJECT_ROOT / dataset_yaml
+    project_abs = PROJECT_ROOT / project_dir
 
-    # Criar diretório de saída se não existir
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+    if not dataset_abs.exists():
+        raise FileNotFoundError(f"Dataset YAML não encontrado: {dataset_abs}")
 
-    # Carregar modelo base via torch.hub (YOLOv5 oficial)
-    print(f"📦 Carregando modelo base: {model_name}...")
-    model = torch.hub.load("ultralytics/yolov5", model_name, pretrained=True)
+    _ensure_yolov5(yolov5_dir)
 
-    # Treinar usando CLI (YOLOv5 style)
-    print(f"🎓 Treinando...")
-    import subprocess
+    print(f"\n🚀 Iniciando treinamento YOLOv5")
+    print(f"   Dataset : {dataset_abs}")
+    print(f"   Modelo  : {model_name}")
+    print(f"   Épocas  : {epochs} | Batch: {batch_size} | Device: {device}\n")
+
     cmd = [
-        "python",
-        "-m",
-        "yolov5.train",
-        "--img", str(img_size),
-        "--batch", str(batch_size),
-        "--epochs", str(epochs),
-        "--data", dataset_yaml,
-        "--weights", f"{model_name}.pt",
-        "--device", str(device),
+        sys.executable,
+        str(yolov5_dir / "train.py"),
+        "--img",      str(img_size),
+        "--batch",    str(batch_size),
+        "--epochs",   str(epochs),
+        "--data",     str(dataset_abs),
+        "--weights",  f"{model_name}.pt",
+        "--device",   device,
         "--patience", str(patience),
-        "--project", str(output_path),
-        "--name", "yolov5-storm-detector",
+        "--project",  str(project_abs),
+        "--name",     run_name,
+        "--exist-ok",
     ]
-    
-    try:
-        # Alternativa: usar train.py direto do repositório
-        import os
-        os.system(f"cd {Path(__file__).parent} && python -m yolov5.train --img {img_size} --batch {batch_size} --epochs {epochs} --data {dataset_yaml} --weights {model_name}.pt --device {device} --patience {patience}")
-    except Exception as e:
-        print(f"⚠️  Treino via CLI falhou, tentando API torch.hub: {e}")
 
-    # Salvar modelo otimizado no caminho correto
-    model_path = Path("src/models/weights/best.pt")
-    model_path.parent.mkdir(parents=True, exist_ok=True)
-    print(f"\n✅ Modelo treinado com sucesso!")
-    print(f"📍 Melhor modelo: {model_path}")
+    result = subprocess.run(cmd, cwd=str(yolov5_dir))
+    if result.returncode != 0:
+        raise RuntimeError("Treinamento falhou. Verifique a saída acima.")
 
-    return str(model_path)
+    best_model = project_abs / run_name / "weights" / "best.pt"
 
+    # Copiar para o caminho padrão do projeto
+    dest = PROJECT_ROOT / "src" / "models" / "weights" / "best.pt"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if best_model.exists():
+        shutil.copy2(str(best_model), str(dest))
+        print(f"\n✅ Modelo salvo em: {dest}")
+    else:
+        print(f"⚠️  best.pt não encontrado em {best_model}")
 
-def validate_model(model_path: str, dataset_yaml: str = "data/model-dataset/storm.yaml"):
-    """
-    Valida o modelo treinado no conjunto de validação.
-
-    Args:
-        model_path: Caminho para o modelo .pt
-        dataset_yaml: Caminho para o arquivo YAML do dataset
-    """
-    print(f"\n📊 Validando modelo: {model_path}...")
-    model = torch.hub.load("ultralytics/yolov5", "custom", path=model_path, force_reload=True)
-    print(f"✅ Validação concluída!")
-    return model
+    return dest
 
 
-def export_model(model_path: str, export_format: str = "onnx"):
-    """
-    Exporta o modelo para diferentes formatos (ONNX, TensorFlow, etc).
+def validate_model(
+    model_path: str = "src/models/weights/best.pt",
+    dataset_yaml: str = "data/model-dataset/storm.yaml",
+):
+    """Valida o modelo treinado no conjunto de validação."""
+    model_abs  = PROJECT_ROOT / model_path
+    dataset_abs = PROJECT_ROOT / dataset_yaml
+    yolov5_dir  = PROJECT_ROOT / "yolov5"
 
-    Args:
-        model_path: Caminho para o modelo .pt
-        export_format: Formato de exportação ('onnx', 'torchscript', 'tflite', etc)
-    """
-    print(f"\n🔄 Exportando modelo para {export_format}...")
-    model = torch.hub.load("ultralytics/yolov5", "custom", path=model_path, force_reload=True)
-    # YOLOv5 export via torch.onnx
-    if export_format == "onnx":
-        output_path = Path(model_path).with_suffix(".onnx")
-        torch.onnx.export(model, torch.randn(1, 3, 640, 640), str(output_path))
-        print(f"✅ Modelo exportado: {output_path}")
-        return output_path
-    print(f"⚠️  Formato {export_format} não suportado")
-    return model_path
+    print(f"\n📊 Validando: {model_abs}")
+    cmd = [
+        sys.executable,
+        str(yolov5_dir / "val.py"),
+        "--weights", str(model_abs),
+        "--data",    str(dataset_abs),
+        "--device",  "cpu",
+    ]
+    subprocess.run(cmd, cwd=str(yolov5_dir), check=True)
+    print("✅ Validação concluída")
+
+
+def export_model(
+    model_path: str    = "src/models/weights/best.pt",
+    export_format: str = "onnx",
+):
+    """Exporta o modelo para ONNX ou outros formatos."""
+    yolov5_dir = PROJECT_ROOT / "yolov5"
+    model_abs  = PROJECT_ROOT / model_path
+
+    print(f"\n🔄 Exportando para {export_format}...")
+    cmd = [
+        sys.executable,
+        str(yolov5_dir / "export.py"),
+        "--weights", str(model_abs),
+        "--include", export_format,
+    ]
+    subprocess.run(cmd, cwd=str(yolov5_dir), check=True)
+    print("✅ Exportação concluída")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Treina um modelo YOLOv5 para detecção de tempestades"
+        description="Treina YOLOv5 para detecção de tempestades",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        default="data/model-dataset/storm.yaml",
-        help="Caminho para o arquivo YAML do dataset",
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="yolov5s",
-        help="Tamanho do modelo (yolov5n, yolov5s, yolov5m, yolov5l, yolov5x)",
-    )
-    parser.add_argument(
-        "--epochs",
-        type=int,
-        default=50,
-        help="Número de épocas",
-    )
-    parser.add_argument(
-        "--batch",
-        type=int,
-        default=8,
-        help="Tamanho do batch",
-    )
-    parser.add_argument(
-        "--img-size",
-        type=int,
-        default=640,
-        help="Tamanho das imagens (padrão: 640)",
-    )
-    parser.add_argument(
-        "--device",
-        type=int,
-        default=0,
-        help="Device (0 para GPU, use 'cpu' para CPU)",
-    )
-    parser.add_argument(
-        "--patience",
-        type=int,
-        default=20,
-        help="Early stopping patience",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default="models",
-        help="Diretório para salvar modelos",
-    )
-    parser.add_argument(
-        "--validate",
-        action="store_true",
-        help="Validar modelo após treinamento",
-    )
+    parser.add_argument("--dataset",  default="data/model-dataset/storm.yaml")
+    parser.add_argument("--model",    default="yolov5s",
+                        choices=["yolov5n", "yolov5s", "yolov5m", "yolov5l", "yolov5x"])
+    parser.add_argument("--epochs",   type=int, default=50)
+    parser.add_argument("--batch",    type=int, default=8)
+    parser.add_argument("--img-size", type=int, default=640)
+    parser.add_argument("--device",   default="cpu",
+                        help="'cpu', '0' para GPU 0, '0,1' para multi-GPU")
+    parser.add_argument("--patience", type=int, default=20)
+    parser.add_argument("--validate", action="store_true",
+                        help="Validar modelo após treinamento")
+    parser.add_argument("--export",   choices=["onnx", "torchscript", "tflite"],
+                        help="Exportar modelo após treinamento")
 
     args = parser.parse_args()
 
-    # Treinar modelo
     model_path = train_yolo_storm_detector(
         dataset_yaml=args.dataset,
         model_name=args.model,
         epochs=args.epochs,
-        batch_size=args.batch,
         img_size=args.img_size,
+        batch_size=args.batch,
         device=args.device,
         patience=args.patience,
-        output_dir=args.output_dir,
     )
 
-    # Validar se solicitado
     if args.validate:
-        validate_model(model_path, args.dataset)
+        validate_model(str(model_path), args.dataset)
+
+    if args.export:
+        export_model(str(model_path), args.export)
