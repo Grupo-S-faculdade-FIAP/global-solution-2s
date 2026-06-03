@@ -76,7 +76,7 @@ def _run_yolo_inference(image_path: pathlib.Path, model_path: pathlib.Path) -> l
         force_reload=False,
         verbose=False,
     )
-    model.conf = 0.035  # same threshold as stormdetector.py
+    model.conf = 0.04  # same threshold as stormdetector.py
 
     im = cv2.imread(str(image_path))
     results = model(im)
