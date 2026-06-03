@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     SNS_TOPIC_ARN: str = ""
 
     # ML / CV
-    YOLO_MODEL_PATH: str = "models/yolov8_storm.pt"
+    YOLO_MODEL_PATH: str = "models/yolov8_storm.pt"  # kept for local use
+    YOLO_MODEL_S3_KEY: str = "models/best.pt"        # S3 object key for the trained weights
     FIRMS_API_KEY: str = ""
 
     class Config:
