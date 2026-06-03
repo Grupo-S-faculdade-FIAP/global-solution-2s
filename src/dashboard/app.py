@@ -22,7 +22,7 @@ try:
     from app.services.storm_detector import StormDetector
     
     # Caminho do modelo YOLO (usar modelo padrão se existir)
-    YOLO_MODEL_PATH = "models/yolov8-storm-detector/weights/best.pt"
+    YOLO_MODEL_PATH = "src/models/weights/best.pt"
     if Path(YOLO_MODEL_PATH).exists():
         STORM_DETECTOR = StormDetector(
             model_path=YOLO_MODEL_PATH,

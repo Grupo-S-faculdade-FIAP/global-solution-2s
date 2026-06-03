@@ -1,6 +1,6 @@
 # 🤖 Guia de Treinamento e Uso do Modelo YOLO para Detecção de Tempestades
 
-Este guia descreve como treinar e usar um modelo YOLOv8 para detectar padrões de nuvens chuvosas/tempestades em imagens de satélite.
+Este guia descreve como treinar e usar um modelo **YOLOv5** para detectar padrões de nuvens chuvosas/tempestades em imagens de satélite.
 
 ---
 
@@ -8,7 +8,11 @@ Este guia descreve como treinar e usar um modelo YOLOv8 para detectar padrões d
 
 ### Dependências Python
 ```bash
-pip install ultralytics opencv-python numpy
+# YOLOv5 via torch.hub
+pip install torch torchvision opencv-python numpy
+
+# Ou instale tudo com:
+pip install -r src/requirements.txt
 ```
 
 ### Dataset
@@ -23,16 +27,16 @@ O dataset já está disponível em `data/model-dataset/` com:
 
 ### Opção 1: Via script Python
 ```bash
-cd /Users/caroline/Desktop/FIAP/global-solutions/src
+cd /Users/caroline/Desktop/FIAP/global-solutions
 
-# Treino básico (50 épocas, modelo YOLOv8 small)
-python3 yolo_training.py --epochs 50 --batch 8
+# Treino básico (50 épocas, modelo YOLOv5 small)
+python3 src/yolo_training.py --epochs 50 --batch 8
 
 # Treino avançado com validação
-python3 yolo_training.py \
+python3 src/yolo_training.py \
   --epochs 100 \
   --batch 16 \
-  --model yolov8m \
+  --model yolov5m \
   --img-size 640 \
   --device 0 \
   --validate
@@ -41,42 +45,31 @@ python3 yolo_training.py \
 ### Opção 2: Via Notebook (Google Colab - recomendado para GPU)
 
 ```python
-from ultralytics import YOLO
+import torch
 
 # Carregar modelo base
-model = YOLO("yolov8s.pt")
+model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
 
-# Treinar
-results = model.train(
-    data="data/model-dataset/storm.yaml",
-    epochs=100,
-    imgsz=640,
-    batch=16,
-    patience=20,
-    device=0,  # GPU 0
-    project="models",
-    name="yolov8-storm-detector",
-    save=True,
-    plots=True
-)
-
-# Salvar melhor modelo
-best_model = YOLO("models/yolov8-storm-detector/weights/best.pt")
+# Treinar usando CLI
+import os
+os.system('python -m yolov5.train --img 640 --batch 16 --epochs 100 --data data/model-dataset/storm.yaml --weights yolov5s.pt --device 0')
 ```
 
 ### Saída do treinamento
 
 ```
 ✅ Modelo treinado com sucesso!
-📍 Melhor modelo: models/yolov8-storm-detector/weights/best.pt
+📍 Melhor modelo: src/models/weights/best.pt
 ```
+
+**O modelo será salvo em:** `src/models/weights/best.pt`
 
 ---
 
 ## 📊 Passo 2: Validar o Modelo
 
 ```bash
-python3 yolo_training.py --validate
+python3 src/yolo_training.py --validate
 ```
 
 Isso gera:
@@ -93,7 +86,7 @@ Isso gera:
 
 ```bash
 # O modelo deve estar em:
-models/yolov8-storm-detector/weights/best.pt
+src/models/weights/best.pt
 ```
 
 ### 3.2. Reiniciar o servidor Flask

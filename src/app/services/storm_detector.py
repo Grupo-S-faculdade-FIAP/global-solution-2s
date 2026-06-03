@@ -1,28 +1,24 @@
 """
-Módulo de inferência para detecção de tempestades com YOLOv8.
+Módulo de inferência para detecção de tempestades com YOLOv5.
 
 Classes:
     StormDetector: Classe principal para fazer predições com o modelo YOLO
     DetectionResult: Resultado de uma predição
 
 Exemplo:
-    detector = StormDetector(model_path="models/yolov8-storm-detector/weights/best.pt")
+    detector = StormDetector(model_path="src/models/weights/best.pt")
     results = detector.predict("path/to/image.jpg")
     print(results.detections)
 """
 
 import cv2
+import torch
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-
-try:
-    from ultralytics import YOLO
-except ImportError:
-    YOLO = None
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +47,7 @@ class DetectionResult:
 
 class StormDetector:
     """
-    Detector de tempestades usando YOLOv8.
+    Detector de tempestades usando YOLOv5.
 
     Atributos:
         model: Modelo YOLO carregado
@@ -61,7 +57,7 @@ class StormDetector:
 
     def __init__(
         self,
-        model_path: str = "models/yolov8-storm-detector/weights/best.pt",
+        model_path: str = "src/models/weights/best.pt",
         confidence_threshold: float = 0.5,
         device: str = "cpu",
     ):
@@ -69,35 +65,63 @@ class StormDetector:
         Inicializa o detector.
 
         Args:
-            model_path: Caminho para o arquivo .pt do modelo
+            model_path: Caminho para o arquivo .pt do modelo (YOLOv5)
             confidence_threshold: Limiar mínimo de confiança
-            device: 'cpu' ou índice da GPU
+            device: 'cpu' ou índice da GPU (0, 1, etc)
         """
-        if YOLO is None:
-            raise RuntimeError(
-                "ultralytics não está instalado. Execute: pip install ultralytics"
-            )
-
         self.model_path = model_path
         self.confidence_threshold = confidence_threshold
         self.device = device
 
-        # Carregar modelo
+        # Carregar modelo YOLOv5
         logger.info(f"Carregando modelo: {model_path}")
         try:
-            self.model = YOLO(model_path)
+            # Permitir carregamento de checkpoints com weights_only=False (PyTorch 2.6+)
+            self._allow_checkpoint_load()
+            
+            model_path_obj = Path(model_path)
+            if model_path_obj.exists():
+                # Carregar modelo customizado treinado
+                self.model = torch.hub.load(
+                    "ultralytics/yolov5",
+                    "custom",
+                    path=str(model_path),
+                    force_reload=False,
+                )
+            else:
+                # Fallback: usar modelo pré-treinado
+                logger.warning(f"Modelo {model_path} não encontrado. Usando modelo pré-treinado.")
+                self.model = torch.hub.load(
+                    "ultralytics/yolov5",
+                    "s",  # small
+                    pretrained=True,
+                    force_reload=False,
+                )
+            
+            self.model.conf = confidence_threshold
             self.model.to(device)
             logger.info(f"✅ Modelo carregado com sucesso")
         except Exception as e:
             logger.error(f"❌ Erro ao carregar modelo: {e}")
             raise
 
+    @staticmethod
+    def _allow_checkpoint_load():
+        """Permite carregamento de checkpoints YOLOv5 em PyTorch 2.6+"""
+        _orig_load = torch.load
+
+        def _load(*args, **kwargs):
+            kwargs.setdefault("weights_only", False)
+            return _orig_load(*args, **kwargs)
+
+        torch.load = _load  # type: ignore[method-assign]
+
     def predict(self, image_path: str) -> DetectionResult:
         """
         Faz predição em uma imagem.
 
         Args:
-            image_path: Caminho da imagem ou URL
+            image_path: Caminho da imagem
 
         Returns:
             DetectionResult com detecções e metadados
@@ -105,32 +129,37 @@ class StormDetector:
         logger.info(f"Predizendo: {image_path}")
 
         try:
-            # Rodar inferência
-            results = self.model.predict(
-                source=image_path,
-                conf=self.confidence_threshold,
-                verbose=False,
-            )
+            # Carregar imagem
+            im = cv2.imread(str(image_path))
+            if im is None:
+                raise FileNotFoundError(f"Imagem não encontrada: {image_path}")
 
+            # Rodar inferência (YOLOv5)
+            results = self.model(im)
+            
             detections = []
-            for result in results:
-                if result.boxes is not None:
-                    for box in result.boxes:
-                        x, y, w, h = box.xywh[0].cpu().numpy()
-                        conf = box.conf[0].item()
-                        class_id = int(box.cls[0].item())
-                        class_name = result.names[class_id]
-
-                        detections.append(
-                            Detection(
-                                x=float(x),
-                                y=float(y),
-                                width=float(w),
-                                height=float(h),
-                                confidence=float(conf),
-                                class_name=class_name,
-                            )
-                        )
+            # YOLOv5 retorna resultados em results.pred
+            for *xyxy, conf, cls in results.pred[0].tolist():
+                x1, y1, x2, y2 = xyxy
+                # Converter de xyxy para xywh (center format)
+                width = x2 - x1
+                height = y2 - y1
+                x_center = x1 + width / 2
+                y_center = y1 + height / 2
+                
+                class_id = int(cls)
+                class_name = results.names[class_id]
+                
+                detections.append(
+                    Detection(
+                        x=float(x_center),
+                        y=float(y_center),
+                        width=float(width),
+                        height=float(height),
+                        confidence=float(conf),
+                        class_name=class_name,
+                    )
+                )
 
             # Calcular métricas
             has_storm = len(detections) > 0
@@ -249,6 +278,5 @@ class StormDetector:
             "model_path": self.model_path,
             "device": self.device,
             "confidence_threshold": self.confidence_threshold,
-            "model_size": self.model.model.parameters.__len__(),
-            "model_summary": str(self.model.model),
+            "framework": "YOLOv5",
         }
