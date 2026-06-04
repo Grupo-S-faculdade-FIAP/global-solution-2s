@@ -104,11 +104,11 @@ Trilha YOLO NASA (concluída):
 2. Dataset só NASA (`--limiar 200 --area 600`): mAP@0.5 ≈ **0,55**
 3. Endpoints: `GET /storms/recent`, `GET /map/overlay` (DynamoDB `storm_alerts`)
 
-**Demo local (API + dashboard):**
+**Demo local (API + dashboard — uma porta):**
 
 ```bash
 make demo
-# API: http://localhost:8000  ·  Dashboard: http://localhost:5000
+# Abra http://127.0.0.1:8000
 ```
 
 **Alertas / DynamoDB (enquanto AWS não estiver pronta):** por padrão `DYNAMODB_USE_MOCK=true` — dados em `data/demo/storm_alerts.json` (seed automático + `POST /alerts/simulate`). Quando a AWS estiver ok: `DYNAMODB_USE_MOCK=false` no `.env`.

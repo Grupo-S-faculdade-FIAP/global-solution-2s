@@ -1,1 +1,92 @@
-[]
+[
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-04T20:32:41.578372Z",
+    "alert_id": "demo_38596912b00e",
+    "date": "2026-06-04",
+    "hour": 14,
+    "weekday": "Thursday",
+    "bucket": "demo-local",
+    "s3_key": "nasa_brasil_sudeste_20260604_1530.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-03T17:32:41.578372Z",
+    "alert_id": "demo_348ec89a8481",
+    "date": "2026-06-03",
+    "hour": 15,
+    "weekday": "Wednesday",
+    "bucket": "demo-local",
+    "s3_key": "nasa_brasil_sudeste_20260604_1351.png",
+    "detection_count": 3,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-02T14:32:41.578372Z",
+    "alert_id": "demo_308cb5e3fd5b",
+    "date": "2026-06-02",
+    "hour": 11,
+    "weekday": "Tuesday",
+    "bucket": "demo-local",
+    "s3_key": "nasa_brasil_20260604_1534.png",
+    "detection_count": 2,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-01T19:32:41.578372Z",
+    "alert_id": "demo_c376e1a04f97",
+    "date": "2026-06-01",
+    "hour": 16,
+    "weekday": "Monday",
+    "bucket": "demo-local",
+    "s3_key": "nasa_americas_20260604_1349.png",
+    "detection_count": 2,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-05-31T16:32:41.578372Z",
+    "alert_id": "demo_322514c32f3e",
+    "date": "2026-05-31",
+    "hour": 15,
+    "weekday": "Sunday",
+    "bucket": "demo-local",
+    "s3_key": "nasa_brasil_sudeste_20260604_1528.png",
+    "detection_count": 5,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-05-30T13:32:41.578372Z",
+    "alert_id": "demo_3948d8b2a6a9",
+    "date": "2026-05-30",
+    "hour": 13,
+    "weekday": "Saturday",
+    "bucket": "demo-local",
+    "s3_key": "nasa_americas_20260604_1536.png",
+    "detection_count": 1,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  }
+]

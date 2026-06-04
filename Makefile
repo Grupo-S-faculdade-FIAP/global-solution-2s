@@ -1,15 +1,15 @@
 .PHONY: install demo test-api test-storms
 
-install:
-	cd src && pip install -r requirements.txt
+VENV_PYTHON := .venv/bin/python
 
-# API (8000) + Dashboard Flask (5000) — requer best.pt em src/models/weights/
+install:
+	cd src && $(VENV_PYTHON) -m pip install -r requirements.txt
+
+# API + dashboard na mesma porta (8000) — requer best.pt em src/models/weights/
 demo:
-	@echo "Iniciando API em :8000 e Dashboard em :5000"
-	@echo "Abra http://localhost:5000"
-	@(cd src && uvicorn app.main:app --host 0.0.0.0 --port 8000) & \
-	 sleep 2 && \
-	 cd src && python dashboard/app.py
+	@test -x $(VENV_PYTHON) || (echo "Crie o venv: python3 -m venv .venv && $(VENV_PYTHON) -m pip install -r src/requirements.txt" && exit 1)
+	@echo "Iniciando API + dashboard em http://127.0.0.1:8000"
+	cd src && ../$(VENV_PYTHON) -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 test-api:
 	cd src && pytest ../tests/test_api_endpoints.py -q

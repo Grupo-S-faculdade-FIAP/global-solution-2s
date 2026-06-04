@@ -8,6 +8,7 @@ from app.services.weather_service import WeatherService
 from app.services.alerts_analytics import AlertAnalyticsService
 from app.services.storm_alerts_query import StormAlertsQueryService
 from app.services.storm_alerts_store import add_alert_from_coords, use_mock_store
+from app.services.risk_assessment import RiskAssessmentService
 from app.models.schemas import (
     WeatherResponse,
     RiskForecast,
@@ -19,6 +20,7 @@ router = APIRouter()
 weather_service = WeatherService()
 alert_analytics_service = AlertAnalyticsService()
 storm_alerts_service = StormAlertsQueryService()
+_risk_service = RiskAssessmentService()  # singleton — evita reload do modelo a cada request
 
 
 # ─── Helper Functions ────────────────────────────────────────────────────
@@ -168,9 +170,7 @@ def get_risk_forecast(
     validate_coordinates(lat, lon)
 
     try:
-        from app.services.risk_assessment import RiskAssessmentService
-        service = RiskAssessmentService()
-        resultado = service.calculate_risk(lat, lon)
+        resultado = _risk_service.calculate_risk(lat, lon)
         return RiskForecast(
             risk_score=resultado.score,
             risk_category=resultado.category,

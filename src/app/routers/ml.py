@@ -3,16 +3,22 @@ ML Router — Endpoints de Machine Learning para risco agrícola.
 """
 
 from fastapi import APIRouter, Query, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from app.services.agri_risk_model import AgriRiskModel
+from app.services.risk_assessment import RECOMENDACOES
 
 router = APIRouter()
 
+# Singleton — carregado uma vez na inicialização do módulo
+_agri_model = AgriRiskModel()
+
 
 class AgriRiskRequest(BaseModel):
-    temperatura: float = Query(..., description="Temperatura em °C")
-    umidade: float     = Query(..., description="Umidade relativa (%)")
-    precipitacao: float = Query(0.0, description="Precipitação mm/h")
-    vento_kmh: float   = Query(0.0, description="Velocidade do vento km/h")
+    temperatura: float  = Field(..., description="Temperatura em °C")
+    umidade: float      = Field(..., description="Umidade relativa (%)")
+    precipitacao: float = Field(0.0, description="Precipitação mm/h")
+    vento_kmh: float    = Field(0.0, description="Velocidade do vento km/h")
 
 
 @router.get("/status")
@@ -41,11 +47,7 @@ def predict_agricultural_risk(body: AgriRiskRequest):
       - recomendacao: ação sugerida
     """
     try:
-        from app.services.agri_risk_model import AgriRiskModel
-        from app.services.risk_assessment import RECOMENDACOES
-
-        model = AgriRiskModel()
-        resultado = model.predict_detalhado(
+        resultado = _agri_model.predict_detalhado(
             temperatura=body.temperatura,
             umidade=body.umidade,
             precipitacao=body.precipitacao,
@@ -72,11 +74,7 @@ def predict_agricultural_risk_get(
         GET /ml/predict/agricultural-risk?temperatura=32&umidade=90&precipitacao=15&vento_kmh=50
     """
     try:
-        from app.services.agri_risk_model import AgriRiskModel
-        from app.services.risk_assessment import RECOMENDACOES
-
-        model = AgriRiskModel()
-        resultado = model.predict_detalhado(
+        resultado = _agri_model.predict_detalhado(
             temperatura=temperatura,
             umidade=umidade,
             precipitacao=precipitacao,
@@ -93,7 +91,7 @@ def predict_agricultural_risk_get(
 def model_info():
     """Informações sobre o modelo de risco agrícola."""
     try:
-        from app.services.agri_risk_model import MODEL_PATH, SCALER_PATH
+        from app.services.agri_risk_model import MODEL_PATH, SCALER_PATH  # noqa: PLC0415
         return {
             "modelo": "RandomForestClassifier",
             "classes": ["LOW", "MEDIUM", "HIGH"],

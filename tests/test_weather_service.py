@@ -1,8 +1,13 @@
 """Tests for weather service (Open-Meteo API integration)."""
 
+import sys
 import pytest
+from pathlib import Path
 from unittest.mock import patch, MagicMock
-from src.app.services.weather_service import WeatherService
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from app.services.weather_service import WeatherService  # noqa: E402
 
 
 class TestWeatherService:

@@ -12,6 +12,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 
   <style>
     /* ── Tema: Dark (padrão) ─────────────────────────────────────────────── */
@@ -110,6 +112,131 @@
       gap: 6px;
       white-space: nowrap;
     }
+    @media (min-width: 768px) {
+      .topbar-meta { display: flex; }
+    }
+    .data-source-chip {
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 20px;
+      padding: 3px 10px;
+      white-space: nowrap;
+      border: 1px solid var(--border);
+    }
+    .data-source-chip.demo {
+      background: rgba(210,153,34,.15);
+      color: var(--yellow);
+      border-color: rgba(210,153,34,.35);
+    }
+    .data-source-chip.live {
+      background: rgba(63,185,80,.12);
+      color: var(--green);
+      border-color: rgba(63,185,80,.35);
+    }
+    .data-source-chip.offline {
+      background: rgba(248,81,73,.1);
+      color: var(--red);
+      border-color: rgba(248,81,73,.3);
+    }
+    .location-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+      margin-bottom: 1.25rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .location-bar label {
+      font-size: 10px;
+      color: var(--text-sec);
+      font-weight: 500;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .location-bar input[type="number"] {
+      width: 110px;
+      padding: 6px 8px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg-card-2);
+      color: var(--text-prim);
+    }
+    .location-bar button {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg-card-2);
+      color: var(--text-prim);
+      cursor: pointer;
+    }
+    .location-bar button.primary {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+    .location-bar-title {
+      width: 100%;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-prim);
+      margin: 0 0 0.25rem;
+    }
+    .location-bar-hint {
+      width: 100%;
+      font-size: 10px;
+      color: var(--text-sec);
+      margin: 0;
+    }
+    .location-bar select {
+      min-width: 160px;
+      padding: 6px 8px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg-card-2);
+      color: var(--text-prim);
+    }
+    .location-picker-wrap {
+      width: 100%;
+      flex: 1 1 220px;
+      min-width: 200px;
+      max-width: 420px;
+    }
+    #location-picker-map {
+      width: 100%;
+      height: 140px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-card-2);
+      z-index: 1;
+    }
+    @media (min-width: 768px) {
+      #location-picker-map { height: 160px; }
+    }
+    .location-advanced {
+      width: 100%;
+    }
+    .location-advanced summary {
+      font-size: 11px;
+      color: var(--text-sec);
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+    .location-advanced summary::-webkit-details-marker { display: none; }
+    .location-advanced-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .dev-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
     .theme-toggle {
       background: none;
       border: 1px solid var(--border);
@@ -328,6 +455,80 @@
       .hm-day { font-size: 10px; padding-right: 6px; }
     }
 
+    /* ── Mapa da região (Leaflet) ─────────────────────────────────────────── */
+    .region-map-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+      transition: border-color 0.2s;
+    }
+    .region-map-card:hover { border-color: var(--blue); }
+    .region-map-wrap {
+      position: relative;
+      width: 100%;
+      min-height: 240px;
+    }
+    #region-map {
+      width: 100%;
+      height: 280px;
+      min-height: 240px;
+      background: var(--bg-card-2);
+      z-index: 1;
+    }
+    @media (min-width: 768px) {
+      #region-map { height: 360px; }
+    }
+    .map-empty-state {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1rem;
+      font-size: 12px;
+      color: var(--text-sec);
+      background: rgba(13, 17, 23, 0.55);
+      z-index: 500;
+      pointer-events: none;
+    }
+    html[data-theme="light"] .map-empty-state {
+      background: rgba(255, 255, 255, 0.75);
+    }
+    .map-empty-state[hidden] { display: none !important; }
+    .map-legend {
+      padding: 0.5rem 1rem 0.75rem;
+      font-size: 10px;
+      color: var(--text-sec);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      align-items: center;
+    }
+    .map-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .map-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px var(--border);
+    }
+    .leaflet-popup-content-wrapper {
+      background: var(--bg-card);
+      color: var(--text-prim);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .leaflet-popup-tip { background: var(--bg-card); }
+
     /* ── Windy Card ──────────────────────────────────────────────────────── */
     .windy-card {
       background: var(--bg-card);
@@ -415,12 +616,13 @@
       <span class="topbar-badge">FIAP 2026</span>
     </a>
     <div class="topbar-controls">
+      <span class="data-source-chip demo" id="data-source-chip" title="Fonte dos dados exibidos">Demonstração</span>
       <button class="theme-toggle" id="theme-toggle" title="Alternar tema" aria-label="Alternar tema">
         <i class="bi bi-moon-stars-fill"></i>
       </button>
       <div class="topbar-meta">
         <span class="pulse"></span>
-        Ao vivo &nbsp;·&nbsp; <span id="ts">—</span>
+        <span id="data-source-updated">—</span>
       </div>
     </div>
   </header>
@@ -429,12 +631,42 @@
 
     <!-- ── Subtítulo ──────────────────────────────────────────────────────── -->
     <div class="page-heading">
-      <h5>🌧️ Dashboard — Alertas de Chuva</h5>
-      <p>Distribuição temporal de alertas climáticos (últimos 30 dias)</p>
+      <h5>🌧️ Painel da propriedade — Alertas de chuva</h5>
+      <p>Clima, risco na lavoura e histórico de alertas (últimos 30 dias)</p>
+    </div>
+
+    <!-- ── Localização ────────────────────────────────────────────────────── -->
+    <div class="location-bar" id="location-bar">
+      <p class="location-bar-title">Escolha sua região</p>
+      <div>
+        <label for="select-city">Cidade</label>
+        <select id="select-city" aria-label="Cidade"></select>
+      </div>
+      <div class="location-picker-wrap">
+        <label>Mapa</label>
+        <div id="location-picker-map" role="application" aria-label="Clique no mapa para definir local"></div>
+        <p class="location-bar-hint">Clique no mapa para definir local</p>
+      </div>
+      <button type="button" id="btn-geo" title="Usar localização do dispositivo"><i class="bi bi-geo-alt-fill"></i> Minha posição</button>
+      <button type="button" class="primary" id="btn-apply-location">Aplicar</button>
+      <span id="location-label" style="font-size:11px;color:var(--text-sec);align-self:center;">—</span>
+      <details class="location-advanced" id="location-advanced">
+        <summary>Avançado — latitude / longitude</summary>
+        <div class="location-advanced-fields">
+          <div>
+            <label for="input-lat">Latitude</label>
+            <input type="number" id="input-lat" step="0.0001" min="-90" max="90" value="-23.55" aria-label="Latitude">
+          </div>
+          <div>
+            <label for="input-lon">Longitude</label>
+            <input type="number" id="input-lon" step="0.0001" min="-180" max="180" value="-46.63" aria-label="Longitude">
+          </div>
+        </div>
+      </details>
     </div>
 
     <!-- ── KPI Cards ──────────────────────────────────────────────────────── -->
-    <p class="section-title">Indicadores</p>
+    <p class="section-title">Resumo do período</p>
     <div class="kpi-grid" id="kpi-grid">
       <div class="kpi-card"><div class="kpi-label text-blue"><i class="bi bi-bell-fill"></i>Total (30 dias)</div><div class="kpi-value text-blue" id="kpi-total">—</div><div class="kpi-sub">alertas emitidos</div></div>
       <div class="kpi-card"><div class="kpi-label text-green"><i class="bi bi-bar-chart-line-fill"></i>Média diária</div><div class="kpi-value text-green" id="kpi-avg">—</div><div class="kpi-sub">alertas / dia</div></div>
@@ -443,14 +675,14 @@
     </div>
 
     <!-- ── Real-Time Data (Weather & Risk) ───────────────────────────────── -->
-    <p class="section-title">Dados em tempo real</p>
+    <p class="section-title">Situação agora na sua região</p>
     <div class="chart-grid-2">
       <!-- Weather Card -->
       <div class="card">
         <div class="card-head">
           <div>
-            <div class="card-head-title">🌡️ Condições atuais — São Paulo</div>
-            <div class="card-head-sub">Temperatura, umidade, pressão</div>
+            <div class="card-head-title">🌡️ Clima agora</div>
+            <div class="card-head-sub" id="weather-location-sub">Temperatura, umidade, pressão e vento</div>
           </div>
         </div>
         <div id="weather-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; font-size: 13px; line-height: 1.8;">
@@ -483,12 +715,12 @@
     </div>
 
     <!-- ── ML Agrícola — Predictor Interativo ─────────────────────────────── -->
-    <p class="section-title">Modelo ML — Risco Agrícola</p>
+    <p class="section-title">Risco na lavoura (simulação)</p>
     <div class="card">
       <div class="card-head">
         <div>
-          <div class="card-head-title">🌾 Preditor de risco agrícola</div>
-          <div class="card-head-sub">Random Forest · limiares EMBRAPA/INMET · ajuste os parâmetros e veja o risco</div>
+          <div class="card-head-title">🌾 Calculadora de risco agrícola</div>
+          <div class="card-head-sub">Valores iniciais do clima da sua região — ajuste para simular cenários</div>
         </div>
       </div>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
@@ -531,12 +763,12 @@
     </div>
 
     <!-- ── YOLO Storm Detection ─────────────────────────────────────────────── -->
-    <p class="section-title">Detecção de tempestades (YOLO)</p>
+    <p class="section-title">Detecção de tempestades no satélite</p>
     <div class="card">
       <div class="card-head">
         <div>
-          <div class="card-head-title">🤖 Detector YOLO — Storm Detector</div>
-          <div class="card-head-sub">YOLOv5 · dataset NASA (mAP@0.5 ≈ 0,55) · threshold 0,4</div>
+          <div class="card-head-title">🤖 Alertas por imagem de satélite</div>
+          <div class="card-head-sub">Modelo treinado com imagens NASA — confiança mínima 40%</div>
         </div>
       </div>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1rem 0;">
@@ -556,15 +788,17 @@
       <div id="storms-recent-list" style="margin-top: 0.75rem; font-size: 11px; color: var(--text-sec); max-height: 120px; overflow-y: auto;">
         ⏳ Carregando alertas recentes…
       </div>
-      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+      {% if demo_mode %}
+      <div class="dev-actions" id="yolo-dev-actions" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
         <button id="btn-detect-sample" style="background: var(--green, #3fb950); color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;">
-          Detectar em imagem NASA (amostra)
+          Testar imagem NASA (amostra)
         </button>
         <button id="btn-test-detection" style="background: var(--blue); color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;">
           Simular alerta
         </button>
         <span style="font-size: 11px; color: var(--text-sec);" id="test-status"></span>
       </div>
+      {% endif %}
     </div>
 
     <!-- ── Galeria NASA Worldview ──────────────────────────────────────────── -->
@@ -585,7 +819,7 @@
     </div>
 
     <!-- ── Linha 1: Tendência 30d + Semanal ──────────────────────────────── -->
-    <p class="section-title">Tendência &amp; Distribuição</p>
+    <p class="section-title">Histórico de alertas</p>
     <div class="chart-grid-2">
       <div class="card">
         <div class="card-head">
@@ -634,17 +868,37 @@
       </div>
     </div>
 
-    <!-- ── Mapa Windy ─────────────────────────────────────────────────────── -->
-    <p class="section-title">Mapa climático em tempo real</p>
+    <!-- ── Mapa da região (Leaflet + alertas) ─────────────────────────────── -->
+    <p class="section-title">Mapa da região</p>
+    <div class="region-map-card">
+      <div class="windy-head">
+        <i class="bi bi-map-fill text-blue"></i>
+        <span>Alertas de tempestade na sua área</span>
+        <small id="region-map-coords">—</small>
+      </div>
+      <div class="region-map-wrap">
+        <div id="region-map" role="application" aria-label="Mapa de alertas na região"></div>
+        <div id="region-map-empty" class="map-empty-state" hidden>
+          Nenhum alerta na sua região ainda
+        </div>
+      </div>
+      <div class="map-legend" aria-hidden="false">
+        <span><span class="map-legend-dot" aria-hidden="true"></span> Alerta de tempestade</span>
+        <span>Toque no marcador para ver confiança e horário</span>
+      </div>
+    </div>
+
+    <!-- ── Radar meteorológico (Windy) ───────────────────────────────────── -->
+    <p class="section-title">Radar meteorológico</p>
     <div class="windy-card">
       <div class="windy-head">
         <i class="bi bi-globe2 text-blue"></i>
-        <span>Precipitação — Brasil</span>
+        <span id="windy-map-title">Chuva na região</span>
         <small>via Windy.com &nbsp;·&nbsp; overlay: chuva</small>
       </div>
       <iframe
         class="windy-frame"
-        src="https://embed.windy.com/embed2.html?lat=-15.77&lon=-51.93&detailLat=-15.77&detailLon=-47.92&zoom=4&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1"
+        data-src-template="https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&detailLat={lat}&detailLon={lon}&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1"
         allowfullscreen
         loading="lazy"
       ></iframe>
@@ -658,6 +912,8 @@
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <script>
     // ── Theme Management ─────────────────────────────────────────────────────
@@ -669,8 +925,12 @@
       function setTheme(theme) {
         html.setAttribute("data-theme", theme);
         localStorage.setItem(THEME_KEY, theme);
-        updateChartDefaults();
-        updateWindyIframe();
+        // As funções abaixo dependem de variáveis let declaradas depois deste IIFE.
+        // try/catch evita TDZ ReferenceError na inicialização da página.
+        try { updateChartDefaults(); } catch (_) {}
+        try { updateWindyIframe(); } catch (_) {}
+        try { if (typeof refreshRegionMapTiles === "function") refreshRegionMapTiles(); } catch (_) {}
+        try { if (typeof refreshLocationPickerTiles === "function") refreshLocationPickerTiles(); } catch (_) {}
       }
 
       function toggleTheme() {
@@ -690,7 +950,8 @@
       // Initialize theme
       setTheme(savedTheme);
       updateThemeIcon(savedTheme);
-      document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
+      const themeBtn = document.getElementById("theme-toggle");
+      if (themeBtn) themeBtn.addEventListener("click", toggleTheme);
     })();
 
     // ── Chart Defaults (tema-aware) ────────────────────────────────────────────
@@ -702,81 +963,499 @@
     }
 
     function updateChartDefaults() {
+      if (typeof Chart === "undefined") return;
       const colors = getThemeColors();
       Chart.defaults.color = colors.text;
       Chart.defaults.borderColor = colors.border;
       // Redraw active charts if needed (aqui seria necessário invalidar cache)
     }
 
-    // ── Lazy-load Windy iframe ────────────────────────────────────────────────
+    // ── API fetch (evita cache de respostas 503 antigas no navegador) ─────────
+    async function fetchApi(url, options = {}) {
+      return fetch(url, {
+        cache: "no-store",
+        headers: { Accept: "application/json", ...(options.headers || {}) },
+        ...options,
+      });
+    }
+
+    // ── Localização & config ───────────────────────────────────────────────────
+    const LOC_KEY = "dashboard-location";
+    const DEFAULT_LOC = { lat: -23.55, lon: -46.63 };
+    const BRAZIL_CITIES = [
+      { id: "sp", name: "São Paulo, SP", lat: -23.5505, lon: -46.6333 },
+      { id: "rj", name: "Rio de Janeiro, RJ", lat: -22.9068, lon: -43.1729 },
+      { id: "bsb", name: "Brasília, DF", lat: -15.8267, lon: -47.9218 },
+      { id: "cwb", name: "Curitiba, PR", lat: -25.4284, lon: -49.2733 },
+      { id: "bh", name: "Belo Horizonte, MG", lat: -19.9167, lon: -43.9345 },
+      { id: "poa", name: "Porto Alegre, RS", lat: -30.0346, lon: -51.2177 },
+      { id: "ssa", name: "Salvador, BA", lat: -12.9714, lon: -38.5014 },
+      { id: "rec", name: "Recife, PE", lat: -8.0476, lon: -34.877 },
+      { id: "for", name: "Fortaleza, CE", lat: -3.7319, lon: -38.5267 },
+      { id: "mao", name: "Manaus, AM", lat: -3.119, lon: -60.0217 },
+      { id: "custom", name: "Personalizado (mapa)", lat: null, lon: null },
+    ];
+    var dashboardConfig = { demo_mode: true, default_lat: DEFAULT_LOC.lat, default_lon: DEFAULT_LOC.lon };
+    var userLocation = { ...DEFAULT_LOC };  // var (não let) — evita TDZ no IIFE de tema
+    var lastDataSource = "demo";
+    var locationPickerMap = null;
+    var locationPickerMarker = null;
+
+    function syncCoordInputs(lat, lon) {
+      const latEl = document.getElementById("input-lat");
+      const lonEl = document.getElementById("input-lon");
+      if (latEl) latEl.value = lat;
+      if (lonEl) lonEl.value = lon;
+    }
+
+    function nearestCityId(lat, lon) {
+      let best = "custom";
+      let bestDist = Infinity;
+      for (const c of BRAZIL_CITIES) {
+        if (c.lat == null) continue;
+        const d = (c.lat - lat) ** 2 + (c.lon - lon) ** 2;
+        if (d < bestDist && d < 0.25) {
+          bestDist = d;
+          best = c.id;
+        }
+      }
+      return best;
+    }
+
+    function syncCitySelect(lat, lon) {
+      const sel = document.getElementById("select-city");
+      if (!sel) return;
+      sel.value = nearestCityId(lat, lon);
+    }
+
+    function populateCitySelect() {
+      const sel = document.getElementById("select-city");
+      if (!sel || sel.options.length) return;
+      BRAZIL_CITIES.forEach((c) => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = c.name;
+        sel.appendChild(opt);
+      });
+    }
+
+    function setPickerCoords(lat, lon, fly = true) {
+      syncCoordInputs(lat, lon);
+      syncCitySelect(lat, lon);
+      const label = document.getElementById("location-label");
+      if (label) label.textContent = `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+      const sub = document.getElementById("weather-location-sub");
+      if (sub) sub.textContent = `Coordenadas: ${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+      ensureLocationPickerMap();
+      if (locationPickerMap && locationPickerMarker) {
+        locationPickerMarker.setLatLng([lat, lon]);
+        if (fly) locationPickerMap.setView([lat, lon], locationPickerMap.getZoom() || 8);
+      }
+    }
+
+    function ensureLocationPickerMap() {
+      if (locationPickerMap || typeof L === "undefined") return;
+      const el = document.getElementById("location-picker-map");
+      if (!el) return;
+      const cfg = mapTileConfig();
+      locationPickerMap = L.map(el, { zoomControl: true, scrollWheelZoom: false });
+      L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 18 }).addTo(locationPickerMap);
+      locationPickerMarker = L.marker([userLocation.lat, userLocation.lon], { draggable: true }).addTo(locationPickerMap);
+      locationPickerMap.setView([userLocation.lat, userLocation.lon], 8);
+      locationPickerMap.on("click", (e) => {
+        setPickerCoords(e.latlng.lat, e.latlng.lng, false);
+      });
+      locationPickerMarker.on("dragend", () => {
+        const p = locationPickerMarker.getLatLng();
+        setPickerCoords(p.lat, p.lng, false);
+      });
+      setTimeout(() => locationPickerMap.invalidateSize(), 150);
+    }
+
+    function loadStoredLocation() {
+      try {
+        const raw = localStorage.getItem(LOC_KEY);
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (typeof p.lat === "number" && typeof p.lon === "number") {
+            userLocation = { lat: p.lat, lon: p.lon };
+          }
+        }
+      } catch { /* ignore */ }
+      populateCitySelect();
+      setPickerCoords(userLocation.lat, userLocation.lon, true);
+    }
+
+    function saveLocation(lat, lon) {
+      userLocation = { lat, lon };
+      localStorage.setItem(LOC_KEY, JSON.stringify(userLocation));
+      setPickerCoords(lat, lon, true);
+      refreshWindyMap();
+    }
+
+    function updateLocationLabel() {
+      const el = document.getElementById("location-label");
+      const sub = document.getElementById("weather-location-sub");
+      const txt = `${userLocation.lat.toFixed(4)}°, ${userLocation.lon.toFixed(4)}°`;
+      el.textContent = txt;
+      if (sub) sub.textContent = `Coordenadas: ${txt}`;
+    }
+
+    function windyEmbedUrl(lat, lon) {
+      const tpl = document.querySelector(".windy-frame")?.dataset.srcTemplate || "";
+      return tpl.replace(/\{lat\}/g, String(lat)).replace(/\{lon\}/g, String(lon));
+    }
+
+    function refreshWindyMap() {
+      const iframe = document.querySelector(".windy-frame");
+      if (iframe) iframe.src = windyEmbedUrl(userLocation.lat, userLocation.lon);
+    }
+
     function lazyLoadWindy() {
       const iframe = document.querySelector(".windy-frame");
       if (!iframe) return;
-
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting && !iframe.src) {
-            iframe.src = "https://embed.windy.com/embed2.html?lat=-15.77&lon=-51.93&detailLat=-15.77&detailLon=-47.92&zoom=4&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1";
+            iframe.src = windyEmbedUrl(userLocation.lat, userLocation.lon);
             observer.unobserve(iframe);
           }
         });
       }, { rootMargin: "100px" });
-
       observer.observe(iframe);
     }
 
-    function updateWindyIframe() {
-      // Windy pode ter seu próprio tema; este é apenas um placeholder
-      // Para mudanças reais, seria necessário recarregar o iframe
+    function updateWindyIframe() { refreshWindyMap(); }
+
+    // ── Mapa da região (Leaflet + GeoJSON) ───────────────────────────────────
+    var regionMap = null;
+    var regionAlertsLayer = null;
+    var regionTileLayer = null;
+    const REGION_MAP_PAD = 2.5;
+
+    function locationBBox(lat, lon, pad = REGION_MAP_PAD) {
+      const south = Math.max(-90, lat - pad);
+      const north = Math.min(90, lat + pad);
+      const west = Math.max(-180, lon - pad);
+      const east = Math.min(180, lon + pad);
+      return `${south},${west},${north},${east}`;
+    }
+
+    function mapTileConfig() {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      return isDark
+        ? {
+            url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CARTO',
+          }
+        : {
+            url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CARTO',
+          };
+    }
+
+    function ensureRegionMap() {
+      if (regionMap || typeof L === "undefined") return;
+      const el = document.getElementById("region-map");
+      if (!el) return;
+      regionMap = L.map(el, { zoomControl: true, scrollWheelZoom: true });
+      const cfg = mapTileConfig();
+      regionTileLayer = L.tileLayer(cfg.url, {
+        attribution: cfg.attribution,
+        maxZoom: 18,
+      }).addTo(regionMap);
+      regionAlertsLayer = L.layerGroup().addTo(regionMap);
+      regionMap.setView([userLocation.lat, userLocation.lon], 8);
+    }
+
+    function refreshRegionMapTiles() {
+      if (!regionMap) return;
+      const cfg = mapTileConfig();
+      if (regionTileLayer) regionMap.removeLayer(regionTileLayer);
+      regionTileLayer = L.tileLayer(cfg.url, {
+        attribution: cfg.attribution,
+        maxZoom: 18,
+      }).addTo(regionMap);
+      if (regionAlertsLayer) regionAlertsLayer.bringToFront();
+    }
+
+    function refreshLocationPickerTiles() {
+      if (!locationPickerMap) return;
+      const cfg = mapTileConfig();
+      locationPickerMap.eachLayer((layer) => {
+        if (layer instanceof L.TileLayer) locationPickerMap.removeLayer(layer);
+      });
+      L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 18 }).addTo(locationPickerMap);
+      if (locationPickerMarker) locationPickerMarker.bringToFront();
+    }
+
+    function formatAlertTimestamp(ts) {
+      if (!ts) return "—";
+      const d = new Date(ts);
+      return isNaN(d.getTime())
+        ? ts
+        : d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    }
+
+    function stormPopupHtml(props) {
+      const conf = props.intensity != null
+        ? `${Math.round(props.intensity * 100)}%`
+        : "—";
+      return `<strong>Alerta de tempestade</strong><br>` +
+        `Confiança: ${conf}<br>` +
+        `Horário: ${formatAlertTimestamp(props.timestamp)}`;
+    }
+
+    function renderRegionAlerts(geojson) {
+      ensureRegionMap();
+      if (!regionMap || !regionAlertsLayer) return;
+
+      regionAlertsLayer.clearLayers();
+      const features = geojson?.features || [];
+      const emptyEl = document.getElementById("region-map-empty");
+
+      if (features.length === 0) {
+        if (emptyEl) emptyEl.hidden = false;
+        regionMap.setView([userLocation.lat, userLocation.lon], 8);
+        setTimeout(() => regionMap.invalidateSize(), 100);
+        return;
+      }
+
+      if (emptyEl) emptyEl.hidden = true;
+
+      const layer = L.geoJSON(geojson, {
+        pointToLayer(feature, latlng) {
+          return L.circleMarker(latlng, {
+            radius: 9,
+            fillColor: "#f85149",
+            color: "#fff",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.85,
+          });
+        },
+        onEachFeature(feature, layer) {
+          const props = feature.properties || {};
+          layer.bindPopup(stormPopupHtml(props));
+        },
+      });
+      layer.addTo(regionAlertsLayer);
+
+      const bounds = layer.getBounds();
+      if (bounds.isValid()) {
+        regionMap.fitBounds(bounds.pad(0.25), { maxZoom: 10 });
+      } else {
+        regionMap.setView([userLocation.lat, userLocation.lon], 8);
+      }
+      setTimeout(() => regionMap.invalidateSize(), 100);
+    }
+
+    async function loadRegionMap() {
+      const coordsEl = document.getElementById("region-map-coords");
+      const txt = `${userLocation.lat.toFixed(4)}°, ${userLocation.lon.toFixed(4)}°`;
+      if (coordsEl) coordsEl.textContent = txt;
+
+      ensureRegionMap();
+      if (regionMap) {
+        regionMap.setView([userLocation.lat, userLocation.lon], regionMap.getZoom() || 8);
+      }
+
+      try {
+        const bbox = locationBBox(userLocation.lat, userLocation.lon);
+        const r = await fetchApi(`/api/map/overlay?bbox=${encodeURIComponent(bbox)}`);
+        noteResponseSource(r);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        renderRegionAlerts(data);
+      } catch {
+        renderRegionAlerts({ type: "FeatureCollection", features: [] });
+      }
+    }
+
+    function lazyInitRegionMap() {
+      const wrap = document.querySelector(".region-map-wrap");
+      if (!wrap || typeof L === "undefined") return;
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            ensureRegionMap();
+            loadRegionMap();
+            observer.unobserve(wrap);
+          }
+        });
+      }, { rootMargin: "80px" });
+      observer.observe(wrap);
+    }
+
+    function setDataSourceChip(source) {
+      if (source === "live") lastDataSource = "live";
+      else if (source === "demo") lastDataSource = lastDataSource === "live" ? "live" : "demo";
+      else if (source === "unavailable") lastDataSource = "offline";
+
+      const chip = document.getElementById("data-source-chip");
+      if (!chip) return;
+      const labels = {
+        demo: ["Demonstração", "demo"],
+        live: ["Dados reais", "live"],
+        offline: ["Indisponível", "offline"],
+      };
+      const mode = dashboardConfig.demo_mode && lastDataSource === "demo" ? "demo"
+        : lastDataSource === "offline" ? "offline" : "live";
+      const [text, cls] = labels[mode];
+      chip.textContent = text;
+      chip.className = `data-source-chip ${cls}`;
+    }
+
+    function noteResponseSource(response) {
+      const src = response.headers.get("X-Data-Source");
+      if (src) setDataSourceChip(src);
+    }
+
+    function setLastUpdated(date) {
+      const el = document.getElementById("data-source-updated");
+      if (!el) return;
+      const ts = date instanceof Date && !isNaN(date)
+        ? date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+        : new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+      el.textContent = `Atualizado: ${ts}`;
+    }
+
+    async function loadDashboardConfig() {
+      try {
+        const r = await fetchApi("/api/dashboard/config");
+        if (r.ok) dashboardConfig = await r.json();
+      } catch { /* defaults */ }
+      if (!dashboardConfig.demo_mode) {
+        const dev = document.getElementById("yolo-dev-actions");
+        if (dev) dev.style.display = "none";
+        setDataSourceChip("live");
+      } else {
+        setDataSourceChip("demo");
+      }
+    }
+
+    function applyLocationFromInputs() {
+      const lat = parseFloat(document.getElementById("input-lat").value);
+      const lon = parseFloat(document.getElementById("input-lon").value);
+      if (Number.isNaN(lat) || Number.isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        document.getElementById("location-label").textContent = "Coordenadas inválidas";
+        return;
+      }
+      saveLocation(lat, lon);
+      reloadLocationDependentData();
+    }
+
+    function onCitySelectChange() {
+      const sel = document.getElementById("select-city");
+      const city = BRAZIL_CITIES.find((c) => c.id === sel?.value);
+      if (!city || city.lat == null) return;
+      saveLocation(city.lat, city.lon);
+      reloadLocationDependentData();
+    }
+
+    function requestGeolocation() {
+      const label = document.getElementById("location-label");
+      if (!navigator.geolocation) {
+        label.textContent = "Geolocalização não suportada";
+        return;
+      }
+      label.textContent = "Obtendo posição…";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          saveLocation(pos.coords.latitude, pos.coords.longitude);
+          reloadLocationDependentData();
+        },
+        () => { label.textContent = "Permissão negada ou indisponível"; },
+        { enableHighAccuracy: true, timeout: 12000 }
+      );
+    }
+
+    function syncSlidersFromWeather(data) {
+      const slTemp = document.getElementById("sl-temp");
+      const slUmid = document.getElementById("sl-umid");
+      const slPrec = document.getElementById("sl-prec");
+      const slVento = document.getElementById("sl-vento");
+      if (data.temperature != null && slTemp) {
+        slTemp.value = Math.min(45, Math.max(5, data.temperature));
+      }
+      if (data.humidity != null && slUmid) {
+        slUmid.value = Math.round(data.humidity);
+      }
+      if (data.precipitation != null && slPrec) {
+        slPrec.value = Math.min(50, Math.max(0, data.precipitation));
+      }
+      if (data.wind_speed != null && slVento) {
+        slVento.value = Math.round(Math.min(120, Math.max(0, data.wind_speed * 3.6)));
+      }
+      updateMLPredictor();
+    }
+
+    async function reloadLocationDependentData() {
+      await Promise.all([loadWeatherData(), loadRiskData(), loadRegionMap()]);
     }
 
     // ── Defaults ─────────────────────────────────────────────────────────────
     const colors = getThemeColors();
-    Chart.defaults.color = colors.text;
-    Chart.defaults.font.family = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-
-    // ── Timestamp ─────────────────────────────────────────────────────────────
-    document.getElementById("ts").textContent =
-      new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    if (typeof Chart !== "undefined") {
+      Chart.defaults.color = colors.text;
+      Chart.defaults.font.family = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    }
 
     // ── KPIs ──────────────────────────────────────────────────────────────────
     async function loadKPIs() {
-      const r = await fetch("/api/alerts/summary", { cache: "force-cache" });
-      const d = await r.json();
-      document.getElementById("kpi-total").textContent = d.total_30d;
-      document.getElementById("kpi-avg").textContent   = d.daily_avg;
-      document.getElementById("kpi-day").textContent   = d.peak_day;
-      document.getElementById("kpi-hour").textContent  = d.peak_hour;
+      try {
+        const r = await fetchApi("/api/alerts/summary");
+        noteResponseSource(r);
+        if (!r.ok) return;
+        const d = await r.json();
+        if (d.total_30d == null) return;
+        const kTotal = document.getElementById("kpi-total");
+        const kAvg = document.getElementById("kpi-avg");
+        const kDay = document.getElementById("kpi-day");
+        const kHour = document.getElementById("kpi-hour");
+        if (!kTotal || !kAvg || !kDay || !kHour) return;
+        kTotal.textContent = d.total_30d;
+        kAvg.textContent   = d.daily_avg;
+        kDay.textContent   = d.peak_day;
+        kHour.textContent  = d.peak_hour;
+      } catch (err) {
+        console.warn("KPIs:", err);
+      }
     }
 
     // ── Real-Time Weather Data ─────────────────────────────────────────────────
     async function loadWeatherData() {
       try {
-        const r = await fetch("/api/weather/current?lat=-23.55&lon=-46.63");
+        const q = `lat=${userLocation.lat}&lon=${userLocation.lon}`;
+        const r = await fetchApi(`/api/weather/current?${q}`);
+        noteResponseSource(r);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const data = await r.json();
-        
+
         document.getElementById("weather-temp").textContent = `${data.temperature}°C`;
         document.getElementById("weather-humidity").textContent = `${data.humidity}%`;
         document.getElementById("weather-pressure").textContent = `${data.pressure} hPa`;
         document.getElementById("weather-wind").textContent = `${data.wind_speed} m/s`;
-        
-        const ts = new Date(data.timestamp).toLocaleString("pt-BR", { 
-          dateStyle: "short", 
-          timeStyle: "short" 
-        });
-        document.getElementById("weather-timestamp").textContent = `Atualizado: ${ts}`;
-      } catch (err) {
-        console.error("Failed to load weather data:", err);
-        document.getElementById("weather-container").innerHTML = 
-          '<div style="grid-column: 1/-1; color: var(--text-sec); text-align: center;">Indisponível</div>';
+
+        const ts = new Date(data.timestamp);
+        document.getElementById("weather-timestamp").textContent =
+          `Clima: ${ts.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`;
+        setLastUpdated(ts);
+        setDataSourceChip("live");
+        syncSlidersFromWeather(data);
+      } catch {
+        document.getElementById("weather-container").innerHTML =
+          '<div style="grid-column: 1/-1; color: var(--text-sec); text-align: center;">Clima indisponível — verifique se a API está rodando</div>';
+        setDataSourceChip("unavailable");
       }
     }
 
     // ── Real-Time Risk Assessment ──────────────────────────────────────────────
     async function loadRiskData() {
       try {
-        const r = await fetch("/api/risk/forecast?lat=-23.55&lon=-46.63");
+        const q = `lat=${userLocation.lat}&lon=${userLocation.lon}`;
+        const r = await fetchApi(`/api/risk/forecast?${q}`);
+        noteResponseSource(r);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const data = await r.json();
         
@@ -799,17 +1478,16 @@
         
         document.getElementById("risk-recommendation").textContent = 
           data.recommendation;
-      } catch (err) {
-        console.error("Failed to load risk data:", err);
-        document.getElementById("risk-container").innerHTML = 
-          '<div style="color: var(--text-sec); text-align: center;">Indisponível</div>';
+      } catch {
+        document.getElementById("risk-container").innerHTML =
+          '<div style="color: var(--text-sec); text-align: center;">Risco indisponível</div>';
       }
     }
 
     // ── YOLO Storm Detector Status ──────────────────────────────────────────────
     async function loadYOLOStatus() {
       try {
-        const r = await fetch("/api/storms/detector-status");
+        const r = await fetchApi("/api/storms/detector-status");
         const data = await r.json();
         if (data.available) {
           document.getElementById("yolo-status").textContent = "✅ Operacional";
@@ -821,8 +1499,7 @@
           document.getElementById("yolo-status").textContent = "❌ Sem best.pt";
           document.getElementById("yolo-status").style.color = "#f85149";
         }
-      } catch (err) {
-        console.error("Failed to load YOLO status:", err);
+      } catch {
         document.getElementById("yolo-status").textContent = "❌ Erro";
         document.getElementById("yolo-status").style.color = "#f85149";
       }
@@ -831,7 +1508,8 @@
     async function loadRecentStorms() {
       const el = document.getElementById("storms-recent-list");
       try {
-        const r = await fetch("/api/storms/recent?hours=168");
+        const r = await fetchApi("/api/storms/recent?hours=168");
+        noteResponseSource(r);
         const storms = await r.json();
         if (!Array.isArray(storms) || storms.length === 0) {
           el.textContent = "Nenhum alerta no store local — clique em Simular alerta.";
@@ -854,7 +1532,7 @@
       btn.disabled = true;
       status.textContent = "⏳ Inferência YOLO…";
       try {
-        const r = await fetch("/api/storms/detect-sample", { method: "POST" });
+        const r = await fetchApi("/api/storms/detect-sample", { method: "POST" });
         const data = await r.json();
         if (data.success) {
           status.textContent = `✅ ${data.message}`;
@@ -882,13 +1560,13 @@
       status.textContent = "⏳ Processando...";
       
       try {
-        const r = await fetch("/api/alerts/simulate-detection", {
+        const r = await fetchApi("/api/alerts/simulate-detection", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             confidence: 0.85,
-            lat: -23.55,
-            lon: -46.63
+            lat: userLocation.lat,
+            lon: userLocation.lon
           })
         });
         
@@ -906,6 +1584,7 @@
           loadTrend();
           loadHeatmap();
           loadKPIs();
+          loadRegionMap();
           
           setTimeout(() => {
             status.textContent = "";
@@ -916,18 +1595,26 @@
           btn.disabled = false;
         }
       } catch (err) {
-        console.error("Failed to test detection:", err);
         status.textContent = `❌ Erro: ${err.message}`;
         btn.disabled = false;
       }
     }
 
+    var trendChartInstance = null;
+    var weeklyChartInstance = null;
+    var hourlyChartInstance = null;
+
     // ── Trend chart ───────────────────────────────────────────────────────────
     async function loadTrend() {
-      const r = await fetch("/api/alerts/daily", { cache: "force-cache" });
+      if (typeof Chart === "undefined") return;
+      const r = await fetchApi("/api/alerts/daily");
+      noteResponseSource(r);
+      if (!r.ok) return;
       const d = await r.json();
+      if (!d || typeof d !== "object") return;
       const c = getThemeColors();
-      new Chart(document.getElementById("trendChart"), {
+      if (trendChartInstance) trendChartInstance.destroy();
+      trendChartInstance = new Chart(document.getElementById("trendChart"), {
         type: "line",
         data: {
           labels: Object.keys(d),
@@ -957,10 +1644,15 @@
 
     // ── Weekly chart ──────────────────────────────────────────────────────────
     async function loadWeekly() {
-      const r = await fetch("/api/alerts/weekly", { cache: "force-cache" });
+      if (typeof Chart === "undefined") return;
+      const r = await fetchApi("/api/alerts/weekly");
+      noteResponseSource(r);
+      if (!r.ok) return;
       const d = await r.json();
+      if (!d || typeof d !== "object") return;
       const c = getThemeColors();
-      new Chart(document.getElementById("weeklyChart"), {
+      if (weeklyChartInstance) weeklyChartInstance.destroy();
+      weeklyChartInstance = new Chart(document.getElementById("weeklyChart"), {
         type: "bar",
         data: {
           labels: Object.keys(d),
@@ -986,10 +1678,15 @@
 
     // ── Hourly chart ──────────────────────────────────────────────────────────
     async function loadHourly() {
-      const r = await fetch("/api/alerts/hourly", { cache: "force-cache" });
+      if (typeof Chart === "undefined") return;
+      const r = await fetchApi("/api/alerts/hourly");
+      noteResponseSource(r);
+      if (!r.ok) return;
       const d = await r.json();
+      if (!d || typeof d !== "object") return;
       const c = getThemeColors();
-      new Chart(document.getElementById("hourlyChart"), {
+      if (hourlyChartInstance) hourlyChartInstance.destroy();
+      hourlyChartInstance = new Chart(document.getElementById("hourlyChart"), {
         type: "bar",
         data: {
           labels: Object.keys(d),
@@ -1015,8 +1712,11 @@
 
     // ── Heatmap ───────────────────────────────────────────────────────────────
     async function loadHeatmap() {
-      const r    = await fetch("/api/alerts/heatmap", { cache: "force-cache" });
+      const r = await fetchApi("/api/alerts/heatmap");
+      noteResponseSource(r);
+      if (!r.ok) return;
       const data = await r.json();
+      if (!Array.isArray(data)) return;
 
       const DAYS  = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
       const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2,"0")}h`);
@@ -1038,6 +1738,7 @@
 
       const thead = document.querySelector("#heatmap-table thead tr");
       const tbody = document.querySelector("#heatmap-table tbody");
+      if (!thead || !tbody) return;
 
       // Header: hours
       thead.innerHTML = "<th></th>";
@@ -1068,7 +1769,7 @@
     }
 
     // ── ML Agrícola — Predictor Interativo ────────────────────────────────────
-    let mlDebounce = null;
+    var mlDebounce = null;
 
     async function updateMLPredictor() {
       const temp  = parseFloat(document.getElementById("sl-temp").value);
@@ -1084,7 +1785,7 @@
       clearTimeout(mlDebounce);
       mlDebounce = setTimeout(async () => {
         try {
-          const r = await fetch(
+          const r = await fetchApi(
             `/api/ml/agricultural-risk?temperatura=${temp}&umidade=${umid}&precipitacao=${prec}&vento_kmh=${vento}`
           );
           if (!r.ok) throw new Error();
@@ -1102,9 +1803,9 @@
 
           const p = d.probabilidades || {};
           document.getElementById("ml-probas").innerHTML =
-            `<span style="color:#3fb950">LOW</span> ${Math.round((p.LOW||0)*100)}%<br>` +
-            `<span style="color:#d29922">MED</span> ${Math.round((p.MEDIUM||0)*100)}%<br>` +
-            `<span style="color:#f85149">HIGH</span> ${Math.round((p.HIGH||0)*100)}%`;
+            `<span style="color:#3fb950">Baixo</span> ${Math.round((p.LOW||0)*100)}%<br>` +
+            `<span style="color:#d29922">Médio</span> ${Math.round((p.MEDIUM||0)*100)}%<br>` +
+            `<span style="color:#f85149">Alto</span> ${Math.round((p.HIGH||0)*100)}%`;
         } catch {
           document.getElementById("ml-score").textContent = "—";
           document.getElementById("ml-rec").textContent   = "Backend indisponível";
@@ -1112,14 +1813,15 @@
       }, 400);
     }
 
-    ["sl-temp","sl-umid","sl-prec","sl-vento"].forEach(id =>
-      document.getElementById(id).addEventListener("input", updateMLPredictor)
-    );
+    ["sl-temp","sl-umid","sl-prec","sl-vento"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", updateMLPredictor);
+    });
 
     // ── Galeria NASA ──────────────────────────────────────────────────────────
     async function loadNASAGallery() {
       try {
-        const r = await fetch("/api/nasa/capturas?limite=12");
+        const r = await fetchApi("/api/nasa/capturas?limite=12");
         const d = await r.json();
         const gallery = document.getElementById("nasa-gallery");
         const empty   = document.getElementById("nasa-empty");
@@ -1155,27 +1857,47 @@
       }
     }
 
+    async function safeLoad(name, fn) {
+      try {
+        await fn();
+      } catch (err) {
+        console.warn(`Dashboard: falha em ${name}`, err);
+      }
+    }
+
+    async function bootstrapDashboard() {
+      await loadDashboardConfig();
+      await Promise.allSettled([
+        safeLoad("kpis", loadKPIs),
+        safeLoad("trend", loadTrend),
+        safeLoad("weekly", loadWeekly),
+        safeLoad("hourly", loadHourly),
+        safeLoad("heatmap", loadHeatmap),
+        safeLoad("weather", loadWeatherData),
+        safeLoad("risk", loadRiskData),
+        safeLoad("yolo", loadYOLOStatus),
+        safeLoad("storms", loadRecentStorms),
+        safeLoad("nasa", loadNASAGallery),
+        safeLoad("region-map", loadRegionMap),
+      ]);
+      setLastUpdated(new Date());
+    }
+
     // ── Bootstrap ─────────────────────────────────────────────────────────────
+    bootstrapDashboard();
+
+    loadStoredLocation();
+    ensureLocationPickerMap();
+    document.getElementById("btn-apply-location")?.addEventListener("click", applyLocationFromInputs);
+    document.getElementById("btn-geo")?.addEventListener("click", requestGeolocation);
+    document.getElementById("select-city")?.addEventListener("change", onCitySelectChange);
     lazyLoadWindy();
+    lazyInitRegionMap();
 
-    // Event listeners
-    document.getElementById("btn-test-detection").addEventListener("click", testStormDetection);
-    document.getElementById("btn-detect-sample").addEventListener("click", detectSampleImage);
-
-    // Load all data
-    Promise.all([
-      loadKPIs(),
-      loadTrend(),
-      loadWeekly(),
-      loadHourly(),
-      loadHeatmap(),
-      loadWeatherData(),
-      loadRiskData(),
-      loadYOLOStatus(),
-      loadRecentStorms(),
-      loadNASAGallery(),
-      updateMLPredictor(),
-    ]);
+    const btnTest = document.getElementById("btn-test-detection");
+    const btnSample = document.getElementById("btn-detect-sample");
+    if (btnTest) btnTest.addEventListener("click", testStormDetection);
+    if (btnSample) btnSample.addEventListener("click", detectSampleImage);
   </script>
 </body>
 </html>

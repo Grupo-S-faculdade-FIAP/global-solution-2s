@@ -73,7 +73,7 @@ class RiskAssessmentService:
         """Carrega StormDetector e AgriRiskModel se disponíveis."""
         try:
             from app.services.storm_detector import StormDetector
-            model_path = Path(__file__).resolve().parents[3] / "models" / "weights" / "best.pt"
+            model_path = Path(__file__).resolve().parents[2] / "models" / "weights" / "best.pt"
             if model_path.exists():
                 self._storm_detector = StormDetector(
                     model_path=str(model_path),
@@ -217,9 +217,10 @@ def _score_climatico(clima: dict) -> float:
     if temp >= 35 or temp <= 10: s_t = 0.7
     elif temp >= 32:             s_t = 0.3
     else:                        s_t = 0.0
-    score += s_t * 0.15; peso_total += 0.15
+    score += s_t * 0.15; peso_total += 0.15  # noqa: F841 (peso_total == 1.0 por construção)
 
-    return float(np.clip(score / peso_total if peso_total > 0 else 0, 0, 1))
+    # peso_total é sempre 1.0 (0.40 + 0.25 + 0.20 + 0.15), divisão desnecessária
+    return float(np.clip(score, 0.0, 1.0))
 
 
 def _score_cv(detector) -> tuple[float, dict]:
