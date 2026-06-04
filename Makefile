@@ -1,4 +1,4 @@
-.PHONY: install demo test-api test-storms nasa-capture upload-s3
+.PHONY: install demo test test-api test-storms nasa-capture upload-s3
 
 VENV_PYTHON := .venv/bin/python
 
@@ -11,11 +11,15 @@ demo:
 	@echo "Iniciando API + dashboard em http://127.0.0.1:8000"
 	cd src && ../$(VENV_PYTHON) -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
+# Suite completa (mesmo comando do CI)
+test:
+	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/ tests/ -q
+
 test-api:
-	cd src && pytest ../tests/test_api_endpoints.py -q
+	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/test_api_endpoints.py -q
 
 test-storms:
-	cd src && pytest ../tests/test_storm_alerts_query.py -q
+	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/test_storm_alerts_query.py -q
 
 # Captura NASA Worldview + upload S3 (requer playwright: playwright install chromium)
 nasa-capture:
