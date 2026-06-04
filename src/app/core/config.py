@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     
     # ─── S3 ───────────────────────────────────────────────────────────────
     S3_BUCKET_MODELS: str = "model-artifacts"
-    S3_BUCKET_IMAGES: str = "input-images"
+    S3_BUCKET_IMAGES: str = "satellite-images-gs2"
     S3_BUCKET_OUTPUTS: str = "output-detections"
     
     # ─── Open-Meteo API ───────────────────────────────────────────────────
