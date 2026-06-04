@@ -1,7 +1,7 @@
 # Testing
 
-**Project:** [Project Name]
-**Mapped on:** [YYYY-MM-DD]
+**Project:** global-solution-2s
+**Mapped on:** 2026-06-04
 
 ---
 
@@ -9,122 +9,100 @@
 
 | Layer | Framework | Config |
 |-------|-----------|--------|
-| Unit | [e.g., Vitest] | `vitest.config.ts` |
-| Integration | [e.g., Vitest + Supertest] | `vitest.config.ts` |
-| E2E | [e.g., Playwright] | `playwright.config.ts` |
+| API/Lambda integration | pytest | Arquivos em `tests/` |
+| App basic checks | pytest | Arquivos em `src/tests/` |
+| Async support | pytest-asyncio | Dependencia em `src/requirements.txt` |
+| HTTP app tests | fastapi.testclient | Utilizado em `tests/test_api_endpoints.py` |
 
 ---
 
 ## Gate Check Commands
 
-These are the MANDATORY gate commands used during Execute phase.
-Every task specifies a gate level — the agent runs the corresponding command.
-
 | Gate Level | Command | When to use |
 |------------|---------|-------------|
-| **quick** | `[e.g., pnpm test:unit]` | Unit tests only |
-| **full** | `[e.g., pnpm test]` | Unit + integration + e2e |
-| **build** | `[e.g., pnpm build && pnpm test]` | Build + all tests (last task in phase) |
+| **quick** | `pytest tests/test_api_endpoints.py -v` | Mudancas em endpoints de data integration |
+| **full** | `pytest tests/ src/tests/ -v` | Mudancas em routers/services/lambdas |
+| **build** | `cd src && make lint && cd .. && pytest tests/ src/tests/ -v` | Entregas finais de fase |
 
 ---
 
-## Test Coverage Matrix
+## Current Test Coverage (Observed)
 
-Maps each code layer to its required test type.
-Agents use this to assign the `Tests` field in tasks.
-
-| Code Layer | Required Test Type | Notes |
-|------------|--------------------|-------|
-| React components | unit | Render + interaction tests |
-| API routes / controllers | integration | Full request/response cycle |
-| Services (business logic) | unit | Pure function tests |
-| Repositories (DB access) | integration | With test DB |
-| Utility functions | unit | |
-| Configuration / env | none | Validated at startup |
-| Type definitions | none | Compile-time only |
-| E2E user flows | e2e | Critical paths only |
+| Area | File(s) | Status |
+|------|---------|--------|
+| Endpoints weather/storm/risk/map | `tests/test_api_endpoints.py` | Coberto (fluxo feliz + validacoes) |
+| Weather service | `tests/test_weather_service.py` | Coberto, com chamadas reais e cache |
+| Lambda ingestao clima | `tests/test_ingest_weather_lambda.py` | Coberto com mocks boto3/services |
+| App health e routers | `src/tests/test_main.py` | Cobertura basica |
 
 ---
 
-## Parallelism Assessment
+## Main Gaps
 
-Determines which test types are safe to run in parallel (affects `[P]` task flags).
-
-| Test Type | Parallel-Safe | Reason |
-|-----------|:------------:|--------|
-| unit | ✅ Yes | No shared state |
-| integration | ❌ No | Shares DB state |
-| e2e | ❌ No | Shares browser/server state |
+| Gap | Priority | Why it matters |
+|-----|----------|----------------|
+| Sem testes para `src/app/routers/cv.py` | Alta | Fluxo critico S3 -> YOLO -> SNS -> DynamoDB pode quebrar sem aviso |
+| Sem testes para `src/app/routers/ml.py` | Alta | Endpoint de predicao agricola pode retornar erro silencioso |
+| Sem testes para `src/app/services/agri_risk_model.py` | Alta | Modelo e serializacao sem garantias de comportamento |
+| Sem testes para `src/app/services/storm_detector.py` | Media | Regressao em inferencia local |
+| `tests/test_weather_service.py` depende de internet | Media | Suite pode falhar por indisponibilidade externa |
+| Routers IoT sao stubs sem testes | Media | Funcionalidade aparece pronta, mas nao esta implementada |
 
 ---
 
-## Test Patterns
+## Test Patterns in Use
 
-### Unit Test Pattern
+### Endpoint tests (FastAPI TestClient)
 
-```typescript
-import { describe, it, expect } from 'vitest'
-import { [functionUnderTest] } from './[module]'
+```python
+from fastapi.testclient import TestClient
+from app.main import app
 
-describe('[module]', () => {
-  it('[should do X when Y]', () => {
-    // Arrange
-    const input = [...]
+client = TestClient(app)
 
-    // Act
-    const result = [functionUnderTest](input)
-
-    // Assert
-    expect(result).toEqual([expected])
-  })
-})
+def test_get_weather_success():
+    response = client.get("/weather/current?lat=-22.89&lon=-43.18")
+    assert response.status_code == 200
 ```
 
-### Integration Test Pattern
+### Lambda tests with patch
 
-```typescript
-// [Show the pattern used in this project for integration tests]
-```
+```python
+from unittest.mock import patch
 
-### E2E Test Pattern
-
-```typescript
-// [Show the pattern used in this project for e2e tests with Playwright or similar]
+@patch("src.app.lambdas.ingest_weather.WeatherService")
+def test_lambda_handler_success(mock_service):
+    ...
 ```
 
 ---
 
-## Coverage Goals
+## Coverage Goals (Recommended)
 
 | Type | Target | Current |
 |------|--------|---------|
-| Unit | [e.g., 80%] | [track manually] |
-| Integration | [e.g., critical paths] | [track manually] |
-| E2E | [e.g., happy paths] | [track manually] |
+| Critical routers (cv/ml/data) | >= 80% | Parcial |
+| Services (weather/risk/storm) | >= 75% | Baixo a medio |
+| Lambda handlers | >= 80% | Medio |
+| End-to-end S3 trigger path | 1 smoke test por release | Ausente |
 
 ---
 
 ## Running Tests
 
 ```bash
-# Unit tests
-[command]
+# Tudo
+pytest tests/ src/tests/ -v
 
-# Unit tests with watch
-[command]
+# Apenas integracao de API
+pytest tests/test_api_endpoints.py -v
 
-# Integration tests
-[command]
+# Apenas weather service
+pytest tests/test_weather_service.py -v
 
-# E2E tests (headless)
-[command]
+# Apenas lambda ingestao
+pytest tests/test_ingest_weather_lambda.py -v
 
-# E2E tests (headed / debug)
-[command]
-
-# All tests
-[command]
-
-# Coverage report
-[command]
+# Lint
+cd src && make lint
 ```

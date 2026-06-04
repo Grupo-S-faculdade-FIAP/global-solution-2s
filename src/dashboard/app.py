@@ -23,11 +23,12 @@ try:
     
     # Caminho do modelo YOLO (usar modelo padrão se existir)
     YOLO_MODEL_PATH = "src/models/weights/best.pt"
+    YOLO_CONFIDENCE = 0.4
     if Path(YOLO_MODEL_PATH).exists():
         STORM_DETECTOR = StormDetector(
             model_path=YOLO_MODEL_PATH,
-            confidence_threshold=0.5,
-            device="cpu"
+            confidence_threshold=YOLO_CONFIDENCE,
+            device="cpu",
         )
         print(f"✅ Storm Detector carregado: {YOLO_MODEL_PATH}")
     else:
@@ -109,13 +110,39 @@ def index():
 
 @app.route("/api/alerts/weekly")
 def alerts_weekly():
-    """Distribuição de alertas por dia da semana."""
+    """Distribuição real de alertas por dia da semana (proxy FastAPI)."""
+    try:
+        days = request.args.get("days", default=30, type=int)
+        response = requests.get(
+            f"{FASTAPI_BASE_URL}/alerts/weekly",
+            params={"days": days},
+            timeout=5,
+        )
+        if response.status_code == 200:
+            return jsonify(response.json())
+    except requests.exceptions.RequestException:
+        pass
+
+    # Fallback para demo local sem backend AWS/DB
     return jsonify(WEEKLY_ALERTS)
 
 
 @app.route("/api/alerts/hourly")
 def alerts_hourly():
-    """Distribuição de alertas por hora do dia."""
+    """Distribuição real de alertas por hora (proxy FastAPI)."""
+    try:
+        days = request.args.get("days", default=30, type=int)
+        response = requests.get(
+            f"{FASTAPI_BASE_URL}/alerts/hourly",
+            params={"days": days},
+            timeout=5,
+        )
+        if response.status_code == 200:
+            return jsonify(response.json())
+    except requests.exceptions.RequestException:
+        pass
+
+    # Fallback para demo local sem backend AWS/DB
     return jsonify(HOURLY_ALERTS)
 
 
@@ -372,7 +399,34 @@ def simulate_storm_detection():
         lat = data.get("lat", -23.55)
         lon = data.get("lon", -46.63)
         
-        # Adicionar alerta simulado ao histórico de alertas
+        # Persiste via API (mock JSON ou DynamoDB quando AWS estiver pronta)
+        try:
+            api_resp = requests.post(
+                f"{FASTAPI_BASE_URL}/alerts/simulate",
+                json={"confidence": confidence, "lat": lat, "lon": lon},
+                timeout=5,
+            )
+            if api_resp.status_code == 200:
+                payload = api_resp.json()
+                stored = payload.get("alert", {})
+                return jsonify({
+                    "success": True,
+                    "alert": {
+                        "id": stored.get("alert_id"),
+                        "type": "storm_detection",
+                        "confidence": confidence,
+                        "latitude": lat,
+                        "longitude": lon,
+                        "timestamp": stored.get("timestamp"),
+                        "message": payload.get("message", "Alerta simulado"),
+                        "simulated": True,
+                        "mock_mode": payload.get("mock_mode", True),
+                    },
+                    "message": "Alerta registrado (armazenamento simulado/local)",
+                })
+        except requests.exceptions.RequestException:
+            pass
+
         alert = {
             "id": f"alert_{datetime.now().timestamp()}",
             "type": "storm_detection",
@@ -381,13 +435,12 @@ def simulate_storm_detection():
             "longitude": lon,
             "timestamp": datetime.now().isoformat(),
             "message": f"Tempestade detectada com confiança {confidence:.1%}",
-            "simulated": True
+            "simulated": True,
         }
-        
         return jsonify({
             "success": True,
             "alert": alert,
-            "message": "Alerta de tempestade simulado com sucesso"
+            "message": "Alerta simulado (API offline — não persistido)",
         })
     
     except Exception as e:
@@ -432,6 +485,71 @@ def nasa_capturas():
         return jsonify({"total": 0, "capturas": []}), 200
     except requests.exceptions.RequestException:
         return jsonify({"total": 0, "capturas": []}), 200
+
+
+def _default_nasa_sample_path() -> Path | None:
+    """Imagem val NASA com storm para demo local (DASH-02)."""
+    root = Path(__file__).resolve().parent.parent.parent
+    candidates = sorted((root / "data" / "model-dataset" / "images" / "val").glob("nasa_*.png"))
+    for path in candidates:
+        lbl = root / "data" / "model-dataset" / "labels" / "val" / f"{path.stem}.txt"
+        if lbl.exists() and lbl.stat().st_size > 0:
+            return path
+    return candidates[0] if candidates else None
+
+
+@app.route("/api/storms/detector-status")
+def detector_status():
+    """Status do detector YOLO sem rodar inferência (DASH-01)."""
+    model_path = Path("src/models/weights/best.pt")
+    return jsonify({
+        "available": STORM_DETECTOR is not None,
+        "model_exists": model_path.exists(),
+        "confidence_threshold": 0.4,
+        "model_path": str(model_path),
+    })
+
+
+@app.route("/api/storms/detect-sample", methods=["POST"])
+def detect_storm_sample():
+    """Inferência YOLO em imagem NASA de amostra do dataset val."""
+    if not STORM_DETECTOR:
+        return jsonify({
+            "success": False,
+            "error": "Storm Detector não disponível",
+        }), 503
+
+    sample = _default_nasa_sample_path()
+    if not sample or not sample.exists():
+        return jsonify({
+            "success": False,
+            "error": "Nenhuma imagem NASA de amostra em data/model-dataset/images/val/",
+        }), 404
+
+    try:
+        result = STORM_DETECTOR.predict(str(sample.resolve()))
+        return jsonify({
+            "success": True,
+            "sample_image": str(sample.name),
+            "num_detections": result.num_detections,
+            "has_storm": result.has_storm,
+            "average_confidence": result.average_confidence,
+            "timestamp": result.timestamp,
+            "detections": [
+                {
+                    "confidence": d.confidence,
+                    "class_name": d.class_name,
+                }
+                for d in result.detections
+            ],
+            "message": (
+                f"{result.num_detections} detecção(ões) em {sample.name}"
+                if result.has_storm
+                else f"Nenhuma tempestade em {sample.name}"
+            ),
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/cv/status")

@@ -1,22 +1,24 @@
-"""Data integration endpoints for weather, storms, and risk prediction."""
+"""Data integration endpoints for weather, storms, risk prediction and analytics."""
 
-from datetime import datetime
 from typing import List
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Body
+from pydantic import BaseModel, Field
+from app.core.config import settings
 from app.services.weather_service import WeatherService
+from app.services.alerts_analytics import AlertAnalyticsService
+from app.services.storm_alerts_query import StormAlertsQueryService
+from app.services.storm_alerts_store import add_alert_from_coords, use_mock_store
 from app.models.schemas import (
     WeatherResponse,
-    StormsResponse,
-    StormDetection,
     RiskForecast,
     MapOverlayResponse,
     GeoJSONFeature,
-    GeoJSONGeometry,
-    GeoJSONProperties,
 )
 
 router = APIRouter()
 weather_service = WeatherService()
+alert_analytics_service = AlertAnalyticsService()
+storm_alerts_service = StormAlertsQueryService()
 
 
 # ─── Helper Functions ────────────────────────────────────────────────────
@@ -132,11 +134,7 @@ def get_storms_recent(
         )
     
     try:
-        # TODO: Query DynamoDB storm_detections table
-        # For now, return empty list (T-04 not yet implemented)
-        detections: List[dict] = []
-        
-        return detections
+        return storm_alerts_service.recent_detections(hours=hours)
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -217,16 +215,90 @@ def get_map_overlay(
         )
     
     try:
-        # TODO: Query DynamoDB and build GeoJSON
-        # For now, return empty feature collection
-        features: List[GeoJSONFeature] = []
-        
+        hours = 24 * 7
+        features = storm_alerts_service.map_overlay_features(
+            south, west, north, east, hours=hours
+        )
         return MapOverlayResponse(
             type="FeatureCollection",
-            features=features
+            features=features,
         )
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Error generating map overlay: {str(e)}"
+        )
+
+
+class SimulateAlertRequest(BaseModel):
+    """Corpo para simular alerta local (sem DynamoDB AWS)."""
+    confidence: float = Field(0.85, ge=0.0, le=1.0)
+    lat: float = Field(-23.55, ge=-90, le=90)
+    lon: float = Field(-46.63, ge=-180, le=180)
+
+
+@router.post(
+    "/alerts/simulate",
+    tags=["Analytics"],
+    summary="Simulate storm alert (local store)",
+    description="Grava alerta simulado em data/demo/storm_alerts.json quando DynamoDB mock está ativo",
+)
+def post_simulate_alert(body: SimulateAlertRequest = Body(...)) -> dict:
+    item = add_alert_from_coords(body.lat, body.lon, body.confidence)
+    return {
+        "success": True,
+        "mock_mode": use_mock_store(),
+        "alert": item,
+        "message": "Alerta simulado registrado",
+    }
+
+
+@router.get(
+    "/alerts/status",
+    tags=["Analytics"],
+    summary="Alert storage mode",
+)
+def get_alerts_storage_status() -> dict:
+    return {
+        "mock_mode": use_mock_store(),
+        "store": "local_json" if use_mock_store() else "dynamodb",
+        "table": settings.DYNAMODB_TABLE_ALERTS if not use_mock_store() else "data/demo/storm_alerts.json",
+    }
+
+
+@router.get(
+    "/alerts/weekly",
+    response_model=dict[str, int],
+    tags=["Analytics"],
+    summary="Get weekly alerts distribution",
+    description="Aggregates storm alerts by day of week from DynamoDB"
+)
+def get_alerts_weekly(
+    days: int = Query(30, ge=1, le=365, description="Days to look back")
+) -> dict[str, int]:
+    try:
+        return alert_analytics_service.weekly_alerts(days=days)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error aggregating weekly alerts: {str(e)}"
+        )
+
+
+@router.get(
+    "/alerts/hourly",
+    response_model=dict[str, int],
+    tags=["Analytics"],
+    summary="Get hourly alerts distribution",
+    description="Aggregates storm alerts by hour from DynamoDB"
+)
+def get_alerts_hourly(
+    days: int = Query(30, ge=1, le=365, description="Days to look back")
+) -> dict[str, int]:
+    try:
+        return alert_analytics_service.hourly_alerts(days=days)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error aggregating hourly alerts: {str(e)}"
         )

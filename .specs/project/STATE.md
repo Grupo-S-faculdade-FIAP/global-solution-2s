@@ -11,9 +11,9 @@
 
 ## Current Focus
 
-**Active feature:** data-integration-dashboard (integração Dataset YOLO + Open-Meteo API + Dashboard)
-**Last task completed:** ✅ T-11 (Integrar FastAPI com Flask dashboard; proxy routes + real-time cards) (2026-06-02)
-**Next task:** T-01 (Setup DynamoDB) — Foundation para persistência de dados de tempo real
+**Active feature:** gs-closure
+**Last task completed:** ✅ Fases 1–2 spec + dashboard + `/storms/recent` + `/map/overlay` (2026-06-04)
+**Next task:** Fase 3 — smoke AWS + deploy best.pt na Lambda; Fase 4 — vídeo/README
 **Blockers:** nenhum
 
 ---
@@ -50,6 +50,10 @@
 ## Lessons Learned
 
 - 2026-06-01 — Projeto inicializado com spec-driven. Manter cada módulo com seu próprio `spec.md` para facilitar divisão entre integrantes.
+- 2026-06-04 — Os docs de `.specs/codebase/` estavam como template genérico; manter mapeamento real evita decisões baseadas em suposição.
+- 2026-06-04 — Treino YOLO: usar só NASA por ora; screenshots Windy antigos fora do dataset; futuras capturas Windy podem entrar depois com rótulo revisado.
+- 2026-06-04 — Retreino NASA com `--limiar 200 --area 600`: 266 bboxes, mAP@0.5 ≈ 0.546 (época 46), precision ~0.89, recall ~0.42. Modelo em `src/models/weights/best.pt`.
+- 2026-06-04 — DynamoDB mock: `DYNAMODB_USE_MOCK=true` (default) → `data/demo/storm_alerts.json`; `POST /alerts/simulate`; gráficos e `/storms/recent` usam o mesmo store.
 
 ---
 

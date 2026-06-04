@@ -80,6 +80,41 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 **Observações gerais:**
 - Este projeto foi desenvolvido no contexto da Global Solution da FIAP (Graduação ON em IA)
 
+### Status de Execução (Caroline e Lucas) — 2026-06-04
+
+Evidências objetivas aplicadas no projeto:
+
+- Caroline (Análise de dados):
+  - Gráficos de alertas por dia da semana e horário no dashboard agora consomem agregação real via API (`/alerts/weekly` e `/alerts/hourly`) com dados do DynamoDB, mantendo fallback local para demo sem nuvem.
+- Lucas (YOLO + pipeline de dados):
+  - Captura NASA incremental executada com sucesso (+3 imagens no dia).
+  - Conversão NASA -> YOLO executada em 36 imagens.
+  - Dataset de treino atualizado para 46 imagens e 46 labels.
+  - Retreino smoke (1 época) executado com sucesso e `best.pt` atualizado em `src/models/weights/best.pt`.
+
+Números atuais verificados:
+
+- `data/nasa_captures`: 36 imagens PNG
+- `data/model-dataset/images/train`: 46 imagens
+- `data/model-dataset/labels/train`: 46 labels
+
+Trilha YOLO NASA (concluída):
+
+1. `data/nasa_captures`: 90 imagens
+2. Dataset só NASA (`--limiar 200 --area 600`): mAP@0.5 ≈ **0,55**
+3. Endpoints: `GET /storms/recent`, `GET /map/overlay` (DynamoDB `storm_alerts`)
+
+**Demo local (API + dashboard):**
+
+```bash
+make demo
+# API: http://localhost:8000  ·  Dashboard: http://localhost:5000
+```
+
+**Alertas / DynamoDB (enquanto AWS não estiver pronta):** por padrão `DYNAMODB_USE_MOCK=true` — dados em `data/demo/storm_alerts.json` (seed automático + `POST /alerts/simulate`). Quando a AWS estiver ok: `DYNAMODB_USE_MOCK=false` no `.env`.
+
+Spec de fechamento: `.specs/features/gs-closure/spec.md`
+
 ---
 
 ## 🔧 Como executar o código

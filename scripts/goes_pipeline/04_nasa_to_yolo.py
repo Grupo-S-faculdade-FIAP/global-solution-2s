@@ -123,8 +123,50 @@ def processar_imagem(png_path: Path, split: str, limiar: int, area_min: int) -> 
     }
 
 
-def main(limiar: int = DEFAULT_LIMIAR, area_min: int = DEFAULT_AREA_PX,
-         train_frac: float = 0.85):
+def limpar_dataset_nao_nasa() -> int:
+    """
+    Remove imagens/labels que não são do pipeline NASA (ex.: screenshots Windy antigos).
+    Mantém apenas arquivos cujo stem começa com 'nasa_'.
+    """
+    removidos = 0
+    for pasta in (IMG_TRAIN, IMG_VAL, LBL_TRAIN, LBL_VAL):
+        for path in list(pasta.glob("*")):
+            if not path.is_file():
+                continue
+            stem = path.stem
+            if stem.startswith("nasa_"):
+                continue
+            path.unlink()
+            removidos += 1
+    return removidos
+
+
+def limpar_splits_yolo() -> int:
+    """Remove todo o conteúdo de train/val (imagens + labels) antes de reconstruir."""
+    removidos = 0
+    for pasta in (IMG_TRAIN, IMG_VAL, LBL_TRAIN, LBL_VAL):
+        for path in list(pasta.glob("*")):
+            if path.is_file():
+                path.unlink()
+                removidos += 1
+    return removidos
+
+
+def main(
+    limiar: int = DEFAULT_LIMIAR,
+    area_min: int = DEFAULT_AREA_PX,
+    train_frac: float = 0.85,
+    clean: bool = False,
+    nasa_only: bool = False,
+):
+
+    if clean:
+        n = limpar_splits_yolo()
+        print(f"🧹 Dataset limpo: {n} arquivo(s) removido(s) de train/val\n")
+    elif nasa_only:
+        n = limpar_dataset_nao_nasa()
+        if n:
+            print(f"🧹 Removidos {n} arquivo(s) não-NASA (Windy/outros)\n")
 
     arquivos = sorted(NASA_DIR.glob("*.png"))
 
@@ -179,5 +221,21 @@ if __name__ == "__main__":
                         help="Área mínima (px²) para gerar bbox")
     parser.add_argument("--split",   type=float, default=0.85,
                         help="Fração para treino (0-1)")
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Apaga train/val e reconstrói só a partir de data/nasa_captures/",
+    )
+    parser.add_argument(
+        "--nasa-only",
+        action="store_true",
+        help="Remove arquivos em train/val que não começam com nasa_ (ex.: Windy antigo)",
+    )
     args = parser.parse_args()
-    main(limiar=args.limiar, area_min=args.area, train_frac=args.split)
+    main(
+        limiar=args.limiar,
+        area_min=args.area,
+        train_frac=args.split,
+        clean=args.clean,
+        nasa_only=args.nasa_only,
+    )

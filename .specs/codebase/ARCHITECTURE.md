@@ -1,13 +1,13 @@
 # Architecture
 
-**Project:** [Project Name]
-**Mapped on:** [YYYY-MM-DD]
+**Project:** global-solution-2s
+**Mapped on:** 2026-06-04
 
 ---
 
 ## Overview
 
-[1-3 sentence description of the high-level architecture pattern — e.g., "Monorepo with a Next.js frontend consuming a REST API built on Express. Data layer uses PostgreSQL via Prisma ORM."]
+Arquitetura modular em Python com backend FastAPI, execucao local via Uvicorn e execucao em nuvem via AWS Lambda (Mangum). O projeto combina tres fluxos principais: ingestao meteorologica (Open-Meteo), deteccao de tempestade por YOLO (S3 trigger) e exposicao de endpoints para dashboard/API.
 
 ---
 
@@ -15,13 +15,28 @@
 
 ```mermaid
 graph TD
-    A[Client / Browser] --> B[Next.js Frontend]
-    B --> C[API Layer]
-    C --> D[(Database)]
-    C --> E[External Services]
-```
+    U[Usuario / Cliente HTTP] --> API[FastAPI app.main]
+    API --> R1[Router Data Integration]
+    API --> R2[Router CV]
+    API --> R3[Router ML]
+    API --> R4[Router IoT]
 
-> Replace with your actual architecture diagram.
+    R1 --> WM[WeatherService]
+    WM --> OM[Open-Meteo API]
+
+    S3[S3 upload .jpg] --> H[Lambda handler app.main.handler]
+    H --> CVP[process_s3_image]
+    CVP --> Y[YOLOv5 inferencia]
+    CVP --> DDB[(DynamoDB storm_alerts)]
+    CVP --> SNS[SNS rain alerts]
+
+    CRON[CloudWatch schedule] --> L[ingest_weather.lambda_handler]
+    L --> WM
+    L --> DDBW[(DynamoDB weather_metrics)]
+
+    API --> DB[(DynamoDB tables)]
+    DASH[Flask dashboard] --> API
+```
 
 ---
 
@@ -29,22 +44,27 @@ graph TD
 
 | Layer | Technology | Responsibility |
 |-------|-----------|----------------|
-| Presentation | [e.g., Next.js pages/app] | UI rendering, routing |
-| API | [e.g., API routes / Express] | Business logic, validation |
-| Data access | [e.g., Prisma] | Database queries, models |
-| Domain / Services | [e.g., src/services/] | Core business rules |
+| Presentation | Flask dashboard + API clients | Visualizacao local e consumo de endpoints |
+| API | FastAPI routers | Contratos HTTP, validacoes e orquestracao |
+| Domain services | app/services | Regras de negocio (clima, risco, deteccao) |
+| Integration | boto3 + HTTP clients | S3/SNS/DynamoDB e APIs externas |
+| Infrastructure | AWS Lambda + API Gateway + S3 + DynamoDB | Execucao serverless e persistencia |
 
 ---
 
 ## Data Flow
 
-[Describe how data moves through the system — from user action to persistence and back.]
+### Fluxo A: API de clima e risco
 
-```
-User Action → [Component] → [API Route] → [Service] → [Repository] → [Database]
-                                                      ↑
-                                              [External Service]
-```
+Cliente -> endpoint `/weather/current` ou `/risk/forecast` -> validacao de coordenadas -> `WeatherService`/`RiskAssessmentService` -> Open-Meteo -> resposta JSON.
+
+### Fluxo B: Deteccao CV via S3 trigger
+
+Upload `.jpg` no S3 -> evento S3 chama `handler` -> `process_s3_image` -> download da imagem + modelo -> inferencia YOLO -> se houver deteccao: publica SNS e grava no DynamoDB.
+
+### Fluxo C: Ingestao periodica de clima
+
+CloudWatch schedule -> `ingest_weather.lambda_handler` -> coleta multiplas coordenadas no Open-Meteo -> normaliza payload -> grava em DynamoDB com TTL.
 
 ---
 
@@ -52,16 +72,20 @@ User Action → [Component] → [API Route] → [Service] → [Repository] → [
 
 | Decision | Rationale | Trade-offs |
 |----------|-----------|-----------|
-| [e.g., Monorepo] | [why] | [pros/cons] |
-| [e.g., Server components] | [why] | [pros/cons] |
+| FastAPI + Mangum para Lambda | Reaproveita API local e cloud com o mesmo codigo | Cold start pode ser alto com dependencias pesadas |
+| YOLOv5 em pipeline serverless | Boa acuracia para deteccao de objetos em imagens | Peso do modelo e runtime elevam custo/latencia |
+| DynamoDB para dados operacionais | Simples, serverless e sem manutencao de banco | Consultas analiticas complexas ficam mais dificeis |
+| Dashboard Flask separado | Entrega rapida para visualizacao | Duplica camada de apresentacao fora da API |
+| Configuracao por pydantic-settings | Centraliza env vars e evita hardcode | Requer disciplina de setup .env por ambiente |
 
 ---
 
 ## Boundaries & Rules
 
-- [Rule: e.g., "Services NEVER import from pages — data flows one way"]
-- [Rule: e.g., "All DB access goes through the repository layer"]
-- [Rule: e.g., "No business logic in components"]
+- Routers devem orquestrar; logica de negocio fica em `app/services`.
+- Credenciais e parametros de ambiente devem vir de `app/core/config.py`.
+- Integracoes AWS devem usar boto3 com regiao explicitada por settings.
+- Eventos S3 e requests HTTP compartilham entrypoint em `app/main.py`.
 
 ---
 
@@ -69,7 +93,8 @@ User Action → [Component] → [API Route] → [Service] → [Repository] → [
 
 | Entry | Path | Description |
 |-------|------|-------------|
-| App root | `src/app/` | Next.js app router root |
-| API | `src/app/api/` | API routes |
-| Services | `src/services/` | Business logic |
-| DB Models | `prisma/schema.prisma` | Data model |
+| API app | `src/app/main.py` | Instancia FastAPI, routers, CORS e handler Lambda |
+| CV pipeline | `src/app/routers/cv.py` | Deteccao em imagem S3, alerta SNS e persistencia |
+| Data integration API | `src/app/routers/data_integration.py` | Endpoints weather/storm/risk/map |
+| Weather Lambda | `src/app/lambdas/ingest_weather.py` | Ingestao periodica para DynamoDB |
+| Dashboard | `src/dashboard/app.py` | Frontend Flask local |

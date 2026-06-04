@@ -1,8 +1,7 @@
 # Dataset de detecção de tempestades — YOLO format
-# Fontes de imagem (todas mescladas em train/ e val/):
-#   1. Windy.com screenshots (satélite IR — captura manual e windy-capture)
-#   2. NASA Worldview GOES-East IR C13 (gerado por 04_nasa_to_yolo.py)
-#   3. GOES-16 raw .nc convertido por 03_goes_to_yolo.py (opcional)
+# Fonte atual (treino): NASA Worldview GOES-East IR C13 (04_nasa_to_yolo.py)
+# Futuro: outras imagens Windy (novas capturas), GOES raw via 03_goes_to_yolo.py
+# Screenshots Windy antigos foram removidos do dataset de treino (2026-06-04).
 #
 # Para gerar/atualizar o dataset:
 #   python scripts/goes_pipeline/03_goes_to_yolo.py   # GOES raw → YOLO

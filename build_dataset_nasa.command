@@ -41,15 +41,15 @@ echo "  Download concluído! Convertendo para YOLO..."
 echo "================================================"
 echo ""
 
-python3 scripts/goes_pipeline/04_nasa_to_yolo.py
+# --clean: reconstrói train/val só com NASA (ignora screenshots Windy antigos)
+python3 scripts/goes_pipeline/04_nasa_to_yolo.py --clean
 
 echo ""
 echo "================================================"
-echo "  Dataset pronto! Retreinando modelo..."
+echo "  Dataset NASA pronto em data/model-dataset/"
+echo "  Próximo passo: python3 src/yolo_training.py --epochs 50 --batch 8"
 echo "================================================"
 echo ""
-
-python3 src/yolo_training.py --epochs 50 --batch 8
 
 echo ""
 echo "================================================"

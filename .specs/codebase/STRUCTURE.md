@@ -1,33 +1,46 @@
 # Structure
 
-**Project:** [Project Name]
-**Mapped on:** [YYYY-MM-DD]
+**Project:** global-solution-2s
+**Mapped on:** 2026-06-04
 
 ---
 
 ## Directory Tree
 
-```
-[project-root]/
-├── .specs/               # Spec-Driven documentation (this folder)
-├── .github/              # GitHub config + Copilot instructions
-├── .cursor/              # Cursor rules
+```text
+global-solutions/
+├── .github/
+├── .specs/
+│   ├── project/
+│   ├── features/
+│   ├── codebase/
+│   └── quick/
+├── assets/                     # logos e midia de documentacao
+├── data/
+│   ├── goes_raw/               # dados satelitais brutos
+│   ├── model-dataset/          # dataset YOLO (images/labels)
+│   ├── nasa_captures/          # capturas para pipeline
+│   └── test_results/
+├── docs/                       # guias de deploy, avaliacao, entrega
+├── runs/train/storm-detector/  # artefatos de treino YOLO
+├── scripts/goes_pipeline/      # scripts de transformacao dataset
 ├── src/
-│   ├── app/              # [describe purpose]
-│   ├── components/       # [describe purpose]
-│   ├── services/         # [describe purpose]
-│   ├── repositories/     # [describe purpose]
-│   ├── hooks/            # [describe purpose]
-│   ├── lib/              # [describe purpose]
-│   ├── types/            # [describe purpose]
-│   └── config/           # [describe purpose]
-├── prisma/               # [if using Prisma]
-│   └── schema.prisma
-├── public/               # Static assets
-├── tests/                # [integration / e2e tests location]
-├── package.json
-├── tsconfig.json
-└── [other config files]
+│   ├── app/                    # backend FastAPI por dominio
+│   │   ├── clients/
+│   │   ├── core/
+│   │   ├── cron/
+│   │   ├── lambdas/
+│   │   ├── models/
+│   │   ├── routers/
+│   │   └── services/
+│   ├── dashboard/              # app Flask de visualizacao
+│   ├── models/                 # wrappers e weights locais
+│   ├── tests/                  # testes locais do pacote src
+│   ├── requirements*.txt
+│   ├── Makefile
+│   └── yolo_training.py
+├── tests/                      # testes de integracao API/Lambda
+└── yolov5/                     # codigo-base YOLOv5
 ```
 
 ---
@@ -36,24 +49,29 @@
 
 | File | Purpose |
 |------|---------|
-| `src/app/layout.tsx` | Root layout — global providers, metadata |
-| `src/lib/db.ts` | Database client singleton |
-| `src/config/env.ts` | Environment variable validation |
-| `prisma/schema.prisma` | Database schema |
-| `.env.local` | Local environment variables (git-ignored) |
-| `.env.example` | Environment variables template |
+| `README.md` | Contexto geral do projeto e execucao |
+| `docs/DEPLOY-LAMBDA.md` | Procedimento de deploy na AWS |
+| `src/app/main.py` | App FastAPI + roteamento Lambda HTTP/S3 |
+| `src/app/core/config.py` | Variaveis de ambiente e defaults |
+| `src/app/routers/cv.py` | Pipeline de inferencia YOLO + SNS + DynamoDB |
+| `src/app/routers/data_integration.py` | Endpoints weather/storm/risk/map |
+| `src/app/lambdas/ingest_weather.py` | Ingestao periodica Open-Meteo -> DynamoDB |
+| `src/models/stormdetector.py` | Inferencia local de referencia YOLO |
+| `src/Makefile` | Comandos de install/run/test/lint |
+| `data/model-dataset/storm.yaml` | Config do dataset YOLO |
 
 ---
 
-## Module Aliases
+## Ownership by Area
 
-Configured path aliases (from `tsconfig.json` or `vite.config.ts`):
-
-| Alias | Resolves to |
-|-------|------------|
-| `@/*` | `src/*` |
-| `@components/*` | `src/components/*` |
-| `@services/*` | `src/services/*` |
+| Area | Directory | Main Concern |
+|------|-----------|--------------|
+| API backend | `src/app/` | Endpoints e orquestracao de fluxos |
+| ML/CV artifacts | `src/models/`, `runs/`, `data/model-dataset/` | Treino e inferencia YOLO |
+| Dashboard | `src/dashboard/` | Visualizacao operacional |
+| Data engineering | `scripts/goes_pipeline/` | Preparacao de dataset |
+| Tests | `tests/` e `src/tests/` | Validacao funcional e regressao |
+| Operational docs | `docs/` | Deploy e guias de entrega |
 
 ---
 
@@ -61,6 +79,9 @@ Configured path aliases (from `tsconfig.json` or `vite.config.ts`):
 
 | Test type | Location |
 |-----------|---------|
-| Unit tests | Co-located — `[Component].test.ts(x)` next to source |
-| Integration tests | `tests/integration/` |
-| E2E tests | `tests/e2e/` |
+| API integration tests | `tests/test_api_endpoints.py` |
+| Service tests | `tests/test_weather_service.py` |
+| Lambda tests | `tests/test_ingest_weather_lambda.py` |
+| Basic app tests | `src/tests/test_main.py` |
+
+Observacao: ainda nao ha padrao de co-locacao por modulo (por ex. `src/app/routers/*_test.py`).
