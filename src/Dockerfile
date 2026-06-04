@@ -19,10 +19,14 @@ COPY --from=yolov5_clone /opt/yolov5_src /opt/yolov5_src
 
 # Install base API dependencies (build context = repo root)
 COPY src/requirements-lambda.txt .
+
+# Pin numpy 1.x BEFORE sklearn/torch — evita build from source no AL2 (GCC 7.3)
+RUN pip install "numpy>=1.23,<2.0" --no-cache-dir
+
 RUN pip install -r requirements-lambda.txt --no-cache-dir
 
-# Pin numpy to 1.x — pre-built manylinux wheel, no compilation needed.
-RUN pip install "numpy>=1.23,<2.0" --no-cache-dir
+# ML (AgriRiskModel) — após numpy pin
+RUN pip install scikit-learn==1.5.2 joblib==1.4.2 --no-cache-dir
 
 # CPU-only torch — avoids the ~2 GB CUDA build.
 RUN pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu --no-cache-dir
