@@ -1,0 +1,117 @@
+name: Deploy Lambda
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/app/**"
+      - "src/Dockerfile"
+      - "src/requirements-lambda.txt"
+      - ".github/workflows/deploy-lambda.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-lambda-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID || '544785076353' }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || 'gs2-api' }}
+  LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME || 'gs2-api' }}
+  API_HEALTH_URL: ${{ vars.API_HEALTH_URL || 'https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health' }}
+
+jobs:
+  deploy:
+    name: Build, push and update Lambda
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tags
+        id: image
+        run: |
+          REGISTRY="${{ steps.ecr-login.outputs.registry }}"
+          IMAGE_URI="${REGISTRY}/${{ env.ECR_REPOSITORY }}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "uri=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+          echo "tag_latest=${IMAGE_URI}:latest" >> "$GITHUB_OUTPUT"
+          echo "tag_sha=${IMAGE_URI}:sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t "${{ steps.image.outputs.tag_latest }}" \
+            -t "${{ steps.image.outputs.tag_sha }}" \
+            -f src/Dockerfile \
+            src/
+
+      - name: Push image to ECR
+        run: |
+          docker push "${{ steps.image.outputs.tag_latest }}"
+          docker push "${{ steps.image.outputs.tag_sha }}"
+
+      - name: Update Lambda function
+        run: |
+          aws lambda update-function-code \
+            --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
+            --image-uri "${{ steps.image.outputs.tag_latest }}" \
+            --region "${{ env.AWS_REGION }}"
+
+      - name: Wait for Lambda to become active
+        run: |
+          echo "Aguardando Lambda ficar Active..."
+          for i in $(seq 1 60); do
+            STATUS=$(aws lambda get-function \
+              --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
+              --region "${{ env.AWS_REGION }}" \
+              --query "Configuration.{State:State,LastUpdateStatus:LastUpdateStatus}" \
+              --output json)
+            STATE=$(echo "$STATUS" | jq -r '.State')
+            UPDATE=$(echo "$STATUS" | jq -r '.LastUpdateStatus')
+            echo "  tentativa $i/60: State=$STATE LastUpdateStatus=$UPDATE"
+            if [ "$STATE" = "Active" ] && [ "$UPDATE" = "Successful" ]; then
+              echo "Lambda pronta."
+              exit 0
+            fi
+            if [ "$UPDATE" = "Failed" ]; then
+              echo "Deploy falhou (LastUpdateStatus=Failed)."
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "Timeout aguardando Lambda."
+          exit 1
+
+      - name: Smoke test /health
+        run: |
+          echo "Smoke test: ${{ env.API_HEALTH_URL }}"
+          for i in $(seq 1 12); do
+            HTTP_CODE=$(curl -s -o /tmp/health.json -w "%{http_code}" "${{ env.API_HEALTH_URL }}" || true)
+            if [ "$HTTP_CODE" = "200" ]; then
+              cat /tmp/health.json
+              grep -q '"status"' /tmp/health.json && grep -q 'ok' /tmp/health.json
+              echo "Health check OK."
+              exit 0
+            fi
+            echo "  tentativa $i/12: HTTP $HTTP_CODE (cold start?)"
+            sleep 15
+          done
+          echo "Smoke test falhou."
+          exit 1

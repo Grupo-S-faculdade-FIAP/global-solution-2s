@@ -11,9 +11,9 @@
 
 ## Current Focus
 
-**Active feature:** dashboard-producer-ready
-**Last task completed:** Porta única (:8000) — Flask BFF montado em FastAPI; `make demo` um processo; guards JS (2026-06-04)
-**Next task:** gs-closure Fase C AWS (D-01 DynamoDB real no dashboard); Fase D dashboard-producer-ready
+**Active feature:** ci-cd-pipeline
+**Last task completed:** Pipeline GitHub Actions (CI pytest + CD Lambda OIDC) — workflows, docs/CI-CD.md, make test (2026-06-04)
+**Next task:** Configurar OIDC na AWS + secrets/vars no GitHub; gs-closure Fase C DynamoDB real
 **Blockers:** nenhum
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — Relatório de Progresso e Integração (v1.0, 2026-06-04)
 
@@ -37,6 +37,7 @@
 | 2026-06-02 | D-012 | Windy API widget (não REST) | Free tier + widget interativo; widget é suficiente | Dashboard |
 | 2026-06-02 | D-013 | T-11/T-12 revisadas para usar Flask dashboard existente | Reutilizar codebase; não recriar do zero | Frontend |
 | 2026-06-02 | D-014 | Centralizar variáveis de ambiente em .env (pydantic-settings) | Sem hardcoding; fácil deployment; team-friendly | Toda a API |
+| 2026-06-04 | D-015 | CI/CD via GitHub Actions + OIDC (sem access keys) | Credenciais temporárias; least privilege; deploy auto na main | Lambda gs2-api |
 
 ---
 
