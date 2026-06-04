@@ -8,7 +8,10 @@ on:
       - "src/app/**"
       - "src/Dockerfile"
       - "src/requirements-lambda.txt"
+      - "src/dashboard/**"
+      - "models/**"
       - ".github/workflows/deploy-lambda.yml"
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -60,7 +63,7 @@ jobs:
             -t "${{ steps.image.outputs.tag_latest }}" \
             -t "${{ steps.image.outputs.tag_sha }}" \
             -f src/Dockerfile \
-            src/
+            .
 
       - name: Push image to ECR
         run: |
