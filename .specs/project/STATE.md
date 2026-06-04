@@ -13,7 +13,7 @@
 
 **Active feature:** gs-closure
 **Last task completed:** ✅ Fases 1–2 spec + dashboard + `/storms/recent` + `/map/overlay` (2026-06-04)
-**Next task:** Fase 3 — smoke AWS + deploy best.pt na Lambda; Fase 4 — vídeo/README
+**Next task:** 👤 Vídeo (Enzo) + PDF FIAP; depois Fase C AWS (`DYNAMODB_USE_MOCK=false`)
 **Blockers:** nenhum
 
 ---

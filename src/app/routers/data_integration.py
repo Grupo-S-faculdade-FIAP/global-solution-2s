@@ -302,3 +302,72 @@ def get_alerts_hourly(
             status_code=500,
             detail=f"Error aggregating hourly alerts: {str(e)}"
         )
+
+
+@router.get(
+    "/alerts/daily",
+    response_model=dict[str, int],
+    tags=["Analytics"],
+    summary="Get daily alert trend",
+)
+def get_alerts_daily(
+    days: int = Query(30, ge=1, le=365, description="Days to look back"),
+) -> dict[str, int]:
+    try:
+        return alert_analytics_service.daily_alerts(days=days)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error aggregating daily alerts: {str(e)}",
+        )
+
+
+@router.get(
+    "/alerts/heatmap",
+    tags=["Analytics"],
+    summary="Get weekday x hour heatmap",
+)
+def get_alerts_heatmap(
+    days: int = Query(30, ge=1, le=365, description="Days to look back"),
+) -> list[dict]:
+    try:
+        return alert_analytics_service.heatmap_alerts(days=days)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error aggregating heatmap: {str(e)}",
+        )
+
+
+@router.get(
+    "/alerts/summary",
+    tags=["Analytics"],
+    summary="Get alert KPIs",
+)
+def get_alerts_summary(
+    days: int = Query(30, ge=1, le=365, description="Days to look back"),
+) -> dict:
+    try:
+        return alert_analytics_service.summary(days=days)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error building summary: {str(e)}",
+        )
+
+
+@router.get(
+    "/dashboard/summary",
+    tags=["Analytics"],
+    summary="Dashboard aggregate (weekday, hour, trend, heatmap, KPIs)",
+)
+def get_dashboard_summary(
+    days: int = Query(30, ge=1, le=365, description="Days to look back"),
+) -> dict:
+    try:
+        return alert_analytics_service.dashboard_summary(days=days)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error building dashboard summary: {str(e)}",
+        )

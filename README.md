@@ -113,7 +113,7 @@ make demo
 
 **Alertas / DynamoDB (enquanto AWS não estiver pronta):** por padrão `DYNAMODB_USE_MOCK=true` — dados em `data/demo/storm_alerts.json` (seed automático + `POST /alerts/simulate`). Quando a AWS estiver ok: `DYNAMODB_USE_MOCK=false` no `.env`.
 
-Spec de fechamento: `.specs/features/gs-closure/spec.md`
+Checklist de entrega: `.specs/project/CHECKLIST_ENTREGA.md`
 
 ---
 

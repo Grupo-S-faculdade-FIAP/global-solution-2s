@@ -3,6 +3,7 @@ import requests
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Optional
 
 from flask import Flask, jsonify, render_template, request
 
@@ -146,22 +147,54 @@ def alerts_hourly():
     return jsonify(HOURLY_ALERTS)
 
 
+def _proxy_fastapi(path: str, params: Optional[dict] = None, fallback: Any = None):
+    """Chama FastAPI; em falha retorna fallback."""
+    try:
+        response = requests.get(
+            f"{FASTAPI_BASE_URL}{path}",
+            params=params or {},
+            timeout=5,
+        )
+        if response.status_code == 200:
+            return jsonify(response.json())
+    except requests.exceptions.RequestException:
+        pass
+    return jsonify(fallback) if fallback is not None else (jsonify({"error": "Backend offline"}), 503)
+
+
 @app.route("/api/alerts/daily")
 def alerts_daily():
-    """Tendência diária dos últimos 30 dias."""
-    return jsonify(DAILY_TREND)
+    """Tendência diária — dados do store mock ou DynamoDB."""
+    days = request.args.get("days", default=30, type=int)
+    return _proxy_fastapi("/alerts/daily", {"days": days}, fallback=DAILY_TREND)
 
 
 @app.route("/api/alerts/heatmap")
 def alerts_heatmap():
     """Heatmap dia-da-semana × hora."""
-    return jsonify(HEATMAP)
+    days = request.args.get("days", default=30, type=int)
+    return _proxy_fastapi("/alerts/heatmap", {"days": days}, fallback=HEATMAP)
 
 
 @app.route("/api/alerts/summary")
 def alerts_summary():
     """KPIs consolidados."""
-    return jsonify(SUMMARY)
+    days = request.args.get("days", default=30, type=int)
+    return _proxy_fastapi("/alerts/summary", {"days": days}, fallback=SUMMARY)
+
+
+@app.route("/api/dashboard/summary")
+def dashboard_summary():
+    """Agregado para o dashboard (CHECKLIST Carol)."""
+    days = request.args.get("days", default=30, type=int)
+    fallback = {
+        "alerts_by_weekday": WEEKLY_ALERTS,
+        "alerts_by_hour": HOURLY_ALERTS,
+        "trend_30_days": DAILY_TREND,
+        "heatmap": HEATMAP,
+        "kpis": SUMMARY,
+    }
+    return _proxy_fastapi("/dashboard/summary", {"days": days}, fallback=fallback)
 
 
 # ─── Proxy Routes to FastAPI Backend ─────────────────────────────────────────
