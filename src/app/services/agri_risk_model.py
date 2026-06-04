@@ -17,8 +17,22 @@ from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
 
-MODEL_PATH  = Path(__file__).resolve().parents[3] / "models" / "agri_risk_model.pkl"
-SCALER_PATH = Path(__file__).resolve().parents[3] / "models" / "agri_risk_scaler.pkl"
+_DEFAULT_MODEL = Path(__file__).resolve().parents[3] / "models" / "agri_risk_model.pkl"
+_DEFAULT_SCALER = Path(__file__).resolve().parents[3] / "models" / "agri_risk_scaler.pkl"
+
+
+def _resolve_model_paths() -> tuple[Path, Path]:
+    """Repo root (local dev) or LAMBDA_TASK_ROOT/models (container)."""
+    here = Path(__file__).resolve()
+    for base in (here.parents[2], here.parents[3]):
+        model = base / "models" / "agri_risk_model.pkl"
+        scaler = base / "models" / "agri_risk_scaler.pkl"
+        if model.exists() and scaler.exists():
+            return model, scaler
+    return _DEFAULT_MODEL, _DEFAULT_SCALER
+
+
+MODEL_PATH, SCALER_PATH = _resolve_model_paths()
 
 # Garante que o diretório existe
 MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)

@@ -17,8 +17,8 @@ RUN yum install -y gcc gcc-c++ --setopt=install_weak_deps=False
 # Copy yolov5 source from stage 1 — small layer (~20 MB), does NOT affect pip layer hashes.
 COPY --from=yolov5_clone /opt/yolov5_src /opt/yolov5_src
 
-# Install base API dependencies
-COPY requirements-lambda.txt .
+# Install base API dependencies (build context = repo root)
+COPY src/requirements-lambda.txt .
 RUN pip install -r requirements-lambda.txt --no-cache-dir
 
 # Pin numpy to 1.x — pre-built manylinux wheel, no compilation needed.
@@ -53,8 +53,10 @@ ENV MPLCONFIGDIR=/tmp/matplotlib
 RUN yum install -y mesa-libGL libxcb git --setopt=install_weak_deps=False && \
     git config --system --add safe.directory /opt/yolov5_src
 
-# Copy application source
-COPY app/ app/
+# Copy application source (+ BFF dashboard handlers used by dashboard_bff router)
+COPY src/app/ app/
+COPY src/dashboard/ dashboard/
+COPY models/agri_risk_model.pkl models/agri_risk_scaler.pkl models/
 
 # Lambda entry point: app.main.handler (Mangum wrapping FastAPI + S3 trigger router)
 CMD ["app.main.handler"]
