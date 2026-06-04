@@ -1,5 +1,19 @@
-train: /content/drive/MyDrive/FIAP/2026/images/train/
-val: /content/drive/MyDrive/FIAP/2026/images/val/
+# Dataset de detecção de tempestades — YOLO format
+# Fontes de imagem (todas mescladas em train/ e val/):
+#   1. Windy.com screenshots (satélite IR — captura manual e windy-capture)
+#   2. NASA Worldview GOES-East IR C13 (gerado por 04_nasa_to_yolo.py)
+#   3. GOES-16 raw .nc convertido por 03_goes_to_yolo.py (opcional)
+#
+# Para gerar/atualizar o dataset:
+#   python scripts/goes_pipeline/03_goes_to_yolo.py   # GOES raw → YOLO
+#   python scripts/goes_pipeline/04_nasa_to_yolo.py   # NASA PNG → YOLO
+#
+# Para treinar:
+#   python src/yolo_training.py --epochs 50 --batch 8
 
-names: # Defina aqui as labels do seu dataset
-  0: "storm"
+train: /Users/caroline/Desktop/FIAP/global-solutions/data/model-dataset/images/train
+val:   /Users/caroline/Desktop/FIAP/global-solutions/data/model-dataset/images/val
+
+nc: 1
+names:
+  0: storm

@@ -482,16 +482,64 @@
       </div>
     </div>
 
-    <!-- ── YOLO Storm Detection Status ────────────────────────────────────── -->
+    <!-- ── ML Agrícola — Predictor Interativo ─────────────────────────────── -->
+    <p class="section-title">Modelo ML — Risco Agrícola</p>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-head-title">🌾 Preditor de risco agrícola</div>
+          <div class="card-head-sub">Random Forest · limiares EMBRAPA/INMET · ajuste os parâmetros e veja o risco</div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+        <div>
+          <label style="font-size: 10px; color: var(--text-sec); font-weight: 500; display: block; margin-bottom: 4px;">TEMPERATURA (°C)</label>
+          <input type="range" id="sl-temp" min="5" max="45" value="28" step="0.5" style="width:100%">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-sec);margin-top:2px"><span>5°C</span><span id="lbl-temp" style="font-weight:600;color:var(--text-prim)">28°C</span><span>45°C</span></div>
+        </div>
+        <div>
+          <label style="font-size: 10px; color: var(--text-sec); font-weight: 500; display: block; margin-bottom: 4px;">UMIDADE (%)</label>
+          <input type="range" id="sl-umid" min="20" max="100" value="65" step="1" style="width:100%">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-sec);margin-top:2px"><span>20%</span><span id="lbl-umid" style="font-weight:600;color:var(--text-prim)">65%</span><span>100%</span></div>
+        </div>
+        <div>
+          <label style="font-size: 10px; color: var(--text-sec); font-weight: 500; display: block; margin-bottom: 4px;">PRECIPITAÇÃO (mm/h)</label>
+          <input type="range" id="sl-prec" min="0" max="50" value="0" step="0.5" style="width:100%">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-sec);margin-top:2px"><span>0</span><span id="lbl-prec" style="font-weight:600;color:var(--text-prim)">0 mm/h</span><span>50</span></div>
+        </div>
+        <div>
+          <label style="font-size: 10px; color: var(--text-sec); font-weight: 500; display: block; margin-bottom: 4px;">VENTO (km/h)</label>
+          <input type="range" id="sl-vento" min="0" max="120" value="10" step="1" style="width:100%">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-sec);margin-top:2px"><span>0</span><span id="lbl-vento" style="font-weight:600;color:var(--text-prim)">10 km/h</span><span>120</span></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:center;padding:1rem;background:var(--bg-card-2);border-radius:6px;border:1px solid var(--border);">
+        <div>
+          <div style="font-size:10px;color:var(--text-sec);font-weight:500;margin-bottom:4px;">RISCO CALCULADO</div>
+          <div style="display:flex;align-items:baseline;gap:0.75rem;">
+            <span style="font-size:36px;font-weight:700;" id="ml-score">—</span>
+            <span style="font-size:14px;font-weight:600;" id="ml-classe">—</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-sec);margin-top:4px;line-height:1.5;" id="ml-rec">—</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;color:var(--text-sec);margin-bottom:4px;">PROBABILIDADES</div>
+          <div style="font-size:11px;line-height:1.8;" id="ml-probas">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── YOLO Storm Detection ─────────────────────────────────────────────── -->
     <p class="section-title">Detecção de tempestades (YOLO)</p>
     <div class="card">
       <div class="card-head">
         <div>
-          <div class="card-head-title">🤖 Status do detector YOLO v8</div>
-          <div class="card-head-sub">Modelo de reconhecimento de padrões de nuvens chuvosas</div>
+          <div class="card-head-title">🤖 Detector YOLO — Storm Detector</div>
+          <div class="card-head-sub">YOLOv5 treinado com imagens GOES-16 IR · NASA Worldview · Windy</div>
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; padding: 1rem 0;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1rem 0;">
         <div>
           <div style="font-size: 10px; color: var(--text-sec); text-transform: uppercase; font-weight: 500; margin-bottom: 0.5rem;">Status do modelo</div>
           <div style="font-size: 16px; font-weight: 600;" id="yolo-status">⏳ Verificando...</div>
@@ -510,6 +558,23 @@
           Simular detecção de tempestade
         </button>
         <span style="margin-left: 1rem; font-size: 11px; color: var(--text-sec);" id="test-status"></span>
+      </div>
+    </div>
+
+    <!-- ── Galeria NASA Worldview ──────────────────────────────────────────── -->
+    <p class="section-title">Imagens de satélite — NASA Worldview (GOES-East IR C13)</p>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-head-title">🛰️ Capturas recentes</div>
+          <div class="card-head-sub">Canal infravermelho 10.3µm · mesmo canal do Windy · dataset de treino do YOLO</div>
+        </div>
+        <span id="nasa-total" style="font-size:11px;color:var(--text-sec);">—</span>
+      </div>
+      <div id="nasa-gallery" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.75rem;">
+        <div style="grid-column:1/-1;text-align:center;color:var(--text-sec);padding:2rem;font-size:12px;" id="nasa-empty">
+          ⏳ Carregando imagens...
+        </div>
       </div>
     </div>
 
@@ -949,22 +1014,112 @@
       });
     }
 
+    // ── ML Agrícola — Predictor Interativo ────────────────────────────────────
+    let mlDebounce = null;
+
+    async function updateMLPredictor() {
+      const temp  = parseFloat(document.getElementById("sl-temp").value);
+      const umid  = parseFloat(document.getElementById("sl-umid").value);
+      const prec  = parseFloat(document.getElementById("sl-prec").value);
+      const vento = parseFloat(document.getElementById("sl-vento").value);
+
+      document.getElementById("lbl-temp").textContent  = `${temp}°C`;
+      document.getElementById("lbl-umid").textContent  = `${umid}%`;
+      document.getElementById("lbl-prec").textContent  = `${prec} mm/h`;
+      document.getElementById("lbl-vento").textContent = `${vento} km/h`;
+
+      clearTimeout(mlDebounce);
+      mlDebounce = setTimeout(async () => {
+        try {
+          const r = await fetch(
+            `/api/ml/agricultural-risk?temperatura=${temp}&umidade=${umid}&precipitacao=${prec}&vento_kmh=${vento}`
+          );
+          if (!r.ok) throw new Error();
+          const d = await r.json();
+
+          const cores = { LOW: "#3fb950", MEDIUM: "#d29922", HIGH: "#f85149" };
+          const traduz = { LOW: "BAIXO", MEDIUM: "MÉDIO", HIGH: "ALTO" };
+          const cor = cores[d.classe] || "#8b949e";
+
+          document.getElementById("ml-score").textContent = `${Math.round(d.score * 100)}%`;
+          document.getElementById("ml-score").style.color = cor;
+          document.getElementById("ml-classe").textContent = `Risco ${traduz[d.classe] || d.classe}`;
+          document.getElementById("ml-classe").style.color = cor;
+          document.getElementById("ml-rec").textContent = d.recomendacao || "—";
+
+          const p = d.probabilidades || {};
+          document.getElementById("ml-probas").innerHTML =
+            `<span style="color:#3fb950">LOW</span> ${Math.round((p.LOW||0)*100)}%<br>` +
+            `<span style="color:#d29922">MED</span> ${Math.round((p.MEDIUM||0)*100)}%<br>` +
+            `<span style="color:#f85149">HIGH</span> ${Math.round((p.HIGH||0)*100)}%`;
+        } catch {
+          document.getElementById("ml-score").textContent = "—";
+          document.getElementById("ml-rec").textContent   = "Backend indisponível";
+        }
+      }, 400);
+    }
+
+    ["sl-temp","sl-umid","sl-prec","sl-vento"].forEach(id =>
+      document.getElementById(id).addEventListener("input", updateMLPredictor)
+    );
+
+    // ── Galeria NASA ──────────────────────────────────────────────────────────
+    async function loadNASAGallery() {
+      try {
+        const r = await fetch("/api/nasa/capturas?limite=12");
+        const d = await r.json();
+        const gallery = document.getElementById("nasa-gallery");
+        const empty   = document.getElementById("nasa-empty");
+
+        document.getElementById("nasa-total").textContent =
+          d.total > 0 ? `${d.total} imagens disponíveis` : "Nenhuma imagem capturada ainda";
+
+        if (!d.capturas || d.capturas.length === 0) {
+          empty.innerHTML =
+            '🛰️ Nenhuma imagem NASA capturada ainda.<br>' +
+            '<span style="font-size:11px">Execute <code>build_dataset_nasa.command</code> para baixar o histórico.</span>';
+          return;
+        }
+
+        empty.remove();
+        d.capturas.forEach(cap => {
+          const div = document.createElement("div");
+          div.style.cssText =
+            "background:var(--bg-card-2);border:1px solid var(--border);border-radius:6px;overflow:hidden;";
+          const ts = new Date(cap.criado_em).toLocaleString("pt-BR", {
+            month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"
+          });
+          div.innerHTML = `
+            <div style="height:120px;background:linear-gradient(135deg,#0d1b2a,#1a3a5c);display:flex;align-items:center;justify-content:center;font-size:28px;">🛰️</div>
+            <div style="padding:8px;">
+              <div style="font-size:10px;font-weight:600;color:var(--text-prim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cap.arquivo}</div>
+              <div style="font-size:9px;color:var(--text-sec);margin-top:2px;">${ts} · ${cap.tamanho_kb} KB</div>
+            </div>`;
+          gallery.appendChild(div);
+        });
+      } catch (e) {
+        document.getElementById("nasa-empty").textContent = "Galeria indisponível";
+      }
+    }
+
     // ── Bootstrap ─────────────────────────────────────────────────────────────
     lazyLoadWindy();
-    
+
     // Event listeners
     document.getElementById("btn-test-detection").addEventListener("click", testStormDetection);
-    
+
     // Load all data
     Promise.all([
-      loadKPIs(), 
-      loadTrend(), 
-      loadWeekly(), 
-      loadHourly(), 
-      loadHeatmap(), 
-      loadWeatherData(), 
+      loadKPIs(),
+      loadTrend(),
+      loadWeekly(),
+      loadHourly(),
+      loadHeatmap(),
+      loadWeatherData(),
       loadRiskData(),
-      loadYOLOStatus()
+      loadYOLOStatus(),
+      loadNASAGallery(),
+      updateMLPredictor(),
     ]);
   </script>
 </body>

@@ -397,6 +397,55 @@ def simulate_storm_detection():
         }), 500
 
 
+@app.route("/api/ml/agricultural-risk")
+def ml_agricultural_risk():
+    """Proxy to FastAPI /ml/predict/agricultural-risk endpoint."""
+    try:
+        params = {
+            "temperatura":  request.args.get("temperatura",  25.0, type=float),
+            "umidade":      request.args.get("umidade",      60.0, type=float),
+            "precipitacao": request.args.get("precipitacao",  0.0, type=float),
+            "vento_kmh":    request.args.get("vento_kmh",    10.0, type=float),
+        }
+        response = requests.get(
+            f"{FASTAPI_BASE_URL}/ml/predict/agricultural-risk",
+            params=params, timeout=10,
+        )
+        if response.status_code == 200:
+            return jsonify(response.json())
+        return jsonify({"error": "Backend error"}), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 503
+
+
+@app.route("/api/nasa/capturas")
+def nasa_capturas():
+    """Proxy to FastAPI /cv/nasa/capturas endpoint."""
+    try:
+        limite = request.args.get("limite", 12, type=int)
+        response = requests.get(
+            f"{FASTAPI_BASE_URL}/cv/nasa/capturas",
+            params={"limite": limite}, timeout=5,
+        )
+        if response.status_code == 200:
+            return jsonify(response.json())
+        return jsonify({"total": 0, "capturas": []}), 200
+    except requests.exceptions.RequestException:
+        return jsonify({"total": 0, "capturas": []}), 200
+
+
+@app.route("/api/cv/status")
+def cv_status():
+    """Proxy to FastAPI /cv/status endpoint."""
+    try:
+        response = requests.get(f"{FASTAPI_BASE_URL}/cv/status", timeout=5)
+        if response.status_code == 200:
+            return jsonify(response.json())
+        return jsonify({"status": "unavailable"}), 200
+    except requests.exceptions.RequestException:
+        return jsonify({"status": "unavailable"}), 200
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
 

@@ -168,15 +168,16 @@ def get_risk_forecast(
     - recommendation: Actionable advice
     """
     validate_coordinates(lat, lon)
-    
+
     try:
-        # TODO: Implement ML-based risk prediction (T-08)
-        # For now, return a default LOW risk forecast
+        from app.services.risk_assessment import RiskAssessmentService
+        service = RiskAssessmentService()
+        resultado = service.calculate_risk(lat, lon)
         return RiskForecast(
-            risk_score=0.25,
-            risk_category="LOW",
-            recommendation="Conditions are stable. No immediate action required.",
-            timestamp=datetime.utcnow().isoformat() + "Z"
+            risk_score=resultado.score,
+            risk_category=resultado.category,
+            recommendation=resultado.recommendation,
+            timestamp=resultado.timestamp,
         )
     except Exception as e:
         raise HTTPException(

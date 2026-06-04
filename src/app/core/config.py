@@ -65,6 +65,12 @@ class Settings(BaseSettings):
     
     # ─── External APIs ────────────────────────────────────────────────────
     WINDY_API_ENABLED: bool = True
+
+    # ─── NASA Worldview (GOES-East IR C13) ────────────────────────────────
+    NASA_CAPTURE_ENABLED: bool = True
+    NASA_CAPTURES_DIR: str = "data/nasa_captures"   # relativo ao root do projeto
+    NASA_HISTORICO_DIAS: int = 30                    # dias retroativos no primeiro run
+    NASA_S3_PREFIX: str = "nasa-satellite"           # prefixo no bucket S3
     
     class Config:
         """Pydantic settings config."""
