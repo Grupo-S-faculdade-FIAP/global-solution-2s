@@ -28,6 +28,9 @@ def _ensure_model() -> pathlib.Path:
     """Download model weights from S3 to /tmp on cold start; reuse on warm start."""
     if _MODEL_LOCAL.exists():
         return _MODEL_LOCAL
+    if _LOCAL_WEIGHTS.exists():
+        logger.info("Using local model weights: %s", _LOCAL_WEIGHTS)
+        return _LOCAL_WEIGHTS
 
     s3 = boto3.client("s3", region_name=settings.AWS_REGION)
     logger.info(
@@ -41,6 +44,15 @@ def _ensure_model() -> pathlib.Path:
 
 
 _YOLOV5_SRC = pathlib.Path("/opt/yolov5_src")
+_PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[2]
+_LOCAL_WEIGHTS = _PROJECT_ROOT / "models" / "weights" / "best.pt"
+
+
+def _yolov5_repo() -> tuple[str, str]:
+    """Lambda usa clone em /opt; dev local usa cache torch.hub (ultralytics/yolov5)."""
+    if (_YOLOV5_SRC / "hubconf.py").exists():
+        return str(_YOLOV5_SRC), "local"
+    return "ultralytics/yolov5", "github"
 
 
 def _allow_yolo_checkpoint_load() -> None:
@@ -63,21 +75,31 @@ def _allow_yolo_checkpoint_load() -> None:
 def _run_yolo_inference(image_path: pathlib.Path, model_path: pathlib.Path) -> list[dict]:
     """
     Inference using the same pattern as src/models/stormdetector.py (the local reference impl).
-    torch.hub.load points at the pre-baked /opt/yolov5_src clone so no internet is needed.
+    Lambda: torch.hub.load from /opt/yolov5_src. Dev: ultralytics/yolov5 from hub cache.
     """
     import cv2    # noqa: PLC0415
     import torch  # noqa: PLC0415
 
     _allow_yolo_checkpoint_load()
-    torch.hub.set_dir("/tmp/torch_hub")  # /tmp is the only writable dir in Lambda
-    model = torch.hub.load(
-        str(_YOLOV5_SRC),
-        "custom",
-        path=str(model_path),
-        source="local",
-        force_reload=False,
-        verbose=False,
-    )
+    repo, source = _yolov5_repo()
+    if source == "local":
+        torch.hub.set_dir("/tmp/torch_hub")
+        model = torch.hub.load(
+            repo,
+            "custom",
+            path=str(model_path),
+            source="local",
+            force_reload=False,
+            verbose=False,
+        )
+    else:
+        model = torch.hub.load(
+            repo,
+            "custom",
+            path=str(model_path),
+            force_reload=False,
+            verbose=False,
+        )
     model.conf = settings.YOLO_CONFIDENCE_THRESHOLD
 
     im = cv2.imread(str(image_path))
@@ -93,8 +115,13 @@ def _run_yolo_inference(image_path: pathlib.Path, model_path: pathlib.Path) -> l
     return detections
 
 
-def _publish_alert(bucket: str, key: str, detections: list[dict]) -> str:
+def _publish_alert(bucket: str, key: str, detections: list[dict]) -> str | None:
     """Publishes a rain-alert message to SNS and returns the MessageId."""
+    topic = (settings.SNS_TOPIC_ARN or "").strip()
+    if not topic:
+        logger.info("SNS_TOPIC_ARN not set — skipping SNS publish")
+        return None
+
     sns = boto3.client("sns", region_name=settings.AWS_REGION)
     classes_found = ", ".join({d["class"] for d in detections})
     message = (
@@ -104,7 +131,7 @@ def _publish_alert(bucket: str, key: str, detections: list[dict]) -> str:
         f"Detections: {len(detections)}"
     )
     response = sns.publish(
-        TopicArn=settings.SNS_TOPIC_ARN,
+        TopicArn=topic,
         Subject="Rain Alert — Storm Detected",
         Message=message,
     )
@@ -116,6 +143,10 @@ def _save_alert_to_dynamodb(bucket: str, key: str, detections: list[dict], messa
     Persists the alert record to DynamoDB for later dashboard analysis.
     Table schema (from AWS-STATE.md): PK=alert_type (S), SK=timestamp (S).
     """
+    if settings.DYNAMODB_USE_MOCK:
+        logger.debug("DYNAMODB_USE_MOCK=true — skipping DynamoDB write in CV pipeline")
+        return
+
     dynamodb = boto3.resource("dynamodb", region_name=settings.AWS_REGION)
     table = dynamodb.Table(settings.DYNAMODB_TABLE_ALERTS)
     now = datetime.datetime.utcnow()
@@ -159,7 +190,7 @@ def process_s3_image(bucket: str, key: str) -> dict:
     if detections:
         logger.info("%d storm detections found — sending alert", len(detections))
         message_id = _publish_alert(bucket, key, detections)
-        _save_alert_to_dynamodb(bucket, key, detections, message_id)
+        _save_alert_to_dynamodb(bucket, key, detections, message_id or "local")
         alert_sent = True
     else:
         logger.info("No storm detected in %s", key)

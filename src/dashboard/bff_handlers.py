@@ -1,0 +1,455 @@
+"""Lógica compartilhada das rotas /api/* (FastAPI BFF + Flask)."""
+
+from __future__ import annotations
+
+import json
+import os
+import random
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any, Optional
+
+from dashboard.bff_backend import backend_get, backend_post
+
+_BFF_TIMEOUT = 5
+_BFF_TIMEOUT_SLOW = 30
+
+
+def _env_bool(name: str, default: bool = True) -> bool:
+    raw = os.environ.get(name, "true" if default else "false").strip().lower()
+    return raw in ("1", "true", "yes", "on")
+
+
+def _demo_mode() -> bool:
+    try:
+        from app.core.config import settings
+        return bool(settings.DEMO_MODE)
+    except ImportError:
+        return _env_bool("DEMO_MODE", default=True)
+
+
+DEMO_MODE = _demo_mode()
+DEFAULT_WEATHER_LAT = -23.55
+DEFAULT_WEATHER_LON = -46.63
+
+random.seed(42)
+
+WEEKLY_ALERTS = {
+    "Segunda": 5,
+    "Terça": 12,
+    "Quarta": 8,
+    "Quinta": 15,
+    "Sexta": 10,
+    "Sábado": 4,
+    "Domingo": 3,
+}
+
+HOURLY_ALERTS = {
+    "00h": 1, "01h": 0, "02h": 1, "03h": 0, "04h": 0,
+    "05h": 1, "06h": 2, "07h": 3, "08h": 4, "09h": 5,
+    "10h": 4, "11h": 6, "12h": 7, "13h": 9, "14h": 14,
+    "15h": 16, "16h": 13, "17h": 10, "18h": 8, "19h": 6,
+    "20h": 5, "21h": 4, "22h": 3, "23h": 2,
+}
+
+_base_date = datetime(2026, 5, 3)
+_weekday_mult = [0.6, 1.2, 0.9, 1.5, 1.1, 0.5, 0.4]
+DAILY_TREND: dict[str, int] = {}
+for _i in range(30):
+    _day = _base_date + timedelta(days=_i)
+    _base_val = 10 * _weekday_mult[_day.weekday()]
+    DAILY_TREND[_day.strftime("%d/%m")] = max(0, round(random.gauss(_base_val, 2), 0))
+
+_hour_vals = list(HOURLY_ALERTS.values())
+HEATMAP: list[dict[str, int]] = []
+for _d in range(7):
+    for _h in range(24):
+        _val = max(0, int(round(_hour_vals[_h] * _weekday_mult[_d] + random.gauss(0, 0.4))))
+        HEATMAP.append({"x": _h, "y": _d, "v": _val})
+
+_total = int(sum(DAILY_TREND.values()))
+SUMMARY = {
+    "total_30d": _total,
+    "daily_avg": round(_total / 30, 1),
+    "peak_day": max(WEEKLY_ALERTS, key=WEEKLY_ALERTS.get),
+    "peak_hour": max(HOURLY_ALERTS, key=HOURLY_ALERTS.get),
+}
+
+DEMO_WEATHER = {
+    "temperature": 24.0,
+    "humidity": 68.0,
+    "pressure": 1013.0,
+    "wind_speed": 3.2,
+    "wind_direction": 135.0,
+    "precipitation": 0.0,
+    "timestamp": datetime.now().isoformat(),
+}
+DEMO_RISK = {
+    "risk_score": 0.35,
+    "risk_category": "LOW",
+    "recommendation": (
+        "Demonstração: condições estáveis. Inicie a API (porta 8000) para dados ao vivo."
+    ),
+    "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+}
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_DEMO_STORMS_PATH = _PROJECT_ROOT / "data" / "demo" / "storm_alerts.json"
+
+STORM_DETECTOR = None
+try:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from app.services.storm_detector import StormDetector
+
+    _SRC_ROOT = Path(__file__).resolve().parent.parent
+    YOLO_MODEL_PATH = _SRC_ROOT / "models" / "weights" / "best.pt"
+    if YOLO_MODEL_PATH.exists():
+        STORM_DETECTOR = StormDetector(
+            model_path=YOLO_MODEL_PATH,
+            confidence_threshold=0.4,
+            device="cpu",
+        )
+except Exception:
+    STORM_DETECTOR = None
+
+
+def _ok(data: Any, source: str = "live") -> tuple[Any, str, int]:
+    return data, source, 200
+
+
+def _err(message: str, status: int = 503) -> tuple[Any, str, int]:
+    return {"error": message}, "unavailable", status
+
+
+def _proxy_get(
+    path: str,
+    params: Optional[dict] = None,
+    fallback: Any = None,
+    timeout: int = _BFF_TIMEOUT,
+) -> tuple[Any, str, int]:
+    status, body = backend_get(path, params=params, timeout=timeout)
+    if status == 200 and isinstance(body, (dict, list)):
+        return _ok(body, "live")
+    if not DEMO_MODE or fallback is None:
+        return _err("Backend offline", 503)
+    return _ok(fallback, "demo")
+
+
+def _demo_storms_recent(hours: int = 24) -> list[dict[str, Any]]:
+    if not _DEMO_STORMS_PATH.exists():
+        return []
+    try:
+        items = json.loads(_DEMO_STORMS_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    if not isinstance(items, list):
+        return []
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    out: list[dict[str, Any]] = []
+    for item in items:
+        ts_raw = item.get("timestamp")
+        if not ts_raw:
+            continue
+        try:
+            ts = datetime.fromisoformat(str(ts_raw).replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if ts < cutoff:
+            continue
+        out.append({
+            "detection_id": item.get("alert_id", ""),
+            "confidence": 0.82,
+            "latitude": item.get("latitude", DEFAULT_WEATHER_LAT),
+            "longitude": item.get("longitude", DEFAULT_WEATHER_LON),
+            "timestamp": ts_raw,
+            "detection_count": item.get("detection_count", 1),
+            "s3_key": item.get("s3_key", ""),
+        })
+    return out
+
+
+def dashboard_config() -> tuple[Any, str, int]:
+    return _ok({
+        "demo_mode": DEMO_MODE,
+        "default_lat": DEFAULT_WEATHER_LAT,
+        "default_lon": DEFAULT_WEATHER_LON,
+    }, "live")
+
+
+def alerts_weekly(days: int = 30) -> tuple[Any, str, int]:
+    return _proxy_get("/alerts/weekly", {"days": days}, fallback=WEEKLY_ALERTS)
+
+
+def alerts_hourly(days: int = 30) -> tuple[Any, str, int]:
+    return _proxy_get("/alerts/hourly", {"days": days}, fallback=HOURLY_ALERTS)
+
+
+def alerts_daily(days: int = 30) -> tuple[Any, str, int]:
+    return _proxy_get("/alerts/daily", {"days": days}, fallback=DAILY_TREND)
+
+
+def alerts_heatmap(days: int = 30) -> tuple[Any, str, int]:
+    return _proxy_get("/alerts/heatmap", {"days": days}, fallback=HEATMAP)
+
+
+def alerts_summary(days: int = 30) -> tuple[Any, str, int]:
+    return _proxy_get("/alerts/summary", {"days": days}, fallback=SUMMARY)
+
+
+def dashboard_summary(days: int = 30) -> tuple[Any, str, int]:
+    fallback = {
+        "alerts_by_weekday": WEEKLY_ALERTS,
+        "alerts_by_hour": HOURLY_ALERTS,
+        "trend_30_days": DAILY_TREND,
+        "heatmap": HEATMAP,
+        "kpis": SUMMARY,
+    }
+    return _proxy_get("/dashboard/summary", {"days": days}, fallback=fallback)
+
+
+def weather_current(lat: float, lon: float) -> tuple[Any, str, int]:
+    status, body = backend_get(
+        "/weather/current", params={"lat": lat, "lon": lon}, timeout=_BFF_TIMEOUT
+    )
+    if status == 200 and isinstance(body, dict):
+        return _ok(body, "live")
+    if DEMO_MODE:
+        return _ok({**DEMO_WEATHER, "timestamp": datetime.now().isoformat()}, "demo")
+    return _err("Failed to fetch weather data", status if status != 200 else 503)
+
+
+def risk_forecast(lat: float, lon: float) -> tuple[Any, str, int]:
+    status, body = backend_get(
+        "/risk/forecast",
+        params={"lat": lat, "lon": lon},
+        timeout=_BFF_TIMEOUT_SLOW,
+    )
+    if status == 200 and isinstance(body, dict):
+        return _ok(body, "live")
+    if DEMO_MODE:
+        ts = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        return _ok({**DEMO_RISK, "timestamp": ts}, "demo")
+    return _err("Failed to fetch risk forecast", status if status != 200 else 503)
+
+
+def storms_recent(hours: int = 24) -> tuple[Any, str, int]:
+    status, body = backend_get("/storms/recent", params={"hours": hours})
+    if status == 200 and isinstance(body, list):
+        return _ok(body, "live")
+    if DEMO_MODE:
+        return _ok(_demo_storms_recent(hours), "demo")
+    return _err("Failed to fetch storm data", status if status != 200 else 503)
+
+
+def map_overlay(bbox: str) -> tuple[Any, str, int]:
+    status, body = backend_get("/map/overlay", params={"bbox": bbox})
+    if status == 200 and isinstance(body, dict):
+        return _ok(body, "live")
+    if DEMO_MODE:
+        return _ok({"type": "FeatureCollection", "features": []}, "demo")
+    return _err("Failed to fetch map overlay", status if status != 200 else 503)
+
+
+def detector_status() -> tuple[Any, str, int]:
+    model_path = Path(__file__).resolve().parent.parent / "models" / "weights" / "best.pt"
+    return _ok({
+        "available": STORM_DETECTOR is not None,
+        "model_exists": model_path.exists(),
+        "confidence_threshold": 0.4,
+        "model_path": str(model_path),
+    }, "live")
+
+
+def ml_agricultural_risk(
+    temperatura: float,
+    umidade: float,
+    precipitacao: float,
+    vento_kmh: float,
+) -> tuple[Any, str, int]:
+    status, body = backend_get(
+        "/ml/predict/agricultural-risk",
+        params={
+            "temperatura": temperatura,
+            "umidade": umidade,
+            "precipitacao": precipitacao,
+            "vento_kmh": vento_kmh,
+        },
+        timeout=10,
+    )
+    if status == 200 and isinstance(body, dict):
+        return _ok(body, "live")
+    return _err("Backend error", status if status != 200 else 503)
+
+
+def nasa_capturas(limite: int = 12) -> tuple[Any, str, int]:
+    status, body = backend_get("/cv/nasa/capturas", params={"limite": limite})
+    if status == 200 and isinstance(body, dict):
+        return _ok(body, "live")
+    return _ok({"total": 0, "capturas": []}, "live")
+
+
+def cv_status() -> tuple[Any, str, int]:
+    status, body = backend_get("/cv/status")
+    if status == 200 and isinstance(body, dict):
+        return _ok(body, "live")
+    return _ok({"status": "unavailable"}, "live")
+
+
+def detect_storm(body: dict) -> tuple[Any, str, int]:
+    if not STORM_DETECTOR:
+        return {
+            "success": False,
+            "error": "Storm Detector não está disponível. Treine o modelo primeiro.",
+            "message": "Modelo YOLO não encontrado",
+        }, "live", 503
+
+    image_url = body.get("image_url")
+    if not image_url:
+        return {"success": False, "error": "Campo obrigatório 'image_url' não fornecido"}, "live", 400
+
+    try:
+        result = STORM_DETECTOR.predict(image_url)
+        return _ok({
+            "success": True,
+            "num_detections": result.num_detections,
+            "detections": [
+                {
+                    "x": d.x,
+                    "y": d.y,
+                    "width": d.width,
+                    "height": d.height,
+                    "confidence": d.confidence,
+                    "class_name": d.class_name,
+                }
+                for d in result.detections
+            ],
+            "has_storm": result.has_storm,
+            "average_confidence": result.average_confidence,
+            "timestamp": result.timestamp,
+            "message": (
+                f"Detectadas {result.num_detections} tempestades"
+                if result.has_storm
+                else "Nenhuma tempestade detectada"
+            ),
+        }, "live")
+    except Exception as exc:
+        return {"success": False, "error": str(exc)}, "live", 500
+
+
+def batch_detect_storms(body: dict) -> tuple[Any, str, int]:
+    if not STORM_DETECTOR:
+        return {"success": False, "error": "Storm Detector não disponível"}, "live", 503
+
+    image_urls = body.get("image_urls", [])
+    if not image_urls:
+        return {"success": False, "error": "Campo obrigatório 'image_urls' não fornecido"}, "live", 400
+
+    try:
+        results = STORM_DETECTOR.predict_batch(image_urls)
+        return _ok({
+            "success": True,
+            "total_images": len(results),
+            "total_detections": sum(r.num_detections for r in results),
+            "images_with_storm": sum(1 for r in results if r.has_storm),
+            "results": [
+                {
+                    "image_path": r.image_path,
+                    "num_detections": r.num_detections,
+                    "has_storm": r.has_storm,
+                    "average_confidence": r.average_confidence,
+                    "timestamp": r.timestamp,
+                }
+                for r in results
+            ],
+        }, "live")
+    except Exception as exc:
+        return {"success": False, "error": str(exc)}, "live", 500
+
+
+def simulate_storm_detection(body: dict) -> tuple[Any, str, int]:
+    confidence = body.get("confidence", 0.85)
+    lat = body.get("lat", -23.55)
+    lon = body.get("lon", -46.63)
+
+    status, payload = backend_post(
+        "/alerts/simulate",
+        json_body={"confidence": confidence, "lat": lat, "lon": lon},
+    )
+    if status == 200 and isinstance(payload, dict):
+        stored = payload.get("alert", {})
+        return _ok({
+            "success": True,
+            "alert": {
+                "id": stored.get("alert_id"),
+                "type": "storm_detection",
+                "confidence": confidence,
+                "latitude": lat,
+                "longitude": lon,
+                "timestamp": stored.get("timestamp"),
+                "message": payload.get("message", "Alerta simulado"),
+                "simulated": True,
+                "mock_mode": payload.get("mock_mode", True),
+            },
+            "message": "Alerta registrado (armazenamento simulado/local)",
+        }, "live")
+
+    alert = {
+        "id": f"alert_{datetime.now().timestamp()}",
+        "type": "storm_detection",
+        "confidence": confidence,
+        "latitude": lat,
+        "longitude": lon,
+        "timestamp": datetime.now().isoformat(),
+        "message": f"Tempestade detectada com confiança {confidence:.1%}",
+        "simulated": True,
+    }
+    return _ok({
+        "success": True,
+        "alert": alert,
+        "message": "Alerta simulado (API offline — não persistido)",
+    }, "demo")
+
+
+def _default_nasa_sample_path() -> Path | None:
+    root = Path(__file__).resolve().parent.parent.parent
+    candidates = sorted((root / "data" / "model-dataset" / "images" / "val").glob("nasa_*.png"))
+    for path in candidates:
+        lbl = root / "data" / "model-dataset" / "labels" / "val" / f"{path.stem}.txt"
+        if lbl.exists() and lbl.stat().st_size > 0:
+            return path
+    return candidates[0] if candidates else None
+
+
+def detect_storm_sample() -> tuple[Any, str, int]:
+    if not STORM_DETECTOR:
+        return {"success": False, "error": "Storm Detector não disponível"}, "live", 503
+
+    sample = _default_nasa_sample_path()
+    if not sample or not sample.exists():
+        return {
+            "success": False,
+            "error": "Nenhuma imagem NASA de amostra em data/model-dataset/images/val/",
+        }, "live", 404
+
+    try:
+        result = STORM_DETECTOR.predict(str(sample.resolve()))
+        return _ok({
+            "success": True,
+            "sample_image": str(sample.name),
+            "num_detections": result.num_detections,
+            "has_storm": result.has_storm,
+            "average_confidence": result.average_confidence,
+            "timestamp": result.timestamp,
+            "detections": [
+                {"confidence": d.confidence, "class_name": d.class_name}
+                for d in result.detections
+            ],
+            "message": (
+                f"{result.num_detections} detecção(ões) em {sample.name}"
+                if result.has_storm
+                else f"Nenhuma tempestade em {sample.name}"
+            ),
+        }, "live")
+    except Exception as exc:
+        return {"success": False, "error": str(exc)}, "live", 500

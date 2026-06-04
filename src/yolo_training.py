@@ -37,9 +37,12 @@ def _ensure_yolov5(yolov5_dir: Path) -> Path:
             check=True,
         )
         subprocess.run(
-            [sys.executable, "-m", "pip", "install",
-             "-r", str(yolov5_dir / "requirements.txt"),
-             "--quiet"],
+            [
+                sys.executable, "-m", "pip", "install",
+                "gitpython",
+                "-r", str(yolov5_dir / "requirements.txt"),
+                "--quiet",
+            ],
             check=True,
         )
         print("✅ YOLOv5 clonado com sucesso")
