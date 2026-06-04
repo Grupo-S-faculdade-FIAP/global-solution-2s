@@ -2,7 +2,7 @@
 
 **Projeto:** GS2 — Plataforma de inteligência ambiental e agrícola (`global-solutions`)  
 **Disciplina / entrega:** Global Solution (Graduação ON em IA) — FIAP 2026.1  
-**Versão do documento:** 1.0  
+**Versão do documento:** 1.1  
 **Data:** 04/06/2026  
 **Repositório:** [Grupo-S-faculdade-FIAP/global-solution-2s](https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s)
 
@@ -49,8 +49,8 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 | Entregável | Status |
 |------------|--------|
 | Pipeline CV: captura NASA, conversão YOLO, treino, inferência local e na Lambda | Concluído / parcial AWS |
-| API FastAPI (clima, tempestades, risco, analytics, BFF dashboard) | Concluído |
-| Dashboard produtor (HTML/JS + Flask BFF montado em FastAPI, porta única) | Concluído |
+| API FastAPI (clima, tempestades, risco, analytics) + BFF `/api/*` para o dashboard | Concluído |
+| Dashboard produtor (HTML/JS + BFF `/api/*` no FastAPI, UI Flask montada em `/`, porta única) | Concluído |
 | Mock DynamoDB local (`DYNAMODB_USE_MOCK=true`) + seed de alertas | Concluído |
 | Deploy AWS: API Gateway + Lambda Docker + S3 trigger + SNS | Parcial (documentado, smoke manual) |
 | README + estrutura template TIAO-2026 | Parcial (faltam screenshot/diagrama no README) |
@@ -76,7 +76,7 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 | PDF estruturado (Intro, Desenvolvimento, Resultados, Conclusão) | — | Pendente |
 | Vídeo ≤ 5 min | link no README | Pendente |
 
-**Template RPI FIAP:** não foi encontrado arquivo `RPI*.md` nem modelo explícito em `docs/` além deste documento. A estrutura segue o formato típico GS + conteúdo do template **TIAO-2026** (pastas `docs/`, `data/`, `assets/`, `src/`).
+**Template RPI FIAP:** este arquivo (`docs/RPI.md`) consolida status, arquitetura e evidências. A estrutura do repo segue o template **TIAO-2026** (pastas `docs/`, `data/`, `assets/`, `src/`).
 
 ---
 
@@ -108,8 +108,8 @@ flowchart TB
 
     subgraph Apresentação
         API[FastAPI :8000]
-        BFF[Flask dashboard BFF /api/*]
-        UI[Dashboard HTML + Windy + Leaflet]
+        BFF[BFF /api/* — dashboard_bff + bff_handlers]
+        UI[Flask UI / — HTML + Windy + Leaflet]
     end
 
     NASA --> CAP --> YOLO
@@ -118,7 +118,8 @@ flowchart TB
     YOLO --> MOCK
     OM --> API
     ML --> API
-    API --> BFF --> UI
+    API --> BFF
+    BFF --> UI
     MOCK -. dev .-> API
     DDB -. produção .-> API
     ESP -. pendente .-> API
@@ -134,7 +135,8 @@ flowchart TB
 | ML risco | scikit-learn Random Forest | `src/app/services/agri_risk_model.py`, `risk_assessment.py` |
 | Clima | Open-Meteo (sem API key) | `src/app/clients/openmeteo.py`, `weather_service.py` |
 | Alertas | DynamoDB ou JSON mock | `storm_alerts_store.py`, `data/demo/storm_alerts.json` |
-| Dashboard | Flask + templates | `src/dashboard/` montado via `WSGIMiddleware` |
+| Dashboard UI | Flask + templates | `src/dashboard/app.py`, `templates/index.html` — montado em `/` via `WSGIMiddleware` |
+| BFF dashboard | FastAPI `/api/*` + handlers compartilhados | `src/app/routers/dashboard_bff.py`, `src/dashboard/bff_handlers.py`, `bff_backend.py` |
 | Cloud | Lambda container, API Gateway, S3, SNS | `src/Dockerfile`, `cv.py` S3 trigger, `docs/DEPLOY-LAMBDA.md` |
 
 ### 3.3 Demo local (porta única)
@@ -144,7 +146,9 @@ make demo
 # http://127.0.0.1:8000 — FastAPI + dashboard no mesmo processo
 ```
 
-Variáveis relevantes: `src/.env.example` (`DYNAMODB_USE_MOCK`, buckets S3, SNS).
+Variáveis relevantes (`.env.example` na raiz): `DYNAMODB_USE_MOCK`, `DEMO_MODE`, `MOUNT_DASHBOARD`, `BFF_INPROCESS`, buckets S3, SNS.
+
+Rotas `/api/*` registradas no **FastAPI** (prioridade); Flask espelha as mesmas rotas como fallback. Lógica única em `bff_handlers.py`.
 
 ---
 
@@ -157,12 +161,14 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 | **Visão computacional (YOLO)** | ~85% | Em progresso | Treino NASA (90 capturas em `data/nasa_captures`; 76 img + 76 labels em `train`). mAP@0.5 ≈ 0,55. Endpoints CV + inferência Lambda. G1 (70%) não atingido. |
 | **ML risco agrícola** | ~90% | Concluído (MVP) | Modelo sintético + serviço combinando clima, CV e ML. Não há retreino com série histórica real (deferido v2). |
 | **Ingestão clima (Open-Meteo)** | ~95% | Concluído | `WeatherService`, `GET /weather/current`, Lambda `ingest_weather.py` + testes. |
-| **Dashboard / UX produtor** | ~90% | Concluído | UI integrada, gráficos weekly/hourly/daily/heatmap, YOLO demo, mapa Leaflet, Windy radar, `POST /alerts/simulate`. |
+| **Dashboard / UX produtor** | ~95% | Concluído | UI GitHub-like com **tema claro/escuro** (`localStorage` + `prefers-color-scheme`), tokens CSS, gráficos/heatmap/mapas reativos ao toggle, skeleton KPIs, ícones Bootstrap, estados de erro e a11y básica. |
 | **IoT ESP32** | ~10% | Pendente / fora MVP | Apenas `/iot/status` e stubs em `iot.py`. Sem firmware no repositório verificado. |
 | **AWS (Lambda, S3, DynamoDB, SNS)** | ~60% | Em progresso | API publicada (`/health`); pipeline S3→Lambda documentado; DynamoDB real no dashboard ainda com **mock** por padrão. EventBridge captura NASA pausado. |
-| **Testes automatizados** | ~75% | Em progresso | ~44 testes coletados (`pytest`); 2 erros de collection em `test_weather_service.py` / `test_ingest_weather_lambda.py` na última verificação local — **corrigir antes de gate CI**. Makefile: `test-api`, `test-storms`. |
+| **Testes automatizados** | ~75% | Em progresso | **54** testes coletados (`pytest`); **1** erro de collection em `tests/test_alerts_analytics_extended.py` (`ModuleNotFoundError: app` — falta `PYTHONPATH=src`). Makefile: `test-api`, `test-storms`. |
 
 ### 4.1 Endpoints principais (evidência)
+
+**API REST** (`data_integration`, `cv`, `ml`, `iot`):
 
 | Método | Rota | Função |
 |--------|------|--------|
@@ -171,14 +177,27 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 | GET | `/storms/recent` | Últimas detecções / alertas |
 | GET | `/map/overlay` | GeoJSON para mapa |
 | GET | `/risk/forecast` | Risco agrícola integrado |
-| GET | `/alerts/weekly`, `/hourly`, `/daily`, `/heatmap` | Analytics Carol |
+| GET | `/alerts/weekly`, `/hourly`, `/daily`, `/heatmap`, `/summary` | Analytics de alertas |
+| GET | `/alerts/status` | Status do store (mock vs AWS) |
 | GET | `/dashboard/summary` | KPIs agregados |
 | POST | `/alerts/simulate` | Seed de alerta (mock) |
-| POST | `/storms/detect-sample` | Demo YOLO no dashboard |
 | GET | `/cv/status`, POST `/cv/detect/storm` | Módulo CV |
+| GET/POST | `/ml/predict/agricultural-risk`, `/ml/status` | ML risco agrícola |
 | GET/POST | `/iot/*` | Stubs |
 
-Documentação interativa: `http://127.0.0.1:8000/docs` (local).
+**BFF do dashboard** (consumido pelo `index.html`; prefixo `/api`):
+
+| Método | Rota BFF | Espelho / extras |
+|--------|----------|------------------|
+| GET | `/api/dashboard/config` | Config demo + coordenadas padrão |
+| GET | `/api/alerts/*`, `/api/dashboard/summary` | Mesmos dados da API REST |
+| GET | `/api/weather/current`, `/api/risk/forecast`, `/api/storms/recent`, `/api/map/overlay` | Proxy in-process (`BFF_INPROCESS`) |
+| GET | `/api/storms/detector-status`, `/api/cv/status`, `/api/ml/agricultural-risk` | Status CV/ML para UI |
+| GET | `/api/nasa/capturas` | Galeria de capturas NASA |
+| POST | `/api/storms/detect`, `/api/storms/batch-detect`, `/api/storms/detect-sample` | Inferência YOLO na demo |
+| POST | `/api/alerts/simulate-detection` | Simula detecção + alerta |
+
+Documentação interativa: `http://127.0.0.1:8000/docs` (local). UI produtor: `http://127.0.0.1:8000/`.
 
 **Produção:** `https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health`
 
@@ -199,6 +218,7 @@ Documentação interativa: `http://127.0.0.1:8000/docs` (local).
 | D-014 | pydantic-settings + `.env` | Sem segredos no código | Config |
 | — | `DYNAMODB_USE_MOCK=true` default | Demo sem AWS | Dev / vídeo |
 | — | Porta única :8000 (Flask montado no FastAPI) | UX demo, `make demo` | Dashboard |
+| D-015 | BFF `/api/*` no FastAPI + `bff_handlers` compartilhado | Evita loopback HTTP; rotas BFF com prioridade sobre Flask | Dashboard |
 
 Detalhes completos: `.specs/project/STATE.md`.
 
@@ -213,7 +233,7 @@ Detalhes completos: `.specs/project/STATE.md`.
 | Cold start Lambda 60–90 s | Alta | Demo ao vivo | Aquecer container antes; mostrar demo local no vídeo |
 | IoT não entregue | Baixa (escopo) | Cobertura rubrica ESP32 | GUIA marca ESP32 como responsabilidade Rodrigo; declarar fora do MVP v1 |
 | Vídeo/PDF atrasados | Média | Nota entrega FIAP | Roteiro em CHECKLIST_ENTREGA; `make demo` estável |
-| Testes com erro de collection | Média | CI / qualidade | Corrigir imports/deps antes da entrega |
+| Testes com erro de collection | Média | CI / qualidade | Corrigir `PYTHONPATH` ou imports em `test_alerts_analytics_extended.py` antes da entrega |
 | Nome do projeto indefinido | Baixa | Identidade PDF | Decidir na equipe (D-001) |
 
 ---
@@ -229,8 +249,20 @@ Detalhes completos: `.specs/project/STATE.md`.
 
 ### 7.2 Fase D — dashboard-producer-ready
 
-- [ ] Screenshots e diagrama no README  
+- [x] Tema dia/noite completo (Chart.js, heatmap, Leaflet, `theme-color`, preferência do SO)
+- [x] Polish visual GitHub-like (ícones, skeleton, sliders, chip de fonte)
+- [x] Estados de erro por seção + `focus-visible` + `prefers-reduced-motion`
+- [ ] Screenshots dark/light no README (`docs/assets/dashboard-dark.png`, `docs/assets/dashboard-light.png`)
 - [ ] Confirmar KPIs com `DEMO_MODE=false` + API obrigatória  
+
+**Checklist manual (vídeo FIAP / UAT):**
+
+1. `make demo` → http://127.0.0.1:8000/
+2. Alternar tema (topbar) — KPIs, cards, gráficos, heatmap e mapas acompanham
+3. F5 — tema persiste (`dashboard-theme` no `localStorage`)
+4. Redimensionar mobile (~390px) — heatmap scrollável, topbar legível
+5. Windy carrega ao rolar até a seção radar
+6. (Opcional) `DEMO_MODE=false` — botões de dev ocultos, chip “Dados reais”
 
 ### 7.3 Entrega FIAP (ação humana)
 
@@ -274,16 +306,22 @@ Detalhes completos: `.specs/project/STATE.md`.
 ### 8.3 Como reproduzir
 
 ```bash
-# Demo integrada
+# Demo integrada (API + dashboard + BFF /api/*)
 make demo
+# http://127.0.0.1:8000/ — UI  |  http://127.0.0.1:8000/docs — OpenAPI
 
-# Testes (na raiz, com venv)
-.venv/bin/pytest tests/ src/tests/ -q
+# Testes (PYTHONPATH=src para imports app.*)
+cd src && ../.venv/bin/pytest ../tests/ tests/ -q
+
+# Atalhos Makefile
+make test-api
+make test-storms
 
 # Detecção local YOLO
 cd src && python models/stormdetector.py
 
-# API nuvem
+# Saúde local e nuvem
+curl http://127.0.0.1:8000/health
 curl https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health
 ```
 
@@ -327,6 +365,8 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 04/06/2026)
 | README operacional | `README.md` |
 | Deploy Lambda | `docs/DEPLOY-LAMBDA.md` |
 | Guia rubrica FIAP | `docs/GUIA-DE-AVALIACAO.md` |
+| RPI (este documento) | `docs/RPI.md` |
+| Instruções Claude Code | `CLAUDE.md` (referencia `.cursor/rules/tlc-spec-driven.mdc`) |
 
 ---
 
@@ -335,3 +375,5 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 04/06/2026)
 | Versão | Data | Autor | Alteração |
 |--------|------|-------|-----------|
 | 1.0 | 04/06/2026 | Agente / equipe GS2 | Criação inicial do RPI |
+| 1.1 | 04/06/2026 | Agente / equipe GS2 | BFF FastAPI (`dashboard_bff`), handlers compartilhados, endpoints `/api/*`, testes 54/1 erro, `CLAUDE.md`, env `DEMO_MODE`/`BFF_INPROCESS` |
+| 1.2 | 04/06/2026 | Agente / equipe GS2 | Dashboard UI profissional: tema claro/escuro, tokens CSS, polish GitHub-like, a11y, checklist Fase D |

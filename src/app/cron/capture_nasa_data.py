@@ -138,18 +138,19 @@ def capturar_regiao(regiao: dict, data: str) -> Path:
 
 def upload_s3(caminho: Path, data: str) -> str | None:
     """
-    Faz upload para S3 se S3_BUCKET_IMAGES estiver configurado.
+    Upload para S3 (arquivo PNG no prefixo NASA_S3_PREFIX).
 
     Returns:
-        s3_key se enviou, None se bucket não configurado.
+        s3_key se enviou, None se falhou ou bucket vazio.
     """
-    bucket = settings.S3_BUCKET_IMAGES
-    if not bucket or bucket == "input-images":
-        logger.debug("S3 não configurado — pulando upload de %s", caminho.name)
+    bucket = (settings.S3_BUCKET_IMAGES or "").strip()
+    if not bucket:
+        logger.warning("S3_BUCKET_IMAGES não configurado — pulando upload de %s", caminho.name)
         return None
 
-    dt       = datetime.strptime(data, "%Y-%m-%d")
-    s3_key   = f"nasa-satellite/{dt.year}/{dt.month:02d}/{dt.day:02d}/{caminho.name}"
+    dt = datetime.strptime(data, "%Y-%m-%d")
+    prefix = (settings.NASA_S3_PREFIX or "nasa-satellite").strip("/")
+    s3_key = f"{prefix}/{dt.year}/{dt.month:02d}/{dt.day:02d}/{caminho.name}"
 
     try:
         s3 = boto3.client("s3", region_name=settings.AWS_REGION)
@@ -164,7 +165,57 @@ def upload_s3(caminho: Path, data: str) -> str | None:
         return None
 
 
-def capturar_todas(data: str | None = None) -> list[dict]:
+def upload_s3_cv_jpg(caminho: Path) -> str | None:
+    """
+    Converte PNG → JPG e envia para screenshots/ (dispara Lambda S3 em produção).
+
+    Returns:
+        s3_key do .jpg ou None.
+    """
+    bucket = (settings.S3_BUCKET_IMAGES or "").strip()
+    if not bucket:
+        return None
+
+    prefix = (settings.NASA_CV_S3_PREFIX or "screenshots").strip("/")
+    jpg_name = caminho.stem + ".jpg"
+    s3_key = f"{prefix}/{jpg_name}"
+
+    try:
+        from PIL import Image
+
+        jpg_local = caminho.with_suffix(".jpg")
+        with Image.open(caminho) as img:
+            rgb = img.convert("RGB")
+            rgb.save(jpg_local, format="JPEG", quality=92)
+
+        s3 = boto3.client("s3", region_name=settings.AWS_REGION)
+        s3.upload_file(
+            str(jpg_local), bucket, s3_key,
+            ExtraArgs={"ContentType": "image/jpeg"},
+        )
+        logger.info("✓ S3 CV: s3://%s/%s", bucket, s3_key)
+        if jpg_local != caminho and jpg_local.exists():
+            jpg_local.unlink(missing_ok=True)
+        return s3_key
+    except (BotoCoreError, ClientError) as e:
+        logger.warning("Upload CV S3 falhou: %s", e)
+        return None
+    except OSError as e:
+        logger.warning("Conversão PNG→JPG falhou: %s", e)
+        return None
+
+
+def trigger_cv_pipeline(bucket: str, s3_key: str) -> dict | None:
+    """Executa pipeline YOLO localmente (dev) após upload em screenshots/."""
+    try:
+        from app.routers.cv import process_s3_image
+        return process_s3_image(bucket=bucket, key=s3_key)
+    except Exception as e:
+        logger.warning("Pipeline CV local falhou: %s", e)
+        return None
+
+
+def capturar_todas(data: str | None = None, *, trigger_cv: bool = False) -> list[dict]:
     """Captura todas as regiões para uma data."""
     if data is None:
         data = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -174,11 +225,17 @@ def capturar_todas(data: str | None = None) -> list[dict]:
         try:
             caminho  = capturar_regiao(regiao, data)
             s3_key   = upload_s3(caminho, data)
+            cv_key   = upload_s3_cv_jpg(caminho) if trigger_cv else None
+            cv_result = None
+            if cv_key and settings.S3_BUCKET_IMAGES:
+                cv_result = trigger_cv_pipeline(settings.S3_BUCKET_IMAGES, cv_key)
             resultados.append({
                 "regiao":    regiao["nome"],
                 "arquivo":   caminho.name,
                 "caminho":   str(caminho),
                 "s3_key":    s3_key,
+                "cv_s3_key": cv_key,
+                "cv_result": cv_result,
                 "data":      data,
                 "status":    "ok",
                 "tamanho_kb": caminho.stat().st_size // 1024,
@@ -239,11 +296,16 @@ if __name__ == "__main__":
     parser.add_argument("--data",      default=None, help="Data específica YYYY-MM-DD")
     parser.add_argument("--historico", action="store_true", help="Baixar retroativamente")
     parser.add_argument("--dias",      type=int, default=30, help="Dias para trás (--historico)")
+    parser.add_argument(
+        "--trigger-cv",
+        action="store_true",
+        help="Envia JPG em screenshots/ e roda pipeline YOLO localmente",
+    )
     args = parser.parse_args()
 
     if args.historico:
         capturar_historico(dias=args.dias)
     else:
-        resultados = capturar_todas(data=args.data)
+        resultados = capturar_todas(data=args.data, trigger_cv=args.trigger_cv)
         ok = sum(1 for r in resultados if r["status"] == "ok")
         print(f"\n✓ {ok}/{len(resultados)} regiões capturadas → {CAPTURES_DIR}")

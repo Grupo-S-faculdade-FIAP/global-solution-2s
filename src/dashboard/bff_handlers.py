@@ -21,7 +21,15 @@ def _env_bool(name: str, default: bool = True) -> bool:
     return raw in ("1", "true", "yes", "on")
 
 
-DEMO_MODE = _env_bool("DEMO_MODE", default=True)
+def _demo_mode() -> bool:
+    try:
+        from app.core.config import settings
+        return bool(settings.DEMO_MODE)
+    except ImportError:
+        return _env_bool("DEMO_MODE", default=True)
+
+
+DEMO_MODE = _demo_mode()
 DEFAULT_WEATHER_LAT = -23.55
 DEFAULT_WEATHER_LON = -46.63
 

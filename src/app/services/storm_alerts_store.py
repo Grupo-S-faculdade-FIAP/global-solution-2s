@@ -1,4 +1,4 @@
-"""Armazenamento local de alertas quando DynamoDB ainda não está disponível."""
+"""Armazenamento de alertas — DynamoDB (produção) ou JSON local (mock)."""
 
 from __future__ import annotations
 
@@ -8,6 +8,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
 
 from app.core.config import settings
 
@@ -23,13 +26,8 @@ WEEKDAY_EN = [
 
 
 def use_mock_store() -> bool:
-    """True = não chama AWS; usa JSON local + seed de demo."""
-    if settings.DYNAMODB_USE_MOCK:
-        return True
-    key = (settings.AWS_ACCESS_KEY_ID or "").strip()
-    if not key or key.startswith("your_"):
-        return True
-    return False
+    """True = JSON local; False = DynamoDB AWS (requer credenciais válidas)."""
+    return bool(settings.DYNAMODB_USE_MOCK)
 
 
 def _store_path() -> Path:
@@ -61,7 +59,6 @@ def _save_all(items: list[dict[str, Any]]) -> None:
 
 
 def _seed_demo_alerts() -> list[dict[str, Any]]:
-    """Gera alertas plausíveis para gráficos e mapa (últimos ~14 dias)."""
     now = datetime.now(timezone.utc)
     templates = [
         ("nasa_brasil_sudeste_20260604_1530.png", 4, 14),
@@ -74,25 +71,55 @@ def _seed_demo_alerts() -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for i, (s3_key, count, hour) in enumerate(templates):
         ts = now - timedelta(days=i % 12, hours=(i * 3) % 8)
-        weekday = WEEKDAY_EN[ts.weekday()]
-        items.append({
-            "alert_type": "storm_detection",
-            "timestamp": ts.isoformat().replace("+00:00", "Z"),
-            "alert_id": f"demo_{uuid.uuid4().hex[:12]}",
-            "date": ts.strftime("%Y-%m-%d"),
-            "hour": hour,
-            "weekday": weekday,
-            "bucket": "demo-local",
-            "s3_key": s3_key,
-            "detection_count": count,
-            "classes": ["storm"],
-            "simulated": True,
-        })
+        items.append(_build_item(
+            s3_key=s3_key,
+            detection_count=count,
+            bucket="demo-local",
+            alert_id=f"demo_{uuid.uuid4().hex[:12]}",
+            timestamp=ts,
+            simulated=True,
+        ))
     return items
 
 
+def _build_item(
+    *,
+    s3_key: str,
+    detection_count: int,
+    bucket: str,
+    alert_id: str | None = None,
+    timestamp: datetime | None = None,
+    simulated: bool = False,
+    classes: list[str] | None = None,
+) -> dict[str, Any]:
+    now = timestamp or datetime.now(timezone.utc)
+    return {
+        "alert_type": "storm_detection",
+        "timestamp": now.isoformat().replace("+00:00", "Z"),
+        "alert_id": alert_id or f"alert_{uuid.uuid4().hex[:12]}",
+        "date": now.strftime("%Y-%m-%d"),
+        "hour": now.hour,
+        "weekday": WEEKDAY_EN[now.weekday()],
+        "bucket": bucket,
+        "s3_key": s3_key,
+        "detection_count": detection_count,
+        "classes": classes or ["storm"],
+        "simulated": simulated,
+    }
+
+
+def _put_dynamodb(item: dict[str, Any]) -> dict[str, Any]:
+    dynamodb = boto3.resource("dynamodb", region_name=settings.AWS_REGION)
+    table = dynamodb.Table(settings.DYNAMODB_TABLE_ALERTS)
+    table.put_item(Item=item)
+    logger.info("Alert saved to DynamoDB table %s: %s", settings.DYNAMODB_TABLE_ALERTS, item.get("alert_id"))
+    return item
+
+
 def ensure_seeded() -> None:
-    """Cria arquivo de demo na primeira execução."""
+    """Cria arquivo de demo na primeira execução (somente mock)."""
+    if not use_mock_store():
+        return
     path = _store_path()
     if path.exists() and path.stat().st_size > 2:
         return
@@ -102,7 +129,8 @@ def ensure_seeded() -> None:
 
 
 def list_alerts_since_hours(hours: int) -> list[dict[str, Any]]:
-    ensure_seeded()
+    if use_mock_store():
+        ensure_seeded()
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     out: list[dict[str, Any]] = []
     for item in _load_all():
@@ -128,28 +156,31 @@ def add_alert(
     *,
     s3_key: str = "nasa_brasil_sudeste_simulated.png",
     detection_count: int = 2,
-    bucket: str = "demo-local",
+    bucket: str | None = None,
     alert_id: str | None = None,
+    simulated: bool = True,
 ) -> dict[str, Any]:
-    ensure_seeded()
-    now = datetime.now(timezone.utc)
-    item = {
-        "alert_type": "storm_detection",
-        "timestamp": now.isoformat().replace("+00:00", "Z"),
-        "alert_id": alert_id or f"sim_{uuid.uuid4().hex[:12]}",
-        "date": now.strftime("%Y-%m-%d"),
-        "hour": now.hour,
-        "weekday": WEEKDAY_EN[now.weekday()],
-        "bucket": bucket,
-        "s3_key": s3_key,
-        "detection_count": detection_count,
-        "classes": ["storm"],
-        "simulated": True,
-    }
-    items = _load_all()
-    items.append(item)
-    _save_all(items)
-    return item
+    bucket_name = bucket or settings.S3_BUCKET_IMAGES
+    item = _build_item(
+        s3_key=s3_key,
+        detection_count=detection_count,
+        bucket=bucket_name,
+        alert_id=alert_id,
+        simulated=simulated,
+    )
+
+    if use_mock_store():
+        ensure_seeded()
+        items = _load_all()
+        items.append(item)
+        _save_all(items)
+        return item
+
+    try:
+        return _put_dynamodb(item)
+    except (ClientError, BotoCoreError) as exc:
+        logger.error("DynamoDB put_item failed: %s", exc)
+        raise
 
 
 def add_alert_from_coords(
@@ -157,7 +188,7 @@ def add_alert_from_coords(
     lon: float,
     confidence: float = 0.85,
 ) -> dict[str, Any]:
-    """Simula alerta a partir de lat/lon (dashboard)."""
+    """Registra alerta a partir de lat/lon (dashboard simulate)."""
     if lon < -50:
         s3_key = "nasa_brasil_sudeste_simulated.png"
     elif lon < -55:
@@ -165,4 +196,8 @@ def add_alert_from_coords(
     else:
         s3_key = "nasa_americas_simulated.png"
     count = max(1, int((confidence - 0.5) / 0.08))
-    return add_alert(s3_key=s3_key, detection_count=count)
+    return add_alert(
+        s3_key=s3_key,
+        detection_count=count,
+        simulated=True,
+    )

@@ -1,4 +1,4 @@
-.PHONY: install demo test-api test-storms
+.PHONY: install demo test-api test-storms nasa-capture upload-s3
 
 VENV_PYTHON := .venv/bin/python
 
@@ -16,3 +16,11 @@ test-api:
 
 test-storms:
 	cd src && pytest ../tests/test_storm_alerts_query.py -q
+
+# Captura NASA Worldview + upload S3 (requer playwright: playwright install chromium)
+nasa-capture:
+	cd src && ../$(VENV_PYTHON) -m app.cron.capture_nasa_data
+
+# Upload capturas locais existentes para S3 (opcional: UPLOAD_CV=1 para JPG + YOLO)
+upload-s3:
+	cd src && ../$(VENV_PYTHON) -m app.cron.upload_nasa_to_s3 $(if $(UPLOAD_CV),--cv,)

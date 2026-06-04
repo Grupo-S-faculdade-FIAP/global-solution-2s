@@ -18,7 +18,9 @@ def isolated_store(tmp_path, monkeypatch):
     return path
 
 
-def test_use_mock_store_default_true(monkeypatch):
+def test_use_mock_store_respects_flag(monkeypatch):
+    monkeypatch.setattr(store.settings, "DYNAMODB_USE_MOCK", False)
+    assert store.use_mock_store() is False
     monkeypatch.setattr(store.settings, "DYNAMODB_USE_MOCK", True)
     assert store.use_mock_store() is True
 

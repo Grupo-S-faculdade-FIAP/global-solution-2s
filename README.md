@@ -68,7 +68,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 - **Repositório GitHub:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s
 - **Vídeo de demonstração (5min):** *(link a ser adicionado após gravação)*
-- **Dashboard (Streamlit):** *(link a ser adicionado após deploy)*
+- **Dashboard (Streamlit):** *(link a ser adicionado após deploy)* — **demo local:** http://127.0.0.1:8000 (`make demo`; tema claro/escuro na topbar)
 - **API Backend (AWS):** https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com
 
 **Decisões técnicas relevantes:**
@@ -110,6 +110,8 @@ Trilha YOLO NASA (concluída):
 make demo
 # Abra http://127.0.0.1:8000
 ```
+
+**Dashboard produtor:** painel HTML em `/` com tema **claro/escuro** (botão na topbar; preferência salva em `localStorage`). Gráficos, heatmap e mapas Leaflet acompanham o tema. Detalhes e checklist de validação: [docs/RPI.md](docs/RPI.md) §7.2.
 
 **Alertas / DynamoDB (enquanto AWS não estiver pronta):** por padrão `DYNAMODB_USE_MOCK=true` — dados em `data/demo/storm_alerts.json` (seed automático + `POST /alerts/simulate`). Quando a AWS estiver ok: `DYNAMODB_USE_MOCK=false` no `.env`.
 
