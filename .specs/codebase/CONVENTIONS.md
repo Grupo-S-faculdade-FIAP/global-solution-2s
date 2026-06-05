@@ -1,107 +1,83 @@
-# Conventions
+# Convenções — Global Solutions
 
-**Project:** global-solution-2s
-**Mapped on:** 2026-06-04
+## Frontend (dashboard)
 
-Estas convencoes foram observadas no codigo atual e devem ser seguidas em novas alteracoes.
+Stack: **vanilla JS (ES modules)** + **Jinja partials** + **CSS tokens** + **BFF Flask/FastAPI** em `/api/*`.
 
----
+### Estrutura de pastas
 
-## Naming
-
-| Entity | Convention | Example |
-|--------|-----------|---------|
-| Arquivos Python | snake_case | `risk_assessment.py`, `ingest_weather.py` |
-| Funcoes e variaveis | snake_case | `process_s3_image`, `validate_coordinates` |
-| Classes | PascalCase | `WeatherService`, `AgriRiskModel` |
-| Constantes | UPPER_SNAKE_CASE | `MODEL_PATH`, `YOLO_CONFIDENCE_THRESHOLD` |
-| Rotas HTTP | kebab-case e prefixadas por modulo | `/predict/agricultural-risk`, `/storms/recent` |
-
----
-
-## File Organization
-
-```text
-src/
-├── app/
-│   ├── core/       # configuracao e fundamentos
-│   ├── models/     # schemas pydantic
-│   ├── routers/    # endpoints por dominio
-│   ├── services/   # regras de negocio
-│   ├── clients/    # clientes externos
-│   ├── lambdas/    # handlers agendados/event-driven
-│   └── main.py     # app FastAPI + entrypoint Lambda
-├── dashboard/      # app Flask para visualizacao
-├── models/         # artefatos de modelo (weights e pkl)
-└── tests/          # testes locais da camada src
+```
+src/dashboard/static/js/
+├── app.js              # entry + wiring de eventos (theme, orchestrator)
+├── bootstrap.js        # carga inicial paralela (Promise.allSettled)
+├── theme.js            # tema claro/escuro
+├── charts.js           # Chart.js (render + refresh)
+├── core/
+│   ├── api.js          # fetchApi (transporte: timeout, retry)
+│   ├── api/endpoints.js # contratos HTTP por domínio
+│   ├── constants.js    # valores imutáveis (LOC_KEY, BRAZIL_CITIES, …)
+│   ├── state.js        # estado mutável + runtime handles (maps, charts)
+│   ├── events.js       # pub/sub (on/emit)
+│   ├── orchestrator.js # orquestração multi-módulo
+│   ├── selectors.js    # IDs compartilhados (SEL.*)
+│   ├── dom.js          # helpers DOM (loading, erros)
+│   ├── ui.js           # toasts, chip demo/live, safeLoad
+│   └── css.js          # leitura de CSS variables
+├── maps/               # Leaflet, Windy, localização
+└── sections/           # features por seção do dashboard
 ```
 
----
+### Regra de dependência
 
-## Code Style
+| Camada | Pode importar | Não pode importar |
+|--------|---------------|-------------------|
+| `core/*` (exceto orchestrator) | `core/*` | `sections/`, `maps/` |
+| `core/orchestrator.js` | `core/`, `sections/`, `maps/` | — (camada de wiring) |
+| `sections/` | `core/`, `charts.js` | outras `sections/`, `maps/` |
+| `maps/` | `core/` | `sections/` |
+| `app.js`, `bootstrap.js` | tudo | — |
 
-- Linguagem principal: Python com type hints.
-- Imports em blocos: stdlib -> terceiros -> app local.
-- Logging por modulo com `logging.getLogger(__name__)`.
-- Validacao de entrada HTTP com Query constraints e Pydantic.
-- Configuracao via `BaseSettings` em `app/core/config.py`.
+Comunicação entre camadas paralelas: **`core/events.js`**, nunca import cruzado.
 
----
+### Eventos canônicos
 
-## Patterns
+| Evento | Emissor | Handler |
+|--------|---------|---------|
+| `location:changed` | `maps/location.js` | `orchestrator` → weather, risk, region map, Windy |
+| `weather:loaded` | `sections/climate.js` | `orchestrator` → `ml.syncSlidersFromWeather` |
+| `theme:changed` | `theme.js` | `app.js` → charts + map tiles + Windy |
+| `dashboard:reload` | `sections/yolo.js` | `orchestrator` → KPIs, gráficos, region map |
 
-### Error Handling
+### Padrão por section
 
-```python
-try:
-	# chamada de servico externo ou inferencia
-	...
-except Exception as e:
-	raise HTTPException(status_code=500, detail=str(e))
-```
+Cada `sections/*.js` expõe:
 
-### API Responses
+- `load*()` — busca via `core/api/endpoints.js` e renderiza a seção
+- `bind*()` (opcional) — event listeners locais
 
-```python
-# Rotas usam response_model quando aplicavel
-@router.get("/weather/current", response_model=WeatherResponse)
-def get_weather_current(...):
-	return WeatherResponse(...)
-```
+Toda `load*()` segue:
 
-### Async / Sync
+1. Limpar erro / loading
+2. Chamar endpoint do BFF
+3. Renderizar ou fallback `—`
+4. `noteResponseSource(r)` quando aplicável
 
-```python
-# Ha mistura de handlers sync e async
-@router.get("/status")
-def status(): ...
+### HTML e CSS
 
-@router.post("/detect/storm")
-async def detect_storm(...): ...
-```
+- Markup estrutural nos partials Jinja (`templates/partials/`)
+- JS atualiza texto/classes; injeta HTML só para erros dinâmicos
+- Cores via `css/tokens.css` (`var(--blue)`, etc.)
+- Classes: bloco (`.kpi-card`), estado (`.is-loading`, `.has-error`)
+- Não estilizar por ID no CSS
 
-### Imports on-demand
+### API
 
-```python
-# Em alguns endpoints, imports de servicos sao feitos dentro da funcao
-from app.services.agri_risk_model import AgriRiskModel
-```
+- Browser fala **somente** com `/api/*` (BFF)
+- Paths centralizados em `core/api/endpoints.js`
+- Header `X-Data-Source`: `live` | `demo` | `unavailable`
 
----
+### Terceiros
 
-## Prohibited Patterns
-
-- Nao hardcodar segredos e ARNs; usar `.env` + settings.
-- Nao colocar regra de negocio complexa diretamente em router.
-- Nao commitar artefatos temporarios, caches e credenciais.
-- Evitar testes que dependem de internet sem fallback de mock.
-
----
-
-## Git Conventions
-
-Conforme `.github/copilot-instructions.md`:
-
-- Conventional Commits: `<type>(<scope>): <description>`
-- Tipos aceitos: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`
-- Um commit por unidade atomica de trabalho
+- Chart.js e Leaflet: globals UMD; guard `typeof Chart === "undefined"`
+- Windy: isolado em `maps/windy.js`
+- Lazy load: Windy e mapa da região via IntersectionObserver

@@ -1,10 +1,11 @@
 import { state } from "../core/state.js";
-import { fetchApi } from "../core/api.js";
+import { dashboard } from "../core/api/endpoints.js";
 import { noteResponseSource, setDataSourceChip } from "../core/ui.js";
+import { SEL } from "../core/selectors.js";
 
 export async function loadDashboardConfig() {
   try {
-    const r = await fetchApi("/api/dashboard/config");
+    const r = await dashboard.config();
     if (r.ok) {
       state.dashboardConfig = await r.json();
       noteResponseSource(r);
@@ -12,7 +13,7 @@ export async function loadDashboardConfig() {
     }
   } catch { /* defaults */ }
   if (!state.dashboardConfig.demo_mode) {
-    const dev = document.getElementById("yolo-dev-actions");
+    const dev = document.getElementById(SEL.yoloDevActions);
     if (dev) dev.style.display = "none";
   }
 }

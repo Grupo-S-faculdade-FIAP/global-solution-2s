@@ -1,70 +1,51 @@
 import { state } from "../core/state.js";
-import { fetchApi } from "../core/api.js";
-import {
-  ensureWeatherLayout,
-  ensureRiskLayout,
-  clearSectionError,
-  showSectionError,
-  clearStatLoading,
-} from "../core/dom.js";
+import { weather, risk } from "../core/api/endpoints.js";
+import { emit } from "../core/events.js";
+import { $, clearSectionError, showSectionError, clearStatLoading } from "../core/dom.js";
+import { SEL } from "../core/selectors.js";
 import {
   noteResponseSource,
   setDataSourceChip,
   setLastUpdated,
 } from "../core/ui.js";
-import { loadRegionMap } from "../maps/region.js";
-import { refreshWindyMap } from "../maps/windy.js";
-import { updateMLPredictor } from "./ml.js";
-
-function syncSlidersFromWeather(data) {
-  const slTemp = document.getElementById("sl-temp");
-  const slUmid = document.getElementById("sl-umid");
-  const slPrec = document.getElementById("sl-prec");
-  const slVento = document.getElementById("sl-vento");
-  if (data.temperature != null && slTemp) slTemp.value = Math.min(45, Math.max(5, data.temperature));
-  if (data.humidity != null && slUmid) slUmid.value = Math.round(data.humidity);
-  if (data.precipitation != null && slPrec) slPrec.value = Math.min(50, Math.max(0, data.precipitation));
-  if (data.wind_speed != null && slVento) {
-    slVento.value = Math.round(Math.min(120, Math.max(0, data.wind_speed * 3.6)));
-  }
-  updateMLPredictor();
-}
 
 export async function loadWeatherData() {
-  ensureWeatherLayout();
-  clearSectionError("weather-container");
+  clearSectionError(SEL.weatherContainer);
   try {
-    const q = `lat=${state.userLocation.lat}&lon=${state.userLocation.lon}`;
-    const r = await fetchApi(`/api/weather/current?${q}`);
+    const r = await weather.current(state.userLocation.lat, state.userLocation.lon);
     noteResponseSource(r);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
 
-    document.getElementById("weather-temp").textContent = `${data.temperature}°C`;
-    document.getElementById("weather-humidity").textContent = `${data.humidity}%`;
-    document.getElementById("weather-pressure").textContent = `${data.pressure} hPa`;
-    document.getElementById("weather-wind").textContent = `${data.wind_speed} m/s`;
+    const tempEl = $(SEL.weatherTemp);
+    const humEl = $(SEL.weatherHumidity);
+    const pressEl = $(SEL.weatherPressure);
+    const windEl = $(SEL.weatherWind);
+    if (tempEl) tempEl.textContent = `${data.temperature}°C`;
+    if (humEl) humEl.textContent = `${data.humidity}%`;
+    if (pressEl) pressEl.textContent = `${data.pressure} hPa`;
+    if (windEl) windEl.textContent = `${data.wind_speed} m/s`;
     clearStatLoading();
 
     const ts = new Date(data.timestamp);
-    document.getElementById("weather-timestamp").textContent =
-      `Clima: ${ts.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`;
+    const tsEl = $(SEL.weatherTimestamp);
+    if (tsEl) {
+      tsEl.textContent = `Clima: ${ts.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`;
+    }
     setLastUpdated(ts);
     setDataSourceChip("live");
-    syncSlidersFromWeather(data);
+    emit("weather:loaded", data);
   } catch {
     clearStatLoading();
-    showSectionError("weather-container", "Clima indisponível — verifique se a API está rodando");
+    showSectionError(SEL.weatherContainer, "Clima indisponível — verifique se a API está rodando");
     setDataSourceChip("unavailable");
   }
 }
 
 export async function loadRiskData() {
-  ensureRiskLayout();
-  clearSectionError("risk-container");
+  clearSectionError(SEL.riskContainer);
   try {
-    const q = `lat=${state.userLocation.lat}&lon=${state.userLocation.lon}`;
-    const r = await fetchApi(`/api/risk/forecast?${q}`);
+    const r = await risk.forecast(state.userLocation.lat, state.userLocation.lon);
     noteResponseSource(r);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
@@ -76,38 +57,29 @@ export async function loadRiskData() {
     };
 
     const colorSet = categoryClasses[data.risk_category] || categoryClasses.LOW;
-    const badge = document.getElementById("risk-badge");
-    const category = document.getElementById("risk-category");
+    const badge = $(SEL.riskBadge);
+    const category = $(SEL.riskCategory);
 
-    badge.textContent = `${(data.risk_score * 100).toFixed(0)}%`;
-    badge.className = "risk-score " + colorSet.cls;
-    badge.classList.remove("is-loading");
+    if (badge) {
+      badge.textContent = `${(data.risk_score * 100).toFixed(0)}%`;
+      badge.className = "risk-score " + colorSet.cls;
+      badge.classList.remove("is-loading");
+    }
 
-    category.textContent = `Risco ${colorSet.text}`;
-    category.className = "risk-category " + colorSet.cls;
+    if (category) {
+      category.textContent = `Risco ${colorSet.text}`;
+      category.className = "risk-category " + colorSet.cls;
+    }
 
-    document.getElementById("risk-recommendation").textContent = data.recommendation;
+    const recEl = $(SEL.riskRecommendation);
+    if (recEl) recEl.textContent = data.recommendation;
   } catch {
     clearStatLoading();
-    const badge = document.getElementById("risk-badge");
+    const badge = $(SEL.riskBadge);
     if (badge) {
       badge.classList.remove("is-loading");
       badge.textContent = "—";
     }
-    showSectionError("risk-container", "Risco indisponível no momento");
+    showSectionError(SEL.riskContainer, "Risco indisponível no momento");
   }
-}
-
-export async function reloadLocationDependentData() {
-  ensureWeatherLayout();
-  ensureRiskLayout();
-  clearSectionError("weather-container");
-  clearSectionError("risk-container");
-  const badge = document.getElementById("risk-badge");
-  if (badge) {
-    badge.classList.add("is-loading");
-    badge.textContent = "—";
-  }
-  await Promise.all([loadWeatherData(), loadRiskData(), loadRegionMap()]);
-  refreshWindyMap();
 }

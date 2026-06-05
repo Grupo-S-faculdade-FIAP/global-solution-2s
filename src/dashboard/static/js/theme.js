@@ -1,7 +1,6 @@
+import { emit } from "./core/events.js";
 import { getThemeColors } from "./core/css.js";
-import { updateChartDefaults, refreshAllCharts, refreshHeatmapColors } from "./charts.js";
-import { refreshRegionMapTiles, refreshLocationPickerTiles } from "./maps/region.js";
-import { refreshWindyMap } from "./maps/windy.js";
+import { SEL } from "./core/selectors.js";
 
 export const THEME_KEY = "dashboard-theme";
 
@@ -12,12 +11,12 @@ export function resolveInitialTheme() {
 }
 
 function updateMetaThemeColor(theme) {
-  const meta = document.getElementById("meta-theme-color");
+  const meta = document.getElementById(SEL.metaThemeColor);
   if (meta) meta.content = theme === "dark" ? "#0d1117" : "#ffffff";
 }
 
 function updateThemeIcon(theme) {
-  const btn = document.getElementById("theme-toggle");
+  const btn = document.getElementById(SEL.themeToggle);
   if (!btn) return;
   const isDark = theme === "dark";
   btn.innerHTML = isDark
@@ -29,7 +28,7 @@ function updateThemeIcon(theme) {
 }
 
 function updateThemeLabel(theme) {
-  const label = document.getElementById("theme-mode-label");
+  const label = document.getElementById(SEL.themeModeLabel);
   if (label) label.textContent = theme === "dark" ? "Escuro" : "Claro";
 }
 
@@ -44,15 +43,7 @@ export function applyTheme(theme) {
   updateMetaThemeColor(theme);
   updateThemeIcon(theme);
   updateThemeLabel(theme);
-
-  requestAnimationFrame(() => {
-    updateChartDefaults();
-    refreshAllCharts();
-    refreshHeatmapColors();
-    refreshRegionMapTiles();
-    refreshLocationPickerTiles();
-    refreshWindyMap();
-  });
+  emit("theme:changed", { theme });
 }
 
 function toggleTheme() {
@@ -62,7 +53,7 @@ function toggleTheme() {
 
 export function initTheme() {
   applyTheme(resolveInitialTheme());
-  const btn = document.getElementById("theme-toggle");
+  const btn = document.getElementById(SEL.themeToggle);
   if (btn && !btn.dataset.bound) {
     btn.dataset.bound = "1";
     btn.addEventListener("click", toggleTheme);

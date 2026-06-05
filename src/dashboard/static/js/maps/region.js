@@ -1,5 +1,7 @@
-import { state, REGION_MAP_PAD } from "../core/state.js";
-import { fetchApi } from "../core/api.js";
+import { state } from "../core/state.js";
+import { REGION_MAP_PAD } from "../core/constants.js";
+import { map } from "../core/api/endpoints.js";
+import { SEL } from "../core/selectors.js";
 import { getCssVar } from "../core/css.js";
 import { noteResponseSource } from "../core/ui.js";
 import { mapTileConfig } from "./tiles.js";
@@ -61,7 +63,7 @@ function renderRegionAlerts(geojson) {
 
   state.regionAlertsLayer.clearLayers();
   const features = geojson?.features || [];
-  const emptyEl = document.getElementById("region-map-empty");
+  const emptyEl = document.getElementById(SEL.regionMapEmpty);
 
   if (features.length === 0) {
     if (emptyEl) emptyEl.hidden = false;
@@ -100,7 +102,7 @@ function renderRegionAlerts(geojson) {
 }
 
 export async function loadRegionMap() {
-  const coordsEl = document.getElementById("region-map-coords");
+  const coordsEl = document.getElementById(SEL.regionMapCoords);
   const txt = `${state.userLocation.lat.toFixed(4)}°, ${state.userLocation.lon.toFixed(4)}°`;
   if (coordsEl) coordsEl.textContent = txt;
 
@@ -111,7 +113,7 @@ export async function loadRegionMap() {
 
   try {
     const bbox = locationBBox(state.userLocation.lat, state.userLocation.lon);
-    const r = await fetchApi(`/api/map/overlay?bbox=${encodeURIComponent(bbox)}`);
+    const r = await map.overlay(bbox);
     noteResponseSource(r);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();

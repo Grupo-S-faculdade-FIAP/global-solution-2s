@@ -1,89 +1,49 @@
-# Integrations
+# Integrações — Global Solutions
 
-**Project:** global-solution-2s
-**Mapped on:** 2026-06-04
+## Dashboard BFF (`/api/*`)
 
----
+O frontend consome exclusivamente rotas `/api/*` servidas pelo BFF ([`bff_handlers.py`](../../src/dashboard/bff_handlers.py)), espelhadas em Flask ([`app.py`](../../src/dashboard/app.py)) e FastAPI.
 
-## External Services
+Contratos JS: [`core/api/endpoints.js`](../../src/dashboard/static/js/core/api/endpoints.js).
 
-| Service | SDK / Client | Auth Method | Purpose | Docs |
-|---------|-------------|-------------|---------|------|
-| Open-Meteo | requests/httpx | Sem API key | Dados meteorologicos atuais por coordenada | https://open-meteo.com/ |
-| AWS S3 | boto3 | IAM credentials | Armazenar imagens/modelos e trigger de pipeline CV | https://docs.aws.amazon.com/s3/ |
-| AWS SNS | boto3 | IAM credentials | Notificacoes de alerta de chuva | https://docs.aws.amazon.com/sns/ |
-| AWS DynamoDB | boto3 | IAM credentials | Persistencia de metricas, leituras e alertas | https://docs.aws.amazon.com/dynamodb/ |
-| AWS Lambda/API Gateway | Mangum + boto3 | IAM credentials | Execucao serverless da API e handlers | https://docs.aws.amazon.com/lambda/ |
-| Windy.com (captura) | Playwright | Nao aplicavel | Fonte de screenshots para dataset/processamento | https://www.windy.com/ |
+Header de resposta: **`X-Data-Source`** — `live` (DynamoDB/backend real), `demo` (JSON local), ou ausente em erro.
 
----
+### Endpoints consumidos pelo dashboard
 
-## Internal APIs
+| Domínio | Método | Path | Query / Body | Uso |
+|---------|--------|------|--------------|-----|
+| dashboard | GET | `/api/dashboard/config` | — | `demo_mode`, storage, defaults |
+| alerts | GET | `/api/alerts/summary` | `days` (opc.) | KPIs |
+| alerts | GET | `/api/alerts/daily` | `days` (opc.) | gráfico tendência |
+| alerts | GET | `/api/alerts/weekly` | `days` (opc.) | gráfico semanal |
+| alerts | GET | `/api/alerts/hourly` | `days` (opc.) | gráfico horário |
+| alerts | GET | `/api/alerts/heatmap` | `days` (opc.) | heatmap 7×24 |
+| alerts | POST | `/api/alerts/simulate-detection` | `{ confidence, lat, lon }` | simular alerta YOLO |
+| weather | GET | `/api/weather/current` | `lat`, `lon` | clima atual |
+| risk | GET | `/api/risk/forecast` | `lat`, `lon` | risco agrícola regional |
+| storms | GET | `/api/storms/detector-status` | — | status YOLO |
+| storms | GET | `/api/storms/recent` | `hours` | lista alertas recentes |
+| storms | POST | `/api/storms/detect-sample` | — | inferência em imagem demo |
+| map | GET | `/api/map/overlay` | `bbox` (s,w,n,e) | GeoJSON alertas no mapa |
+| ml | GET | `/api/ml/agricultural-risk` | `temperatura`, `umidade`, `precipitacao`, `vento_kmh` | calculadora ML |
+| iot | GET | `/api/iot/readings/latest` | `hours` | leituras ESP32 |
+| nasa | GET | `/api/nasa/capturas` | `limite` | galeria de capturas |
 
-| API | Base URL (env var) | Auth | Notes |
-|-----|-------------------|------|-------|
-| FastAPI local | `http://localhost:8000` | Sem auth | Consumida por testes e dashboard local |
-| FastAPI cloud | URL API Gateway | Sem auth | Endpoint publico de POC |
+### Modos de operação
 
----
+| Variável | Default | Efeito no BFF |
+|----------|---------|---------------|
+| `DEMO_MODE` | `true` | fallbacks JSON quando backend indisponível |
+| `DYNAMODB_USE_MOCK` | `true` | alertas/IoT em `data/demo/*.json` |
+| `BFF_INPROCESS` | `false` (dev) | BFF chama FastAPI via TestClient em vez de HTTP |
 
-## Event-driven Integrations
+### Windy (terceiro)
 
-| Provider | Trigger | Flow | Validation |
-|----------|---------|------|------------|
-| S3 | `ObjectCreated` em `.jpg` | S3 -> Lambda handler -> YOLO -> SNS + DynamoDB | Validacao de extensao e logs |
-| CloudWatch | Schedule (30 min) | Event -> ingest_weather.lambda_handler -> Open-Meteo -> DynamoDB | Tratamento de excecao no handler |
+- Widget Windy embarcado em `maps/windy.js` — **não** passa pelo BFF
+- API REST Windy não usada (plano free); apenas widget interativo
 
----
+### Localização (client-side)
 
-## Environment Variables
-
-Variaveis observadas em `src/app/core/config.py`:
-
-| Variable | Required | Description |
-|----------|:--------:|-------------|
-| `ENVIRONMENT` | Sim | Ambiente (`development/staging/production`) |
-| `AWS_REGION` | Sim | Regiao AWS |
-| `AWS_ACCESS_KEY_ID` | Sim (fora AWS managed) | Credencial IAM |
-| `AWS_SECRET_ACCESS_KEY` | Sim (fora AWS managed) | Credencial IAM |
-| `S3_BUCKET_MODELS` | Sim | Bucket de modelos |
-| `S3_BUCKET_IMAGES` | Sim | Bucket de imagens de entrada |
-| `S3_BUCKET_OUTPUTS` | Sim | Bucket de saidas |
-| `DYNAMODB_WEATHER_TABLE` | Sim | Tabela de metricas meteorologicas |
-| `DYNAMODB_STORM_TABLE` | Sim | Tabela de deteccoes de tempestade |
-| `DYNAMODB_RISK_TABLE` | Sim | Tabela de previsoes de risco |
-| `DYNAMODB_IOT_TABLE` | Sim | Tabela de leituras IoT |
-| `DYNAMODB_TABLE_ALERTS` | Sim | Tabela de alertas do pipeline CV |
-| `SNS_TOPIC_ARN` | Sim (pipeline CV) | Topico de notificacao de alertas |
-| `OPENMETEO_API_URL` | Nao | URL base da API Open-Meteo |
-| `WEATHER_LOCATIONS` | Sim (lambda ingest) | Lista lat/lon para coleta periodica |
-| `YOLO_MODEL_S3_KEY` | Sim | Chave do modelo no S3 |
-| `YOLO_CONFIDENCE_THRESHOLD` | Nao | Limiar de confianca |
-
----
-
-## Integration Patterns
-
-### AWS client by settings
-
-```python
-s3 = boto3.client("s3", region_name=settings.AWS_REGION)
-```
-
-### External call wrapped at endpoint boundary
-
-```python
-try:
-    weather_data = weather_service.get_current(lat, lon)
-except Exception as e:
-    raise HTTPException(status_code=500, detail=f"Error fetching weather data: {str(e)}")
-```
-
----
-
-## Current Integration Gaps
-
-- Sem autenticacao/autorizacao para endpoints publicos.
-- Sem rate limiting para chamadas externas.
-- Fluxo IoT ainda em stub (`/iot/readings` nao persiste).
-- Deploy da Lambda ainda manual (sem pipeline CI/CD).
+- `localStorage` key `dashboard-location`: `{ lat, lon }`
+- `localStorage` key `dashboard-theme`: `dark` | `light`
+- Evento `location:changed` dispara recarga de weather, risk, map overlay e Windy

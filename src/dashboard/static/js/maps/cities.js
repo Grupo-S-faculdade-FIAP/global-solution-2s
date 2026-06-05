@@ -1,4 +1,4 @@
-import { BRAZIL_CITIES } from "../core/state.js";
+import { BRAZIL_CITIES } from "../core/constants.js";
 
 export function nearestCityId(lat, lon) {
   let best = "custom";
