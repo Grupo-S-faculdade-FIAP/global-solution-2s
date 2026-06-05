@@ -1,4 +1,4 @@
-.PHONY: install demo test test-api test-storms nasa-capture upload-s3
+.PHONY: install demo test test-api test-storms nasa-capture upload-s3 smoke-aws train-ml train-yolo
 
 VENV_PYTHON := .venv/bin/python
 
@@ -28,3 +28,12 @@ nasa-capture:
 # Upload capturas locais existentes para S3 (opcional: UPLOAD_CV=1 para JPG + YOLO)
 upload-s3:
 	cd src && ../$(VENV_PYTHON) -m app.cron.upload_nasa_to_s3 $(if $(UPLOAD_CV),--cv,)
+
+smoke-aws:
+	$(VENV_PYTHON) scripts/smoke_aws_e2e.py
+
+train-ml:
+	$(VENV_PYTHON) scripts/train_agri_risk_openmeteo.py
+
+train-yolo:
+	$(VENV_PYTHON) src/yolo_training.py --epochs 40 --batch 8 --recall-focus --validate

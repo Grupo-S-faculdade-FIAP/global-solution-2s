@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** —
-**Last updated:** 2026-06-04 (RPI de integração publicado)
+**Last updated:** 2026-06-05 (3 melhorias MVP + UX dashboard)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -11,9 +11,9 @@
 
 ## Current Focus
 
-**Active feature:** ci-cd-pipeline
-**Last task completed:** Pipeline GitHub Actions (CI pytest + CD Lambda OIDC) — workflows, docs/CI-CD.md, make test (2026-06-04)
-**Next task:** Configurar OIDC na AWS + secrets/vars no GitHub; gs-closure Fase C DynamoDB real
+**Active feature:** gs-closure (melhorias MVP)
+**Last task completed:** 3 melhorias — DynamoDB unificado + smoke script, YOLO recall-focus (mAP50≈0.45), AgriRiskModel Open-Meteo 10.9k amostras (2026-06-05)
+**Next task:** `DYNAMODB_USE_MOCK=false` smoke AWS real; vídeo/PDF FIAP
 **Blockers:** nenhum
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — Relatório de Progresso e Integração (v1.0, 2026-06-04)
 
@@ -59,6 +59,7 @@
 - 2026-06-04 — Dashboard: `DEMO_MODE=true` (default) mantém fallbacks de gráficos; `false` exige FastAPI e oculta botões de dev. Localização em `localStorage` (`dashboard-location`).
 - 2026-06-04 — Dashboard: seção **Mapa da região** (Leaflet CDN) consome `/api/map/overlay` com bbox da localização; Windy permanece como **Radar meteorológico**.
 - 2026-06-04 — Dois servidores (5000+8000) confundiam usuários e `make demo` falhava se :8000 ocupada (só Flask, BFF quebrado). Solução: `WSGIMiddleware` monta Flask em `/` após rotas FastAPI; URL única `http://127.0.0.1:8000`. Causa KPIs "—": abrir :8000 sem UI ou JS abortado antes do `bootstrapDashboard` (listeners em sliders nulos).
+- 2026-06-05 — Location-bar: flex-wrap quebrava alinhamento do mapinha; migrado para CSS Grid + header com badge. Auto-apply no mapa (debounce), toast, nav por âncoras, três mapas renomeados. Refinamento: sticky dinâmico compacto, nav scroll horizontal mobile, Leaflet zoom bottom-right, badge clicável para expandir.
 
 ---
 

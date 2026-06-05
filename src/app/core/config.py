@@ -60,7 +60,8 @@ class Settings(BaseSettings):
     # ─── Computer Vision (YOLOv5) ──────────────────────────────────────────
     YOLO_MODEL_PATH: str = "s3://satellite-images-gs2/models/best.pt"
     YOLO_MODEL_S3_KEY: str = "models/best.pt"
-    YOLO_CONFIDENCE_THRESHOLD: float = 0.4
+    YOLO_CONFIDENCE_THRESHOLD: float = 0.25
+    YOLO_IOU_THRESHOLD: float = 0.45
     YOLO_INPUT_SIZE: int = 640
     YOLO_MODEL_RETENTION_DAYS: int = 30
 

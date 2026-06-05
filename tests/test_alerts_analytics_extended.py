@@ -8,11 +8,7 @@ from app.services.alerts_analytics import AlertAnalyticsService
 
 
 @pytest.fixture
-def svc(monkeypatch):
-    monkeypatch.setattr(
-        "app.services.alerts_analytics.use_mock_store",
-        lambda: True,
-    )
+def svc():
     return AlertAnalyticsService()
 
 

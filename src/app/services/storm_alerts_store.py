@@ -108,12 +108,58 @@ def _build_item(
     }
 
 
-def _put_dynamodb(item: dict[str, Any]) -> dict[str, Any]:
+def _dynamodb_table():
     dynamodb = boto3.resource("dynamodb", region_name=settings.AWS_REGION)
-    table = dynamodb.Table(settings.DYNAMODB_TABLE_ALERTS)
+    return dynamodb.Table(settings.DYNAMODB_TABLE_ALERTS)
+
+
+def _put_dynamodb(item: dict[str, Any]) -> dict[str, Any]:
+    table = _dynamodb_table()
     table.put_item(Item=item)
     logger.info("Alert saved to DynamoDB table %s: %s", settings.DYNAMODB_TABLE_ALERTS, item.get("alert_id"))
     return item
+
+
+def _scan_dynamodb_since(cutoff: datetime) -> list[dict[str, Any]]:
+    """Lista alertas storm_detection com timestamp >= cutoff (UTC)."""
+    cutoff_iso = cutoff.isoformat().replace("+00:00", "Z")
+    table = _dynamodb_table()
+    items: list[dict[str, Any]] = []
+    scan_kwargs: dict[str, Any] = {
+        "FilterExpression": "alert_type = :atype AND #ts >= :cutoff",
+        "ExpressionAttributeNames": {"#ts": "timestamp"},
+        "ExpressionAttributeValues": {
+            ":atype": "storm_detection",
+            ":cutoff": cutoff_iso,
+        },
+    }
+    try:
+        while True:
+            page = table.scan(**scan_kwargs)
+            items.extend(page.get("Items", []))
+            last_key = page.get("LastEvaluatedKey")
+            if not last_key:
+                break
+            scan_kwargs["ExclusiveStartKey"] = last_key
+    except (ClientError, BotoCoreError) as exc:
+        logger.error("DynamoDB scan failed: %s", exc)
+        raise
+    items.sort(key=lambda x: str(x.get("timestamp", "")), reverse=True)
+    return items
+
+
+def _parse_alert_timestamp(item: dict[str, Any]) -> datetime | None:
+    ts_raw = str(item.get("timestamp", ""))
+    if not ts_raw:
+        return None
+    ts = ts_raw.replace("Z", "+00:00") if ts_raw.endswith("Z") else ts_raw
+    try:
+        dt = datetime.fromisoformat(ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except ValueError:
+        return None
 
 
 def ensure_seeded() -> None:
@@ -129,21 +175,19 @@ def ensure_seeded() -> None:
 
 
 def list_alerts_since_hours(hours: int) -> list[dict[str, Any]]:
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     if use_mock_store():
         ensure_seeded()
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        source = _load_all()
+    else:
+        source = _scan_dynamodb_since(cutoff)
+
     out: list[dict[str, Any]] = []
-    for item in _load_all():
-        ts_raw = str(item.get("timestamp", ""))
-        ts = ts_raw.replace("Z", "+00:00") if ts_raw.endswith("Z") else ts_raw
-        try:
-            dt = datetime.fromisoformat(ts)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-        except ValueError:
+    for item in source:
+        dt = _parse_alert_timestamp(item)
+        if dt is None or dt < cutoff:
             continue
-        if dt >= cutoff:
-            out.append(item)
+        out.append(item)
     out.sort(key=lambda x: str(x.get("timestamp", "")), reverse=True)
     return out
 
@@ -159,6 +203,7 @@ def add_alert(
     bucket: str | None = None,
     alert_id: str | None = None,
     simulated: bool = True,
+    classes: list[str] | None = None,
 ) -> dict[str, Any]:
     bucket_name = bucket or settings.S3_BUCKET_IMAGES
     item = _build_item(
@@ -167,6 +212,7 @@ def add_alert(
         bucket=bucket_name,
         alert_id=alert_id,
         simulated=simulated,
+        classes=classes,
     )
 
     if use_mock_store():

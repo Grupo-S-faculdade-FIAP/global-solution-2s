@@ -32,7 +32,7 @@ def predict_agricultural_risk(body: AgriRiskRequest):
     """
     Prevê nível de risco agrícola por condições meteorológicas.
 
-    Usa Random Forest treinado com dados agrometeorológicos brasileiros (EMBRAPA/INMET).
+    Usa Random Forest treinado com histórico Open-Meteo (ou sintético como fallback).
 
     Body:
       - temperatura:   °C (ex: 28.5)
@@ -91,12 +91,21 @@ def predict_agricultural_risk_get(
 def model_info():
     """Informações sobre o modelo de risco agrícola."""
     try:
-        from app.services.agri_risk_model import MODEL_PATH, SCALER_PATH  # noqa: PLC0415
+        from app.services.agri_risk_model import (  # noqa: PLC0415
+            DATASET_SOURCE,
+            MODEL_PATH,
+            SCALER_PATH,
+        )
         return {
             "modelo": "RandomForestClassifier",
             "classes": ["LOW", "MEDIUM", "HIGH"],
             "features": ["temperatura_c", "umidade_pct", "precipitacao_mm", "vento_kmh"],
-            "dataset": "Sintético — limiares EMBRAPA/INMET Brasil",
+            "dataset": DATASET_SOURCE,
+            "dataset_label": (
+                "Open-Meteo Archive — 5 cidades BR (90 dias)"
+                if "openmeteo" in DATASET_SOURCE
+                else "Sintético — limiares EMBRAPA/INMET Brasil"
+            ),
             "modelo_salvo": MODEL_PATH.exists(),
             "caminho": str(MODEL_PATH),
         }
