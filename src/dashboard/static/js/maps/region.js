@@ -43,7 +43,10 @@ export function refreshRegionMapTiles() {
   const cfg = mapTileConfig();
   if (state.regionTileLayer) state.regionMap.removeLayer(state.regionTileLayer);
   state.regionTileLayer = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 18 }).addTo(state.regionMap);
-  if (state.regionAlertsLayer) state.regionAlertsLayer.bringToFront();
+  if (state.regionAlertsLayer) {
+    state.regionMap.removeLayer(state.regionAlertsLayer);
+    state.regionAlertsLayer.addTo(state.regionMap);
+  }
 }
 
 export function refreshLocationPickerTiles() {
