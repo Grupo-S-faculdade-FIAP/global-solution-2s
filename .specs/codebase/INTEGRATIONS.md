@@ -22,7 +22,7 @@ Header de resposta: **`X-Data-Source`** — `live` (DynamoDB/backend real), `dem
 | alerts | GET | `/api/alerts/heatmap` | `days` (opc.) | heatmap 7×24 |
 | alerts | POST | `/api/alerts/simulate-detection` | `{ confidence, lat, lon }` | simular alerta YOLO |
 | weather | GET | `/api/weather/current` | `lat`, `lon` | clima atual |
-| risk | GET | `/api/risk/forecast` | `lat`, `lon` | risco agrícola regional |
+| risk | GET | `/api/risk/forecast` | `lat`, `lon` | ensemble clima + CV geo + ML (breakdown em `detalhes`) |
 | storms | GET | `/api/storms/detector-status` | — | status YOLO |
 | storms | GET | `/api/storms/recent` | `hours` | lista alertas recentes |
 | storms | POST | `/api/storms/detect-sample` | — | inferência em imagem demo |
@@ -38,6 +38,25 @@ Header de resposta: **`X-Data-Source`** — `live` (DynamoDB/backend real), `dem
 | `DEMO_MODE` | `true` | fallbacks JSON quando backend indisponível |
 | `DYNAMODB_USE_MOCK` | `true` | alertas/IoT em `data/demo/*.json` |
 | `BFF_INPROCESS` | `false` (dev) | BFF chama FastAPI via TestClient em vez de HTTP |
+
+### INMET BDMEP + pipeline ML agrícola
+
+| Etapa | Script / serviço | Saída |
+|-------|------------------|-------|
+| Download estações | `scripts/fetch_inmet_bdmep.py` | `data/weather/inmet/training_cache.csv` |
+| Treino + AG limiares | `scripts/build_agri_pipeline.py` | `models/agri_risk_*.pkl`, `agri_risk_thresholds.json` |
+| Otimização GA (offline) | `scripts/optimize_agri_thresholds.py` | limiares em `agri_threshold_ga.py` |
+| Inferência runtime | `AgriRiskModel` + `RiskAssessmentService` | `/risk/forecast`, `/api/risk/forecast` |
+
+CI usa `make build-agri-ci` (`--skip-ga`) para validar artefatos sem rodar DEAP.
+
+### NASA GOES (captura + CV)
+
+| Etapa | Comando / módulo | Destino |
+|-------|------------------|---------|
+| Captura Playwright | `make nasa-capture` | `data/nasa_captures/` |
+| Upload S3 + Lambda | `make nasa-capture-aws` / `upload-s3` | S3 → `DetectStormUseCase` |
+| Cron GitHub Actions | `.github/workflows/nasa-capture.yml` | captura a cada 6 h (UTC) |
 
 ### Windy (terceiro)
 

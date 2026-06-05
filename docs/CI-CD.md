@@ -11,7 +11,8 @@ Pipeline automatizada para testes (CI) e deploy da Lambda `gs2-api` (CD).
 
 | Workflow | Arquivo | Trigger | O que faz |
 |----------|---------|---------|-----------|
-| **CI** | `.github/workflows/ci.yml` | Push e PR em qualquer branch | `pytest` com mock DynamoDB |
+| **CI** | `.github/workflows/ci.yml` | Push e PR em qualquer branch | `pytest` + cobertura ≥ 82% + `build-agri-ci` |
+| **CI E2E** | `.github/workflows/ci.yml` (job `e2e-dashboard`) | Push e PR | HTML dashboard + **53** testes Playwright |
 | **CD** | `.github/workflows/deploy-lambda.yml` | Push na `main` (paths filtrados) | Build Docker → ECR → Lambda + smoke `/health` |
 | **NASA Capture** | `.github/workflows/nasa-capture.yml` | Cron 6 h (UTC) + manual | Playwright → 3 regiões GOES-East → S3 → Lambda YOLO |
 
@@ -153,24 +154,36 @@ Repositório → **Settings** → **Secrets and variables** → **Actions**:
 
 ## Workflows
 
-### CI — testes
+### CI — testes (job `pytest`)
 
 Roda em todo push e pull request:
 
 ```bash
-cd src && PYTHONPATH=. pytest ../tests/ src/tests/ -q
+make test-coverage
+# equivalente CI: pytest ../tests/ tests/ -m "not e2e" --cov-fail-under=82
+python scripts/build_agri_pipeline.py --ci --skip-faostat
 ```
+
+| Métrica | Valor (jun/2026) |
+|---------|------------------|
+| Testes unit/integration | **259** passed |
+| Cobertura mínima | **82%** (atual ~82,4%) |
+| Mock | `DYNAMODB_USE_MOCK=true` |
 
 Variáveis de ambiente no CI:
 
 - `DYNAMODB_USE_MOCK=true` — store JSON local, sem AWS
 - `MOUNT_DASHBOARD=false` — não monta Flask no import de `app.main`
 
-Localmente, reproduza com:
+### CI — E2E dashboard (job `e2e-dashboard`)
 
 ```bash
-make test
+make test-frontend   # test_dashboard_html.py + make test-e2e
 ```
+
+- `DEMO_MODE=true`, `IOT_USE_MOCK=true`
+- Playwright Chromium (`playwright install --with-deps chromium`)
+- **53** testes E2E em `tests/e2e/`
 
 ### NASA Capture — satélite agendado
 

@@ -11,11 +11,11 @@
 
 ## Current Focus
 
-**Active feature:** Pipeline de Risco Agrícola + YOLO v2 (concluída 2026-06-05)
-**Last task completed:** AG limiares ML (DEAP), AgriRiskModel regressão contínua, CV geo-aware, dashboard ensemble unificado, 259 testes unit, cobertura 82,5%.
-**Next task:** Merge → `main`; retreino YOLO offline (`make train-yolo --recall-focus`); vídeo/PDF FIAP
+**Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
+**Last task completed:** docs-refresh completo (fases 0–3) — 259 testes, 82,44% cov; todos os docs alinhados
+**Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); B7 screenshots opcional
 **Blockers:** nenhum
-**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.5 (2026-06-05)
+**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.6 (2026-06-05)
 
 ---
 
@@ -75,7 +75,7 @@
 - 2026-06-04 — Dois servidores (5000+8000) confundiam usuários e `make demo` falhava se :8000 ocupada (só Flask, BFF quebrado). Solução: `WSGIMiddleware` monta Flask em `/` após rotas FastAPI; URL única `http://127.0.0.1:8000`. Causa KPIs "—": abrir :8000 sem UI ou JS abortado antes do `bootstrapDashboard` (listeners em sliders nulos).
 - 2026-06-05 — Location-bar: flex-wrap quebrava alinhamento do mapinha; migrado para CSS Grid + header com badge. Auto-apply no mapa (debounce), toast, nav por âncoras, três mapas renomeados. Refinamento: sticky dinâmico compacto, nav scroll horizontal mobile, Leaflet zoom bottom-right, badge clicável para expandir.
 - 2026-06-05 — Gaps técnicos resolvidos: IoT store + router implementados (DynamoDB/mock), confiança YOLO real salva nos alertas, firmware movido para `src/iot/firmware.cpp` apontando para API GS2, seção IoT no dashboard (card leituras + histórico), BFF `/api/iot/*`, 11 testes IoT em `tests/test_iot_readings.py`.
-- 2026-06-05 — Arquitetura limpa aplicada em 4 fases: Ports, Adapters, DetectStormUseCase, S3TriggerHandler, container.py, interfaces/http/bff/. Gate final: **89 testes** (`make test`).
+- 2026-06-05 — Arquitetura limpa aplicada em 4 fases: Ports, Adapters, DetectStormUseCase, S3TriggerHandler, container.py, interfaces/http/bff/. Suite atual: **259 testes** (`make test`) + **53 E2E** + cobertura **82%**.
 - 2026-06-05 — Documentação desatualizada (Streamlit, IoT stub, CI manual, 84 testes) corrigida em auditoria única; fonte canônica de env: `.env.example` na raiz.
 
 ---
@@ -95,13 +95,17 @@
 - [x] Clonar template TIAO-2026
 - [x] Criar estrutura de pastas do repositório conforme template
 - [x] Criar scaffold FastAPI base (src/)
-- [x] Instalar dependências e rodar testes base (`make test` — 89 passed)
+- [x] Instalar dependências e rodar testes base (`make test` — 259 passed)
 - [x] Especificar feature: Data Integration Dashboard
 - [x] Implementar T-01 a T-12 (MVP integrado — ver ROADMAP)
 - [x] Especificar e implementar módulo IoT (ESP32 + sensores)
 - [x] Auditoria e atualização de documentação (specs, README, RPI, codebase docs)
-- [ ] Merge `feature/ajustes` → `main` + smoke AWS
-- [ ] PDF + vídeo FIAP (ação humana)
+- [ ] B0: Verificar prazo exato na plataforma FIAP
+- [ ] B3: Definir nome do produto (D-001)
+- [ ] B1: Vídeo ≤ 5 min — Enzo (`tasks.md`)
+- [ ] B2: PDF FIAP — usar `docs/PDF-ENTREGA-ESQUELETO.md`
+- [ ] B5–B6: Link vídeo no README + revisão final
+- [ ] BEY-05: Merge → `main` + smoke AWS (`make smoke-aws`)
 
 ---
 

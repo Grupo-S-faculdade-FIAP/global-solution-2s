@@ -30,11 +30,13 @@ A Lambda roda a **imagem Docker** definida em `src/Dockerfile`. Só o código co
 
 | Entra no deploy | Não entra no deploy |
 |-----------------|---------------------|
-| `src/app/**` (FastAPI, routers, `main.py`) | `src/app/cron/capture_satellite_data.py` (script local + Playwright) |
+| `src/app/**` (FastAPI, routers, `main.py`) | `src/app/cron/capture_nasa_data.py` (script local + Playwright — não na imagem Lambda) |
 | Dependências de `src/requirements-lambda.txt` + layers do Dockerfile | `src/dashboard/`, notebooks, scripts de treino |
 | Handler: `app.main.handler` | Upload manual de `.env` — variáveis vão no console/CLI da Lambda |
 
-Após alterar apenas o cron de captura do Windy, **não** é necessário redeploy da Lambda. Após alterar `cv.py`, `main.py`, `config.py`, etc., **sim**.
+Após alterar apenas scripts de captura NASA (`capture_nasa_data.py`) ou treino ML local, **não** é necessário redeploy da Lambda. Após alterar `cv.py`, `risk_assessment.py`, `main.py`, `config.py`, etc., **sim**.
+
+**Artefatos ML (fora da imagem Lambda):** modelos em `models/` na raiz (`agri_risk_*.pkl`, `agri_risk_thresholds.json`) e pesos YOLO em `s3://satellite-images-gs2/models/best.pt` — atualizar S3 após retreino, sem rebuild se só os pesos mudaram.
 
 ---
 
@@ -115,9 +117,10 @@ aws s3 cp data/model-dataset/images/test/test-storm.jpg `
 
 ou
 
-para auto captura com python + playwright + windy.com
+para captura NASA local (não dispara Lambda até upload JPG no S3):
 ```powershell
-python src/app/cron/capture_satellite_data.py
+make nasa-capture-aws
+# ou: cd src && python -m app.cron.capture_nasa_data --upload-cv-jpg
 ```
 
 O trigger do S3 só reage a arquivos **`.jpg`** no bucket. Na primeira invocação (cold start + download do modelo) pode levar **60–90 s**.

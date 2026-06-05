@@ -2,7 +2,7 @@
 
 **Projeto:** GS2 — Plataforma de inteligência ambiental e agrícola (`global-solutions`)  
 **Disciplina / entrega:** Global Solution (Graduação ON em IA) — FIAP 2026.1  
-**Versão do documento:** 1.5  
+**Versão do documento:** 1.6  
 **Data:** 05/06/2026  
 **Repositório:** [Grupo-S-faculdade-FIAP/global-solution-2s](https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s)
 
@@ -473,6 +473,8 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 05/06/2026)
 | Estado e decisões | `.specs/project/STATE.md` |
 | Roadmap | `.specs/project/ROADMAP.md` |
 | Checklist entrega | `.specs/project/CHECKLIST_ENTREGA.md` |
+| Tasks entrega FIAP (B1–P7) | `.specs/features/gs-closure/tasks.md` |
+| Esqueleto PDF FIAP | `docs/PDF-ENTREGA-ESQUELETO.md` |
 | Feature fechamento GS | `.specs/features/gs-closure/spec.md` |
 | Convenções frontend/backend | `.specs/codebase/CONVENTIONS.md` |
 | Integrações externas | `.specs/codebase/INTEGRATIONS.md` |
@@ -481,6 +483,7 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 05/06/2026)
 | CI/CD GitHub Actions | `docs/CI-CD.md` |
 | IoT ESP32 | `src/iot/README.md` |
 | Guia rubrica FIAP | `docs/GUIA-DE-AVALIACAO.md` |
+| Índice documentação | `docs/README.md` |
 | RPI (este documento) | `docs/RPI.md` |
 | Instruções Claude Code | `CLAUDE.md` (referencia `.cursor/rules/tlc-spec-driven.mdc`) |
 
@@ -494,5 +497,6 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 05/06/2026)
 | 1.1 | 04/06/2026 | Agente / equipe GS2 | BFF FastAPI (`dashboard_bff`), handlers compartilhados, endpoints `/api/*`, testes 54/1 erro, `CLAUDE.md`, env `DEMO_MODE`/`BFF_INPROCESS` |
 | 1.2 | 04/06/2026 | Agente / equipe GS2 | Dashboard UI profissional: tema claro/escuro, tokens CSS, polish GitHub-like, a11y, checklist Fase D |
 | 1.3 | 05/06/2026 | Agente / equipe GS2 | IoT MVP (API + firmware + dashboard); Clean Architecture (Domain/Application/Infrastructure/Interfaces); pipeline YOLO v2 e métricas honestas; frontend ES modules + event bus; 84 testes passing; CI/CD OIDC (`docs/CI-CD.md`); G4 concluído MVP |
-| 1.4 | 05/06/2026 | Agente / equipe GS2 | Auditoria documentação: specs, codebase docs, README, CHECKLIST, ROADMAP alinhados ao código; 89 testes; removidas refs Streamlit/IoT stub/CI manual; `.env` canônico na raiz |
+| 1.4 | 05/06/2026 | Agente / equipe GS2 | Auditoria documentação: specs, codebase docs, README, CHECKLIST, ROADMAP alinhados ao código; removidas refs Streamlit/IoT stub/CI manual; `.env` canônico na raiz |
+| 1.6 | 05/06/2026 | Equipe GS2 | docs-refresh completo (fases 0–3): README, PROJECT, CHECKLIST, PDF trechos, codebase docs, CI-CD/DEPLOY, copilot, feature specs Done; 259 testes, 82,44% cov |
 | 1.5 | 05/06/2026 | Agente / equipe GS2 | ML risco: LightGBM + AG limiares (DEAP) + `agri_risk_thresholds.json`; suite expandida (~220+ unit, 53 E2E Playwright, 17 HTML); gate cobertura 82% no CI; jobs `pytest` + `e2e-dashboard`; `make test-coverage`, `make test-e2e`, `make build-agri-ci` |

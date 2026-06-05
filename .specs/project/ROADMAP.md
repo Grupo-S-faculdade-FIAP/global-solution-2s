@@ -23,8 +23,11 @@
 | CI/CD GitHub Actions + OIDC | P1 | ✅ Done | `docs/CI-CD.md` |
 | Backend FastAPI + Lambda deploy | P1 | 🟡 Partial | CD na main; smoke manual pendente |
 | Captura NASA script | P1 | ✅ Done | EventBridge ⏸ AWS |
-| README + estrutura TIAO | P1 | 🟡 Partial | falta screenshot/diagrama no README |
-| PDF entrega | P1 | ❌ Pending | 👤 |
+| ML risco v2 (ensemble geo + AG limiares) | P1 | ✅ Done | `risk-pipeline-v2`, `ml.js` |
+| E2E Playwright + cobertura 82% | P1 | ✅ Done | `make test-e2e`, CI job `e2e-dashboard` |
+| Docs alinhados ao código (docs-refresh) | P1 | ✅ Done | fases 0–3; cobertura 82,44% verificada |
+| README + estrutura TIAO | P1 | 🟡 Partial | DOC-1: NASA, ML, 259 testes; falta screenshot |
+| PDF entrega | P1 | ❌ Pending | 👤 esqueleto em `docs/PDF-ENTREGA-ESQUELETO.md` |
 | Vídeo 5 min | P1 | ❌ Pending | 👤 roteiro em `CHECKLIST_ENTREGA.md` |
 
 ---
@@ -43,11 +46,13 @@
 
 ## Feature specs
 
-| Feature | Spec |
-|---------|------|
-| Fechamento GS | `.specs/features/gs-closure/spec.md` |
-| Refatoração arquitetura | `.specs/features/architecture-refactor/spec.md` |
-| Dashboard produtor | `.specs/features/dashboard-producer-ready/spec.md` |
-| Qualidade labels YOLO | `.specs/features/yolo-label-quality/spec.md` |
-| INMET + FAOSTAT | `.specs/features/agri-inmet-faostat/spec.md` |
-| Checklist entrega | `.specs/project/CHECKLIST_ENTREGA.md` |
+| Feature | Spec | Status |
+|---------|------|--------|
+| Fechamento GS | `gs-closure/spec.md` | Mostly complete |
+| Docs refresh | `docs-refresh/spec.md` | Done |
+| ML risco v2 | `risk-pipeline-v2/spec.md` | Done |
+| Refatoração arquitetura | `architecture-refactor/spec.md` | Done |
+| Dashboard produtor | `dashboard-producer-ready/spec.md` | Done |
+| Qualidade labels YOLO | `yolo-label-quality/spec.md` | Done |
+| INMET + FAOSTAT | `agri-inmet-faostat/spec.md` | Done |
+| Checklist entrega | `.specs/project/CHECKLIST_ENTREGA.md` | Ativo |
