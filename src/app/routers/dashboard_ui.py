@@ -26,11 +26,13 @@ templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def dashboard_index(request: Request) -> HTMLResponse:
     """Página principal do dashboard."""
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request,
         "index.html",
         {"demo_mode": settings.DEMO_MODE},
     )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 def register(application) -> None:
