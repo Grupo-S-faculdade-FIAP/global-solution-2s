@@ -1,4 +1,4 @@
-.PHONY: install demo test test-api test-storms nasa-capture upload-s3 smoke-aws train-ml fetch-inmet train-ml-inmet export-faostat export-faostat-offline train-yolo build-agri build-agri-ci verify-agri-models
+.PHONY: install demo test test-api test-storms nasa-capture nasa-capture-aws upload-s3 smoke-aws train-ml fetch-inmet train-ml-inmet export-faostat export-faostat-offline train-yolo build-agri build-agri-ci verify-agri-models
 
 VENV_PYTHON := .venv/bin/python
 
@@ -26,13 +26,20 @@ test-api:
 test-storms:
 	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/test_storm_alerts_query.py -q
 
-# Captura NASA Worldview + upload S3 (requer playwright: playwright install chromium)
+# Captura NASA Worldview (requer playwright: playwright install chromium)
 nasa-capture:
 	cd src && ../$(VENV_PYTHON) -m app.cron.capture_nasa_data
 
-# Upload capturas locais existentes para S3 (opcional: UPLOAD_CV=1 para JPG + YOLO)
+# Captura + JPG em screenshots/ (dispara Lambda S3; sem YOLO local)
+nasa-capture-aws:
+	cd src && ../$(VENV_PYTHON) -m app.cron.capture_nasa_data --upload-cv-jpg
+
+# Upload capturas locais existentes para S3
+# UPLOAD_JPG=1 → só JPG (Lambda); UPLOAD_CV=1 → JPG + YOLO local (dev)
 upload-s3:
-	cd src && ../$(VENV_PYTHON) -m app.cron.upload_nasa_to_s3 $(if $(UPLOAD_CV),--cv,)
+	cd src && ../$(VENV_PYTHON) -m app.cron.upload_nasa_to_s3 \
+		$(if $(UPLOAD_JPG),--upload-jpg,) \
+		$(if $(UPLOAD_CV),--cv,)
 
 smoke-aws:
 	$(VENV_PYTHON) scripts/smoke_aws_e2e.py

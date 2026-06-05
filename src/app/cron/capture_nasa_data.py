@@ -231,7 +231,12 @@ def trigger_cv_pipeline(bucket: str, s3_key: str) -> dict | None:
         return None
 
 
-def capturar_todas(data: str | None = None, *, trigger_cv: bool = False) -> list[dict]:
+def capturar_todas(
+    data: str | None = None,
+    *,
+    upload_cv_jpg: bool = False,
+    trigger_cv_local: bool = False,
+) -> list[dict]:
     """Captura todas as regiões para uma data."""
     if data is None:
         data = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -241,9 +246,9 @@ def capturar_todas(data: str | None = None, *, trigger_cv: bool = False) -> list
         try:
             caminho  = capturar_regiao(regiao, data)
             s3_key   = upload_s3(caminho, data)
-            cv_key   = upload_s3_cv_jpg(caminho) if trigger_cv else None
+            cv_key   = upload_s3_cv_jpg(caminho) if (upload_cv_jpg or trigger_cv_local) else None
             cv_result = None
-            if cv_key and settings.S3_BUCKET_IMAGES:
+            if trigger_cv_local and cv_key and settings.S3_BUCKET_IMAGES:
                 cv_result = trigger_cv_pipeline(settings.S3_BUCKET_IMAGES, cv_key)
             resultados.append({
                 "regiao":    regiao["nome"],
@@ -313,15 +318,24 @@ if __name__ == "__main__":
     parser.add_argument("--historico", action="store_true", help="Baixar retroativamente")
     parser.add_argument("--dias",      type=int, default=30, help="Dias para trás (--historico)")
     parser.add_argument(
+        "--upload-cv-jpg",
+        action="store_true",
+        help="Envia JPG em screenshots/ (dispara pipeline CV na Lambda via S3)",
+    )
+    parser.add_argument(
         "--trigger-cv",
         action="store_true",
-        help="Envia JPG em screenshots/ e roda pipeline YOLO localmente",
+        help="Dev: inclui --upload-cv-jpg e roda YOLO localmente após upload",
     )
     args = parser.parse_args()
 
     if args.historico:
         capturar_historico(dias=args.dias)
     else:
-        resultados = capturar_todas(data=args.data, trigger_cv=args.trigger_cv)
+        resultados = capturar_todas(
+            data=args.data,
+            upload_cv_jpg=args.upload_cv_jpg or args.trigger_cv,
+            trigger_cv_local=args.trigger_cv,
+        )
         ok = sum(1 for r in resultados if r["status"] == "ok")
         print(f"\n✓ {ok}/{len(resultados)} regiões capturadas → {CAPTURES_DIR}")

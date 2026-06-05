@@ -35,6 +35,18 @@
       "Effect": "Allow",
       "Action": "logs:FilterLogEvents",
       "Resource": "arn:aws:logs:us-east-1:544785076353:log-group:/aws/lambda/gs2-api:*"
+    },
+    {
+      "Sid": "NasaCaptureS3",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:PutObjectAcl"
+      ],
+      "Resource": [
+        "arn:aws:s3:::satellite-images-gs2/nasa-satellite/*",
+        "arn:aws:s3:::satellite-images-gs2/screenshots/*"
+      ]
     }
   ]
 }

@@ -1158,5 +1158,165 @@
     "timestamp": "2026-06-05T20:29:43.361724Z",
     "date": "2026-06-05",
     "hour": 20
+  },
+  {
+    "reading_id": "iot_e084111b2c36",
+    "device_id": "esp32_01",
+    "cidade": "Campinas",
+    "temperatura": 23.4,
+    "umidade": 70.0,
+    "timestamp": "2026-06-05T20:42:29.526701Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_bf6a30f404bb",
+    "device_id": "esp32_02",
+    "cidade": "Brasília",
+    "temperatura": 30.0,
+    "umidade": 45.0,
+    "timestamp": "2026-06-05T20:42:29.533573Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_eb993d495973",
+    "device_id": "esp32_00",
+    "cidade": "SP",
+    "temperatura": 20.0,
+    "umidade": 60.0,
+    "timestamp": "2026-06-05T20:42:29.540518Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_60f5018e4628",
+    "device_id": "esp32_01",
+    "cidade": "SP",
+    "temperatura": 21.0,
+    "umidade": 60.0,
+    "timestamp": "2026-06-05T20:42:29.542802Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_2bdd879fd823",
+    "device_id": "esp32_02",
+    "cidade": "SP",
+    "temperatura": 22.0,
+    "umidade": 60.0,
+    "timestamp": "2026-06-05T20:42:29.545301Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_66911d208730",
+    "device_id": "esp32_03",
+    "cidade": "SP",
+    "temperatura": 23.0,
+    "umidade": 60.0,
+    "timestamp": "2026-06-05T20:42:29.547995Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_c67d88717261",
+    "device_id": "esp32_04",
+    "cidade": "SP",
+    "temperatura": 24.0,
+    "umidade": 60.0,
+    "timestamp": "2026-06-05T20:42:29.550205Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_f4d232d86844",
+    "device_id": "esp32_bff",
+    "cidade": "SP",
+    "temperatura": 22.0,
+    "umidade": 65.0,
+    "timestamp": "2026-06-05T20:42:29.558608Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_0a58ecb9bbc9",
+    "device_id": "esp32_01",
+    "cidade": "Campinas",
+    "temperatura": 23.4,
+    "umidade": 70.0,
+    "timestamp": "2026-06-05T20:43:11.727417Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_298dd363d2d9",
+    "device_id": "esp32_02",
+    "cidade": "Brasília",
+    "temperatura": 30.0,
+    "umidade": 45.0,
+    "timestamp": "2026-06-05T20:43:11.734389Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_99762e63506e",
+    "device_id": "esp32_00",
+    "cidade": "SP",
+    "temperatura": 20.0,
+    "umidade": 60.0,
+    "timestamp": "2026-06-05T20:43:11.742438Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_40ec9ce497ee",
+    "device_id": "esp32_01",
+    "cidade": "SP",
+    "temperatura": 21.0,
+    "umidade": 60.0,
+    "timestamp": "2026-06-05T20:43:11.744740Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_13bc0f8bcb84",
+    "device_id": "esp32_02",
+    "cidade": "SP",
+    "temperatura": 22.0,
+    "umidade": 60.0,
+    "timestamp": "2026-06-05T20:43:11.746931Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_5387da99b5d8",
+    "device_id": "esp32_03",
+    "cidade": "SP",
+    "temperatura": 23.0,
+    "umidade": 60.0,
+    "timestamp": "2026-06-05T20:43:11.748991Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_8bd16743a381",
+    "device_id": "esp32_04",
+    "cidade": "SP",
+    "temperatura": 24.0,
+    "umidade": 60.0,
+    "timestamp": "2026-06-05T20:43:11.751112Z",
+    "date": "2026-06-05",
+    "hour": 20
+  },
+  {
+    "reading_id": "iot_04eee21fd459",
+    "device_id": "esp32_bff",
+    "cidade": "SP",
+    "temperatura": 22.0,
+    "umidade": 65.0,
+    "timestamp": "2026-06-05T20:43:11.759311Z",
+    "date": "2026-06-05",
+    "hour": 20
   }
 ]
