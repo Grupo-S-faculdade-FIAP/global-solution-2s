@@ -58,7 +58,10 @@ function updateLocationPickerRadius(lat, lon) {
     fillOpacity: 0.08,
     className: "location-picker-radius",
   }).addTo(state.locationPickerMap);
-  if (state.locationPickerMarker) state.locationPickerMarker.bringToFront();
+  // Marker não tem bringToFront (só Path); zIndexOffset mantém o pin acima do círculo.
+  if (state.locationPickerMarker?.setZIndexOffset) {
+    state.locationPickerMarker.setZIndexOffset(1000);
+  }
 }
 
 function scheduleMapAutoApply(lat, lon) {

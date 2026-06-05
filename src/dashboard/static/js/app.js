@@ -34,25 +34,26 @@ function initThemeSubscribers() {
 }
 
 async function initDashboard() {
-  initOrchestrator();
-  initThemeSubscribers();
-  initTheme();
-  initChartDefaults();
-  loadStoredLocation();
-  ensureLocationPickerMap();
-  initLocationBarUX();
-  bindLocationControls();
-  bindMLSliders();
-  bindYoloActions();
   try {
+    initOrchestrator();
+    initThemeSubscribers();
+    initTheme();
+    initChartDefaults();
+    loadStoredLocation();
+    ensureLocationPickerMap();
+    initLocationBarUX();
+    bindLocationControls();
+    bindMLSliders();
+    bindYoloActions();
     await bootstrapDashboard();
   } catch (err) {
     console.error("Dashboard: falha ao inicializar", err);
     finalizeDashboardLoad();
     setDataSourceChip("offline");
+  } finally {
+    lazyLoadWindy();
+    lazyInitRegionMap();
   }
-  lazyLoadWindy();
-  lazyInitRegionMap();
 }
 
 initDashboard();

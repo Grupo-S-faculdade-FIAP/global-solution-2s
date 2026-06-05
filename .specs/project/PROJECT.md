@@ -20,11 +20,11 @@
 
 ## Goals
 
-- [ ] **G1** — Detectar tempestades e padrões de nuvens chuvosas em imagens de satélite com YOLO (precisão ≥ 70% no conjunto de validação)
-- [ ] **G2** — Prever risco agrícola (seca, geada, produtividade) com modelo ML usando dados climáticos de satélite
-- [ ] **G3** — Visualizar dados climáticos em tempo real via Windy API em dashboard web integrado
-- [ ] **G4** — Coletar dados de solo/ambiente com ESP32 e enviá-los para pipeline cloud na AWS
-- [ ] **G5** — Entregar MVP funcional documentado com vídeo de até 5 min dentro do prazo da GS
+- [ ] **G1** — Detectar tempestades e padrões de nuvens chuvosas em imagens de satélite com YOLO (precisão ≥ 70% no conjunto de validação) — **parcial:** pipeline v2 com labels honestos; mAP@0.5 ≈ 0,14 (abaixo da meta)
+- [x] **G2** — Prever risco agrícola (seca, geada, produtividade) com modelo ML usando dados climáticos (INMET BDMEP + FAOSTAT)
+- [x] **G3** — Visualizar dados climáticos em tempo real via Windy widget + Open-Meteo em dashboard web integrado
+- [x] **G4** — Coletar dados de solo/ambiente com ESP32 e enviá-los para pipeline cloud na AWS (MVP: `POST /iot/readings`, mock + DynamoDB)
+- [ ] **G5** — Entregar MVP funcional documentado com vídeo de até 5 min dentro do prazo da GS — **parcial:** código ~95%; PDF e vídeo pendentes
 
 ---
 
@@ -32,26 +32,27 @@
 
 **Core:**
 - Language: Python 3.11
-- Framework: FastAPI (backend API)
+- Framework: FastAPI (backend API) + Flask (dashboard UI montado via WSGI)
 - ML/CV: YOLOv5 (PyTorch Hub), scikit-learn, pandas, numpy
-- Cloud: AWS (Lambda, S3, API Gateway)
+- Cloud: AWS (Lambda, S3, API Gateway, DynamoDB, SNS)
 - Database: DynamoDB (alertas + dados IoT time-series) — 100% NoSQL
-- Frontend: HTML/JS + Windy API widget + Streamlit (dashboard)
-- IoT: ESP32 + MicroPython (sensores de temperatura, umidade, solo)
+- Frontend: HTML/JS (ES modules) + Windy API widget + Leaflet + Chart.js
+- IoT: ESP32 + Arduino (DHT22 — firmware em `src/iot/firmware.cpp`)
 
-**Key dependencies:** torch, torchvision, fastapi, boto3, streamlit, requests
+**Key dependencies:** torch, torchvision, fastapi, flask, boto3, httpx, requests, pydantic-settings
 
 ---
 
 ## Scope
 
 **MVP (v1) inclui:**
-- Pipeline de ingestão e análise de imagens de satélite (INPE/NASA via API ou dataset público)
+- Pipeline de ingestão e análise de imagens de satélite (NASA GOES via captura Playwright)
 - Modelo YOLO treinado para detecção de tempestades/padrões de nuvens chuvosas
-- Modelo de ML para previsão de risco agrícola (regressão/classificação)
-- Dashboard com Windy API (visualização climática em tempo real no mapa)
-- Backend FastAPI na AWS (Lambda + API Gateway) conectado ao banco de dados
+- Modelo de ML para previsão de risco agrícola (INMET + FAOSTAT)
+- Dashboard HTML com Windy widget, mapas Leaflet e gráficos Chart.js
+- Backend FastAPI na AWS (Lambda + API Gateway) conectado ao DynamoDB
 - ESP32 enviando leituras de sensor para endpoint HTTP (API Gateway → Lambda)
+- CI/CD GitHub Actions + OIDC (sem access keys)
 - README completo + PDF de entrega + vídeo demonstrativo
 
 **Explicitamente fora do escopo:**
@@ -59,6 +60,7 @@
 - Integração com sistemas ERP agrícolas
 - Cobertura de dados além do território brasileiro (v1)
 - Modelo em produção com SLA real (é uma POC)
+- YOLO com mAP ≥ 70% na v1 (meta G1 permanece; v2)
 
 ---
 
@@ -73,11 +75,11 @@
 
 ## Success Criteria
 
-How we know the project is successful:
-
-- [ ] [Measurable outcome — e.g., "User can complete X in < 2 minutes"]
-- [ ] [Measurable outcome — e.g., "Zero errors in Y scenario"]
-- [ ] [Measurable outcome — e.g., "N users can use feature Z simultaneously"]
+- [x] Avaliador consegue rodar demo integrada com `make demo` em uma única URL (http://127.0.0.1:8000)
+- [x] Suite de testes passa (`make test` — 89 testes, jun/2026)
+- [x] Dashboard exibe clima, alertas, risco agrícola, mapas e seção IoT com fallback demo documentado
+- [ ] Vídeo ≤ 5 min no YouTube (não listado) + PDF estruturado entregues na plataforma FIAP
+- [ ] G1 YOLO: mAP@0.5 ≥ 0,70 no conjunto de validação (pendente — v2)
 
 ---
 

@@ -1,7 +1,7 @@
 # Structure
 
 **Project:** global-solution-2s
-**Mapped on:** 2026-06-04
+**Mapped on:** 2026-06-05
 
 ---
 
@@ -9,38 +9,43 @@
 
 ```text
 global-solutions/
-├── .github/
-├── .specs/
-│   ├── project/
-│   ├── features/
-│   ├── codebase/
-│   └── quick/
-├── assets/                     # logos e midia de documentacao
+├── .github/workflows/          # CI (pytest) + CD (Lambda OIDC)
+├── .specs/                     # Spec-driven docs (project, features, codebase)
+├── assets/                     # logos e mídia de documentação
 ├── data/
+│   ├── demo/                   # JSON mock (storm_alerts, iot_readings)
 │   ├── goes_raw/               # dados satelitais brutos
 │   ├── model-dataset/          # dataset YOLO (images/labels)
-│   ├── nasa_captures/          # capturas para pipeline
+│   ├── nasa_captures/          # 93 capturas PNG (jun/2026)
 │   └── test_results/
-├── docs/                       # guias de deploy, avaliacao, entrega
-├── runs/train/storm-detector/  # artefatos de treino YOLO
-├── scripts/goes_pipeline/      # scripts de transformacao dataset
+├── docs/                       # RPI, deploy, CI/CD, guias FIAP
+├── scripts/                    # pipeline agrícola, smoke AWS, goes_pipeline
 ├── src/
-│   ├── app/                    # backend FastAPI por dominio
-│   │   ├── clients/
-│   │   ├── core/
-│   │   ├── cron/
-│   │   ├── lambdas/
-│   │   ├── models/
-│   │   ├── routers/
-│   │   └── services/
-│   ├── dashboard/              # app Flask de visualizacao
-│   ├── models/                 # wrappers e weights locais
-│   ├── tests/                  # testes locais do pacote src
+│   ├── app/                    # backend FastAPI (Clean Architecture)
+│   │   ├── application/        # use cases (DetectStormUseCase, …)
+│   │   ├── clients/            # Open-Meteo, INMET
+│   │   ├── container.py        # DI factory (mock ↔ DynamoDB)
+│   │   ├── core/               # config, logging
+│   │   ├── cron/               # captura NASA, upload S3
+│   │   ├── domain/             # Ports (Protocols)
+│   │   ├── infrastructure/     # adapters AWS + JSON
+│   │   ├── interfaces/         # HTTP BFF, Lambda events
+│   │   ├── lambdas/            # ingest_weather
+│   │   ├── models/             # Pydantic schemas
+│   │   ├── routers/            # endpoints HTTP
+│   │   └── services/           # weather, agri risk, storm detector
+│   ├── dashboard/              # Flask UI + static/js (ES modules)
+│   ├── iot/                    # firmware.cpp + README
+│   ├── models/                 # stormdetector.py + weights/best.pt
+│   ├── tests/                  # test_main.py
 │   ├── requirements*.txt
-│   ├── Makefile
+│   ├── Dockerfile              # imagem Lambda
 │   └── yolo_training.py
-├── tests/                      # testes de integracao API/Lambda
-└── yolov5/                     # codigo-base YOLOv5
+├── tests/                      # suite principal (89 testes)
+├── yolov5/                     # código-base YOLOv5
+├── .env.example                # config canônica (copiar → .env)
+├── Makefile                    # install, demo, test, build-agri, …
+└── README.md
 ```
 
 ---
@@ -49,16 +54,20 @@ global-solutions/
 
 | File | Purpose |
 |------|---------|
-| `README.md` | Contexto geral do projeto e execucao |
-| `docs/DEPLOY-LAMBDA.md` | Procedimento de deploy na AWS |
-| `src/app/main.py` | App FastAPI + roteamento Lambda HTTP/S3 |
-| `src/app/core/config.py` | Variaveis de ambiente e defaults |
-| `src/app/routers/cv.py` | Pipeline de inferencia YOLO + SNS + DynamoDB |
-| `src/app/routers/data_integration.py` | Endpoints weather/storm/risk/map |
-| `src/app/lambdas/ingest_weather.py` | Ingestao periodica Open-Meteo -> DynamoDB |
-| `src/models/stormdetector.py` | Inferencia local de referencia YOLO |
-| `src/Makefile` | Comandos de install/run/test/lint |
-| `data/model-dataset/storm.yaml` | Config do dataset YOLO |
+| `README.md` | Contexto geral, execução, links AWS |
+| `docs/RPI.md` | Relatório de progresso FIAP (status formal) |
+| `docs/DEPLOY-LAMBDA.md` | Deploy manual Lambda |
+| `docs/CI-CD.md` | GitHub Actions + OIDC |
+| `src/app/main.py` | FastAPI + Mangum + WSGI dashboard |
+| `src/app/core/config.py` | Settings (.env raiz + src/.env) |
+| `src/app/container.py` | DI: mock JSON ↔ DynamoDB |
+| `src/app/application/cv/detect_storm.py` | Use case YOLO + SNS + persist |
+| `src/app/interfaces/events/s3_trigger.py` | Handler S3 → use case |
+| `src/dashboard/static/js/app.js` | Entry dashboard ES modules |
+| `src/dashboard/bff_handlers.py` | Lógica BFF canônica (`/api/*`) |
+| `src/iot/firmware.cpp` | Firmware ESP32 → POST /iot/readings |
+| `Makefile` | Comandos raiz (demo, test, build-agri) |
+| `data/model-dataset/storm.yaml` | Config dataset YOLO |
 
 ---
 
@@ -66,22 +75,26 @@ global-solutions/
 
 | Area | Directory | Main Concern |
 |------|-----------|--------------|
-| API backend | `src/app/` | Endpoints e orquestracao de fluxos |
-| ML/CV artifacts | `src/models/`, `runs/`, `data/model-dataset/` | Treino e inferencia YOLO |
-| Dashboard | `src/dashboard/` | Visualizacao operacional |
-| Data engineering | `scripts/goes_pipeline/` | Preparacao de dataset |
-| Tests | `tests/` e `src/tests/` | Validacao funcional e regressao |
-| Operational docs | `docs/` | Deploy e guias de entrega |
+| API backend | `src/app/` | Endpoints, use cases, DI |
+| ML/CV | `src/models/`, `data/model-dataset/`, `scripts/goes_pipeline/` | Treino e inferência YOLO |
+| Dashboard | `src/dashboard/` | UI HTML/JS + BFF handlers |
+| IoT | `src/iot/` | Firmware ESP32 |
+| Data / ML agrícola | `scripts/`, `docs/dados/` | INMET, FAOSTAT, treino |
+| Tests | `tests/`, `src/tests/` | 89 testes pytest |
+| Ops docs | `docs/`, `.specs/` | Deploy, RPI, specs |
 
 ---
 
 ## Test File Location Strategy
 
 | Test type | Location |
-|-----------|---------|
-| API integration tests | `tests/test_api_endpoints.py` |
-| Service tests | `tests/test_weather_service.py` |
-| Lambda tests | `tests/test_ingest_weather_lambda.py` |
-| Basic app tests | `src/tests/test_main.py` |
+|-----------|----------|
+| API integration | `tests/test_api_endpoints.py` |
+| Storm alerts / analytics | `tests/test_storm_*.py`, `tests/test_alerts_analytics_extended.py` |
+| IoT | `tests/test_iot_readings.py` |
+| Weather / Lambda | `tests/test_weather_service.py`, `tests/test_ingest_weather_lambda.py` |
+| ML / dados | `tests/test_inmet_client.py`, `tests/test_export_faostat.py` |
+| CV pipeline | `tests/test_label_utils.py`, `tests/test_sns_alerts.py` |
+| App health | `src/tests/test_main.py` |
 
-Observacao: ainda nao ha padrao de co-locacao por modulo (por ex. `src/app/routers/*_test.py`).
+Observação: testes co-localizados por módulo em `src/app/**/_test.py` ainda não adotados — suite centralizada em `tests/`.

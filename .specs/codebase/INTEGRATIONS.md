@@ -1,8 +1,10 @@
 # Integrações — Global Solutions
 
+**Atualizado:** 2026-06-05
+
 ## Dashboard BFF (`/api/*`)
 
-O frontend consome exclusivamente rotas `/api/*` servidas pelo BFF ([`bff_handlers.py`](../../src/dashboard/bff_handlers.py)), espelhadas em Flask ([`app.py`](../../src/dashboard/app.py)) e FastAPI.
+O frontend consome exclusivamente rotas `/api/*` servidas pelo BFF. A implementação canônica está em [`dashboard/bff_handlers.py`](../../src/dashboard/bff_handlers.py) (decisão D-017); [`interfaces/http/bff/handlers.py`](../../src/app/interfaces/http/bff/handlers.py) re-exporta para a camada Interfaces. Rotas espelhadas em Flask ([`app.py`](../../src/dashboard/app.py)) e FastAPI ([`routers/dashboard_bff.py`](../../src/app/routers/dashboard_bff.py)).
 
 Contratos JS: [`core/api/endpoints.js`](../../src/dashboard/static/js/core/api/endpoints.js).
 

@@ -1,9 +1,9 @@
 # Concerns
 
 **Project:** global-solution-2s
-**Mapped on:** 2026-06-04
+**Mapped on:** 2026-06-05
 
-Este documento consolida riscos reais observados no estado atual do codigo.
+Este documento consolida riscos reais observados no estado atual do código.
 
 ---
 
@@ -11,22 +11,26 @@ Este documento consolida riscos reais observados no estado atual do codigo.
 
 | Area | File(s) | Risk | Why fragile | Mitigation |
 |------|---------|:----:|------------|------------|
-| Pipeline S3 -> YOLO -> SNS/DynamoDB | `src/app/main.py`, `src/app/routers/cv.py` | High | Fluxo event-driven com multiplas dependencias externas e sem testes dedicados | Criar testes com mocks boto3 + smoke test de trigger |
-| Modelo de risco agricola | `src/app/services/agri_risk_model.py`, `src/app/routers/ml.py` | High | Modelo treinado com dados sinteticos e sem suite de validacao robusta | Incluir dataset real + testes de regressao de metricas |
-| Integracao de ingestao periodica | `src/app/lambdas/ingest_weather.py` | Medium | Depende de API externa e escrita em DynamoDB | Aumentar observabilidade e retry controlado |
-| Deploy serverless | `docs/DEPLOY-LAMBDA.md`, `src/Dockerfile` | Medium | Processo manual com varios passos operacionais | Automatizar com CI/CD |
+| Pipeline S3 → YOLO → SNS/DynamoDB | `interfaces/events/s3_trigger.py`, `application/cv/detect_storm.py` | High | Fluxo event-driven; cold start pesado; smoke AWS manual | `make smoke-aws`; testes SNS mockados |
+| Modelo YOLO — meta G1 (70%) | `src/models/weights/best.pt`, pipeline v2 | High | mAP@0.5 ≈ 0,14 com labels honestos; dataset pequeno | Mais capturas NASA; augmentação; retreino |
+| Modelo de risco agrícola | `services/agri_risk_model.py` | Medium | Dependência de dados INMET/FAOSTAT; validação limitada | `make verify-agri-models`; testes export FAOSTAT |
+| Integração ingestão periódica | `lambdas/ingest_weather.py` | Medium | API externa + DynamoDB | Testes com mocks; retry em prod |
+| Deploy serverless | `docs/DEPLOY-LAMBDA.md`, CI/CD | Low | CD automatizado na main; path filter pode pular dashboard | Documentar `MOUNT_DASHBOARD=false` na Lambda |
 
 ---
 
 ## Technical Debt
 
-| ID | Description | Location | Impact | Priority |
-|----|-------------|---------|--------|----------|
-| TD-001 | Endpoints IoT ainda retornam "not implemented" | `src/app/routers/iot.py` | Funcionalidade incompleta exposta como pronta | High |
-| TD-002 | Endpoints `/storms/recent` e `/map/overlay` retornam dados vazios (TODO) | `src/app/routers/data_integration.py` | Valor de negocio parcial no dashboard/API | High |
-| TD-003 | Dependencia de internet em testes de weather service | `tests/test_weather_service.py` | Flakiness em CI e ambientes sem rede | Medium |
-| TD-004 | Falta de teste para fluxo CV e modelos | `src/app/routers/cv.py`, `src/app/services/*` | Alto risco de regressao silenciosa | High |
-| TD-005 | Sem pipeline CI/CD para build e deploy da Lambda | raiz + docs | Erro operacional e deploy inconsistente | Medium |
+| ID | Description | Location | Impact | Priority | Status |
+|----|-------------|---------|--------|----------|--------|
+| TD-001 | Endpoints IoT retornavam stub | `routers/iot.py` | — | — | **Resolvido** (jun/2026) |
+| TD-002 | `/storms/recent` e `/map/overlay` vazios | `routers/data_integration.py` | — | — | **Resolvido** — store mock + DynamoDB |
+| TD-003 | Testes weather dependem de internet | `tests/test_weather_service.py` | Flakiness offline | Medium | Aberto |
+| TD-004 | Falta teste E2E S3 trigger real | AWS pipeline | Regressão silenciosa | High | Aberto — smoke manual |
+| TD-005 | CI/CD inexistente | raiz | — | — | **Resolvido** — GitHub Actions OIDC |
+| TD-006 | BFF shim duplicado (dashboard/ + interfaces/) | `bff_handlers.py` | Confusão de camada canônica | Low | Aberto — decisão D-017 |
+| TD-007 | `src/.env.example` legado vs `.env.example` raiz | config | Docs inconsistentes | Low | Mitigado — raiz canônica |
+| TD-008 | YOLO abaixo meta G1 (70%) | CV pipeline | Avaliação FIAP | High | Aberto — v2 pós-GS |
 
 ---
 
@@ -34,10 +38,10 @@ Este documento consolida riscos reais observados no estado atual do codigo.
 
 | Concern | Area | Status | Notes |
 |---------|------|--------|-------|
-| AuthN/AuthZ ausente | API publica | Missing | Endpoints acessiveis sem token |
-| Rate limiting ausente | Endpoints HTTP | Missing | Possivel abuso de recursos externos |
-| Segredos via env vars | Backend | Partial | Estrutura existe, mas faltam validacoes de ambiente em bootstrap |
-| Validacao de payload | Routers | Partial | Boa base com Query/Pydantic, mas falta cobertura em rotas CV/IoT |
+| AuthN/AuthZ ausente | API pública | Missing | Endpoints acessíveis sem token (POC) |
+| Rate limiting ausente | Endpoints HTTP | Missing | Possível abuso de recursos externos |
+| Segredos via env vars | Backend | Partial | `.env` na raiz; nunca commitar credenciais |
+| Validacao de payload | Routers | Partial | Pydantic em rotas principais; CV upload validado |
 
 ---
 
@@ -45,25 +49,25 @@ Este documento consolida riscos reais observados no estado atual do codigo.
 
 | Concern | Area | Status | Notes |
 |---------|------|--------|-------|
-| Cold start elevado na Lambda CV | `src/app/routers/cv.py` | Watch | Download de modelo e carga do torch no primeiro ciclo |
-| Ausencia de retry/backoff padrao | Integracoes HTTP/AWS | Partial | Erros transientes podem derrubar requests |
-| Observabilidade limitada por modulo | API/Lambda | Partial | Logs presentes, mas sem metricas de negocio/latencia |
+| Cold start elevado na Lambda CV | YOLO + torch | Watch | ~60–90s primeira invocação |
+| Ausencia de retry/backoff padrao | Integrações HTTP/AWS | Partial | Erros transientes podem derrubar requests |
+| Observabilidade limitada por modulo | API/Lambda | Partial | CloudWatch logs; sem métricas de negócio |
 
 ---
 
 ## Priority Action Plan
 
-1. Alta: testar e estabilizar fluxo CV completo (S3 trigger, inferencia, SNS, DynamoDB).
-2. Alta: implementar de fato endpoints pendentes de dados (`/storms/recent`, `/map/overlay`, IoT readings).
-3. Alta: robustecer avaliacao do modelo de risco agricola com dados nao sinteticos e metas minimas de performance.
-4. Media: reduzir fragilidade de testes externos com mocks/fixtures para Open-Meteo.
-5. Media: criar pipeline CI/CD para build, lint, teste e deploy da Lambda.
+1. **Alta:** Smoke AWS E2E antes da entrega (`make smoke-aws`).
+2. **Alta:** PDF + vídeo FIAP (ação humana).
+3. **Alta:** Decidir se retreina YOLO antes da entrega ou documenta G1 como v2.
+4. **Média:** Mockar Open-Meteo nos testes de weather para CI offline.
+5. **Baixa:** Consolidar BFF em uma única camada (pós-GS).
 
 ---
 
 ## Rules for Tasks Touching Fragile Areas
 
-1. Sempre usar gate **full** apos alteracoes.
-2. Alteracao em CV/ML deve incluir ou atualizar testes.
-3. Alteracao de deploy deve atualizar `docs/DEPLOY-LAMBDA.md`.
-4. Qualquer novo TODO deve entrar em `STATE.md` antes de encerrar sessao.
+1. Sempre usar gate **full** (`make test`) após alterações.
+2. Alteração em CV/ML deve incluir ou atualizar testes.
+3. Alteração de deploy deve atualizar `docs/DEPLOY-LAMBDA.md` e/ou `docs/CI-CD.md`.
+4. Qualquer novo TODO deve entrar em `STATE.md` antes de encerrar sessão.

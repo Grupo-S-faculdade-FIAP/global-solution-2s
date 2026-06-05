@@ -53,8 +53,8 @@ export function refreshLocationPickerTiles() {
     if (layer instanceof L.TileLayer) state.locationPickerMap.removeLayer(layer);
   });
   L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 18 }).addTo(state.locationPickerMap);
-  if (state.locationPickerRadius) state.locationPickerRadius.bringToFront();
-  if (state.locationPickerMarker) state.locationPickerMarker.bringToFront();
+  if (state.locationPickerRadius?.bringToFront) state.locationPickerRadius.bringToFront();
+  if (state.locationPickerMarker?.setZIndexOffset) state.locationPickerMarker.setZIndexOffset(1000);
 }
 
 function renderRegionAlerts(geojson) {
