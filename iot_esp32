@@ -1,0 +1,197 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include "DHT.h"
+#include "time.h"
+
+#define LED_VERMELHO 15
+#define DHTPIN 4
+#define DHTTYPE DHT22
+
+const char* ssid = "Wokwi-GUEST"; // Use "APTO66" e "jessyca@10" no mundo real
+const char* password = "";
+const char* api_key = "6f3850cb9fe570f99c0da937bd690558";
+
+// Endpoint da API Gateway (Invoke URL + rota configurada)
+const char* serverName = "https://i2rqney3xf.execute-api.us-east-1.amazonaws.com/dados";
+
+// Configuração do servidor NTP
+const char* ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = -10800; // Fuso horário de Brasília (-3h)
+const int daylightOffset_sec = 0;
+
+DHT dht(DHTPIN, DHTTYPE);
+String cidade = "";
+String tp_alerta = "Normal";
+bool chuvaPrevista = false;
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  Serial.println("Conectando ao Wi-Fi...");
+  WiFi.begin(ssid, password);
+
+  unsigned long startAttemptTime = millis();
+  const unsigned long timeout = 10000;
+
+  while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < timeout) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nWi-Fi conectado com sucesso!");
+    Serial.print("Endereço IP: ");
+    Serial.println(WiFi.localIP());
+
+    // Inicializa o NTP
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    Serial.println("Sincronizando hora via NTP...");
+    delay(2000);
+  } else {
+    Serial.println("\nFalha na conexão Wi-Fi.");
+  }
+
+  pinMode(LED_VERMELHO, OUTPUT);
+  dht.begin();
+
+  Serial.println("\nConfigure os dados de umidade e temperatura e após isso, digite o nome da cidade.");
+}
+
+String obterTimestampISO() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Falha ao obter hora local.");
+    return "ErroHora";
+  }
+
+  char buffer[25];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S", &timeinfo);
+  return String(buffer);
+}
+
+bool verificarPrevisaoDeChuva(String cidadeInput) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Wi-Fi desconectado. Não foi possível consultar a previsão.");
+    return false;
+  }
+
+  cidadeInput.replace(" ", "%20");
+  String url = "http://api.openweathermap.org/data/2.5/weather?q=" + cidadeInput + "&appid=" + String(api_key) + "&units=metric";
+
+  HTTPClient http;
+  http.begin(url);
+  int httpCode = http.GET();
+
+  if (httpCode == 200) {
+    String payload = http.getString();
+    DynamicJsonDocument doc(2048);
+    deserializeJson(doc, payload);
+
+    String clima = doc["weather"][0]["main"];
+    Serial.print("Clima atual em ");
+    Serial.print(cidadeInput);
+    Serial.print(": ");
+    Serial.println(clima);
+
+    if (clima == "Rain" || clima == "Drizzle") {
+      tp_alerta = "Chuva";
+      return true;
+    } else {
+      tp_alerta = "Nublado";
+      return false;
+    }
+  } else {
+    Serial.print("Erro ao acessar API: ");
+    Serial.println(httpCode);
+    tp_alerta = "ErroAPI";
+    return false;
+  }
+
+  http.end();
+}
+
+void enviarDadosParaBanco(float umidade, float temperatura, String cidade) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(serverName);
+    http.addHeader("Content-Type", "application/json");
+
+    String timestamp = obterTimestampISO();
+
+    DynamicJsonDocument doc(256);
+    doc["device_id"] = "esp32_01";
+    doc["timestamp"] = timestamp;
+    doc["cidade"] = cidade;
+    doc["temperatura"] = temperatura;
+    doc["umidade"] = umidade;
+
+    String jsonData;
+    serializeJson(doc, jsonData);
+
+    int httpResponseCode = http.POST(jsonData);
+
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("\nDados enviados com sucesso!");
+      Serial.println("Resposta da API: " + response);
+    } else {
+      Serial.print("Erro na requisição: ");
+      Serial.println(httpResponseCode);
+    }
+
+    http.end();
+  } else {
+    Serial.println("Wi-Fi desconectado, não foi possível enviar dados.");
+  }
+}
+
+void loop() {
+  if (Serial.available()) {
+    cidade = Serial.readStringUntil('\n');
+    cidade.trim();
+
+    if (cidade.length() == 0) {
+      Serial.println("Cidade inválida. Tente novamente.");
+      return;
+    }
+
+    Serial.print("\nCidade definida como: ");
+    Serial.println(cidade);
+
+    // Leitura dos sensores
+    float umidade = dht.readHumidity();
+    float temperatura = dht.readTemperature();
+
+    if (isnan(umidade) || isnan(temperatura)) {
+      Serial.println("Erro na leitura do sensor DHT! Dados não enviados.");
+      Serial.println("\nConfigure os dados de umidade e temperatura e após isso, digite o nome da cidade.");
+      return;
+    }
+
+    // Atualiza previsão e alerta (apenas para mostrar no console)
+    chuvaPrevista = verificarPrevisaoDeChuva(cidade);
+
+    // Mostra os dados que serão gravados
+    Serial.println("\n--- Dados a serem gravados ---");
+    Serial.println("Device ID: esp32_01");
+    Serial.print("Timestamp: ");
+    Serial.println(obterTimestampISO());
+    Serial.print("Cidade: ");
+    Serial.println(cidade);
+    Serial.print("Temperatura: ");
+    Serial.println(temperatura);
+    Serial.print("Umidade: ");
+    Serial.println(umidade);
+    Serial.print("Tipo de alerta (não gravado): ");
+    Serial.println(tp_alerta);
+    Serial.println("------------------------------");
+
+    // Envia os dados para o banco (sem tp_alerta)
+    enviarDadosParaBanco(umidade, temperatura, cidade);
+
+    // Retorna à mensagem inicial
+    Serial.println("\nConfigure os dados de umidade e temperatura e após isso, digite o nome da cidade.");
+  }
+}
