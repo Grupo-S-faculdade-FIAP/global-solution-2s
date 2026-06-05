@@ -8,6 +8,7 @@ on:
       - "src/app/**"
       - "src/Dockerfile"
       - "src/requirements-lambda.txt"
+      - "src/app/routers/dashboard_ui.py"
       - "src/dashboard/**"
       - "models/**"
       - ".github/workflows/deploy-lambda.yml"

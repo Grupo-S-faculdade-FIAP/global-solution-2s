@@ -70,6 +70,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 - **Repositório GitHub:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s
 - **Vídeo de demonstração (5min):** *(link a ser adicionado após gravação)*
 - **Dashboard (Streamlit):** *(link a ser adicionado após deploy)* — **demo local:** http://127.0.0.1:8000 (`make demo`; tema claro/escuro na topbar)
+- **Dashboard (AWS):** https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/ (`MOUNT_DASHBOARD=false` na Lambda)
 - **API Backend (AWS):** https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com
 
 **Decisões técnicas relevantes:**

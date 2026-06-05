@@ -7,7 +7,7 @@ from fastapi.middleware.wsgi import WSGIMiddleware
 from mangum import Mangum
 
 from app.core.config import settings
-from app.routers import cv, ml, iot, dashboard, data_integration, dashboard_bff
+from app.routers import cv, ml, iot, dashboard, data_integration, dashboard_bff, dashboard_ui
 from app.routers.cv import process_s3_image
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,18 @@ def health_check():
     return {"status": "ok"}
 
 
-_mount_dashboard_ui(app)
+def _setup_dashboard(application: FastAPI) -> None:
+    """Flask (dev local) ou FastAPI static (Lambda)."""
+    mount_flask = os.environ.get("MOUNT_DASHBOARD", "true").strip().lower() in (
+        "1", "true", "yes", "on",
+    )
+    if mount_flask:
+        _mount_dashboard_ui(application)
+    else:
+        dashboard_ui.register(application)
+
+
+_setup_dashboard(app)
 
 
 _http_handler = Mangum(app)
