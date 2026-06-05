@@ -4,6 +4,7 @@ import { fetchApi } from "../api.js";
 
 export const dashboard = {
   config: () => fetchApi("/api/dashboard/config"),
+  summary: (days = 30) => fetchApi(`/api/dashboard/summary?days=${days}`),
 };
 
 export const alerts = {

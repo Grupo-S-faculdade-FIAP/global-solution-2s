@@ -15,6 +15,7 @@ import { lazyLoadWindy } from "./maps/windy.js";
 import { lazyInitRegionMap, refreshRegionMapTiles, refreshLocationPickerTiles } from "./maps/region.js";
 import { refreshWindyMap } from "./maps/windy.js";
 import { bootstrapDashboard } from "./bootstrap.js";
+import { finalizeDashboardLoad, setDataSourceChip } from "./core/ui.js";
 import { bindMLSliders } from "./sections/ml.js";
 import { bindYoloActions } from "./sections/yolo.js";
 import { updateChartDefaults, refreshAllCharts, refreshHeatmapColors } from "./charts.js";
@@ -43,7 +44,13 @@ async function initDashboard() {
   bindLocationControls();
   bindMLSliders();
   bindYoloActions();
-  await bootstrapDashboard();
+  try {
+    await bootstrapDashboard();
+  } catch (err) {
+    console.error("Dashboard: falha ao inicializar", err);
+    finalizeDashboardLoad();
+    setDataSourceChip("offline");
+  }
   lazyLoadWindy();
   lazyInitRegionMap();
 }
