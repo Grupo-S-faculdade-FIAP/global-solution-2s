@@ -7,14 +7,19 @@ export async function loadNASAGallery() {
     const gallery = document.getElementById("nasa-gallery");
     const empty = document.getElementById("nasa-empty");
 
+    const storageLabel =
+      d.storage === "s3" ? ` · S3 ${d.bucket || ""}` : d.storage === "dataset" ? " · dataset local" : "";
     document.getElementById("nasa-total").textContent =
-      d.total > 0 ? `${d.total} imagens disponíveis` : "Nenhuma imagem capturada ainda";
+      d.total > 0
+        ? `${d.total} imagens${storageLabel}`
+        : "Nenhuma imagem no S3 ainda";
 
     if (!d.capturas || d.capturas.length === 0) {
       if (empty) {
         empty.innerHTML =
-          '<i class="bi bi-globe-americas"></i> Nenhuma imagem NASA capturada ainda.<br>' +
-          '<span style="font-size:11px">Execute <code>build_dataset_nasa.command</code> para baixar o histórico.</span>';
+          '<i class="bi bi-globe-americas"></i> Nenhuma imagem NASA no S3 ainda.<br>' +
+          '<span style="font-size:11px">Configure <code>S3_BUCKET_IMAGES</code> no .env e rode ' +
+          '<code>python -m app.cron.capture_nasa_data</code> ou o workflow <code>NASA Capture</code>.</span>';
       }
       return;
     }

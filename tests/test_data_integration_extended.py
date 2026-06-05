@@ -75,6 +75,32 @@ def test_dashboard_summary(_mock):
 
 
 @patch(
+    "app.routers.data_integration._get_risk_service",
+)
+@patch(
+    "app.routers.data_integration.weather_service.get_current",
+    return_value=SAMPLE_WEATHER,
+)
+def test_risk_forecast_includes_detalhes(_mock_weather, mock_risk_svc):
+    from app.services.risk_assessment import RiskScore
+
+    mock_risk_svc.return_value.calculate_risk.return_value = RiskScore(
+        score=0.42,
+        category="MEDIUM",
+        recommendation="test",
+        timestamp="2026-06-05T12:00:00Z",
+        detalhes={
+            "components": {"clima": 0.3, "cv": 0.1, "ml_agricola": 0.5},
+            "pesos": {"clima": 0.5, "cv": 0.0, "ml_agricola": 0.5},
+        },
+    )
+    response = client.get("/risk/forecast?lat=-22.89&lon=-43.18")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["detalhes"]["components"]["ml_agricola"] == 0.5
+
+
+@patch(
     "app.routers.data_integration.add_alert_from_coords",
     return_value={"alert_id": "sim_1", "confidence": 0.85},
 )

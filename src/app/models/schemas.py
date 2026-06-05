@@ -69,6 +69,7 @@ class RiskForecast(BaseModel):
     risk_category: str = Field(..., description="Risk category: LOW, MEDIUM, or HIGH")
     recommendation: str = Field(..., description="Actionable recommendation")
     timestamp: str = Field(..., description="ISO 8601 timestamp")
+    detalhes: dict | None = Field(None, description="Breakdown: components, pesos, clima, cv, ml")
     
     class Config:
         schema_extra = {

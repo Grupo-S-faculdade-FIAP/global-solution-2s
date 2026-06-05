@@ -113,8 +113,12 @@ class TestStormsEndpoint:
 
 class TestRiskEndpoint:
     """Test GET /risk/forecast endpoint."""
-    
-    def test_get_risk_success(self):
+
+    @patch(
+        "app.routers.data_integration.weather_service.get_current",
+        return_value=SAMPLE_WEATHER,
+    )
+    def test_get_risk_success(self, _mock_weather):
         """Test successful risk forecast fetch."""
         response = client.get("/risk/forecast?lat=-22.89&lon=-43.18")
         assert response.status_code == 200
@@ -144,7 +148,11 @@ class TestRiskEndpoint:
         response = client.get("/risk/forecast?lat=-22.89")
         assert response.status_code == 422  # FastAPI validation error
         
-    def test_get_risk_structure(self):
+    @patch(
+        "app.routers.data_integration.weather_service.get_current",
+        return_value=SAMPLE_WEATHER,
+    )
+    def test_get_risk_structure(self, _mock_weather):
         """Test risk forecast response structure."""
         response = client.get("/risk/forecast?lat=-22.89&lon=-43.18")
         data = response.json()

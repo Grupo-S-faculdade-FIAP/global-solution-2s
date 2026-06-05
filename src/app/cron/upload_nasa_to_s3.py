@@ -109,6 +109,9 @@ def main() -> int:
         if result["s3_key"]:
             ok += 1
             logger.info("OK %s → %s", path.name, result["s3_key"])
+            if not settings.NASA_KEEP_LOCAL:
+                path.unlink(missing_ok=True)
+                logger.info("Removido do disco local: %s", path.name)
         else:
             logger.error("Falha no upload: %s", path.name)
 

@@ -21,6 +21,7 @@ REQUIRED_MODELS = (
     "agri_risk_model.pkl",
     "agri_risk_scaler.pkl",
     "agri_risk_meta.pkl",
+    "agri_risk_thresholds.json",
 )
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -63,6 +64,11 @@ def main() -> int:
     parser.add_argument("--skip-faostat", action="store_true", help="Não exporta FAOSTAT")
     parser.add_argument("--skip-train", action="store_true", help="Não retreina o modelo")
     parser.add_argument(
+        "--skip-ga",
+        action="store_true",
+        help="Não executa AG nos limiares (CI usa agri_risk_thresholds.json commitado)",
+    )
+    parser.add_argument(
         "--ci",
         action="store_true",
         help="Modo CI: usa sample INMET commitado (sem download ZIP ~98 MB)",
@@ -101,6 +107,20 @@ def main() -> int:
         )
         if rc != 0:
             return rc
+
+    if not args.skip_ga and not args.skip_train:
+        ga_cmd = [
+            python,
+            str(SCRIPTS / "optimize_agri_thresholds.py"),
+            "--generations", "8" if args.ci else "15",
+            "--population", "20" if args.ci else "40",
+            "--sample", "500" if args.ci else "3000",
+        ]
+        rc = _run(ga_cmd, "AG limiares AgriRiskModel")
+        if rc != 0:
+            return rc
+    elif args.skip_ga:
+        logger.info("GA ignorado — usando agri_risk_thresholds.json existente")
 
     if not args.skip_train:
         rc = _run(

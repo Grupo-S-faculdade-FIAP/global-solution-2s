@@ -82,10 +82,11 @@ def model_info():
         from app.services.agri_risk_model import (  # noqa: PLC0415
             DATASET_SOURCE,
             MODEL_PATH,
+            MODEL_TYPE,
             SCALER_PATH,
         )
         return {
-            "modelo": "RandomForestClassifier",
+            "modelo": MODEL_TYPE,
             "classes": ["LOW", "MEDIUM", "HIGH"],
             "features": ["temperatura_c", "umidade_pct", "precipitacao_mm", "vento_kmh"],
             "dataset": DATASET_SOURCE,

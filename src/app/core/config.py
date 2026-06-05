@@ -99,6 +99,7 @@ class Settings(BaseSettings):
     # ─── NASA Worldview (GOES-East IR C13) ────────────────────────────────
     NASA_CAPTURE_ENABLED: bool = True
     NASA_CAPTURES_DIR: str = "data/nasa_captures"
+    NASA_KEEP_LOCAL: bool = False
     NASA_HISTORICO_DIAS: int = 30
     NASA_S3_PREFIX: str = "nasa-satellite"
     # Prefixo que dispara Lambda S3 (somente .jpg no bucket de produção)

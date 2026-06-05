@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-05 (testes + cobertura 82%)
+**Last updated:** 2026-06-05 (pipeline risco v2 + YOLO geo)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -11,11 +11,11 @@
 
 ## Current Focus
 
-**Active feature:** correção CI pytest (concluída 2026-06-05)
-**Last task completed:** 7 testes de weather corrigidos (mock Open-Meteo, sem 429 em CI); cobertura subiu de ~62% para 82,25% (164 testes); `pytest-cov` + gate no CI/Makefile.
-**Next task:** Merge `feature/ajustes` → `main` (deploy produção); smoke AWS; vídeo/PDF FIAP
+**Active feature:** Pipeline de Risco Agrícola + YOLO v2 (concluída 2026-06-05)
+**Last task completed:** AG limiares ML (DEAP), AgriRiskModel regressão contínua, CV geo-aware, dashboard ensemble unificado, 259 testes unit, cobertura 82,5%.
+**Next task:** Merge → `main`; retreino YOLO offline (`make train-yolo --recall-focus`); vídeo/PDF FIAP
 **Blockers:** nenhum
-**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.4 (2026-06-05)
+**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.5 (2026-06-05)
 
 ---
 
@@ -44,6 +44,11 @@
 | 2026-06-05 | D-019 | Pipeline labels YOLO v2: letterbox 640 + detecção na img de treino + UI mask + audit gate | 74/76 labels eram bbox fantasma (canto sup. esq.); precision alta / recall baixo era artefato posicional | CV / dataset |
 | 2026-06-05 | D-020 | Frontend dashboard: ES modules + partials Jinja + CSS tokens | Manutenibilidade; `app.js` entry; `core/` api/state/dom/ui; `maps/`; `sections/` | Dashboard |
 | 2026-06-05 | D-021 | `.env` canônico na raiz do repo | `config.py` carrega raiz primeiro; `src/.env.example` é legado | Config / docs |
+| 2026-06-05 | D-022 | ML risco v2: regressão contínua + AG nos limiares (não no ensemble) | Score varia por região; `agri_risk_thresholds.json` commitado; CI usa `--skip-ga` | ML / G2 |
+| 2026-06-05 | D-023 | Regressor default sklearn HGB; LightGBM só com `AGRI_USE_LIGHTGBM=1` | Evita segfault torch+lightgbm no macOS em pytest/demo | ML |
+| 2026-06-05 | D-024 | YOLO lazy load + `RISK_SKIP_YOLO=1` em pytest | BFF e RiskAssessment não carregam torch na importação | CV / testes |
+| 2026-06-05 | D-025 | CV geo-aware: alertas 200 km + peso dinâmico no ensemble | Risco muda por localização; sem cobertura satélite → peso CV=0 | Risco / YOLO |
+| 2026-06-05 | D-026 | Dashboard: calculadora usa `/api/risk/forecast` (ensemble + breakdown) | Uma narrativa na UI (`ml.js` + `#risk-badge`) | Frontend |
 
 ---
 
@@ -80,7 +85,7 @@
 - Alertas em tempo real por push/email quando YOLO detectar tempestade
 - Cobertura de outros países da América do Sul
 - App mobile para visualização no campo
-- YOLO mAP ≥ 70% (G1) — requer mais dados rotulados ou augmentação
+- YOLO mAP ≥ 70% (G1) — retreino offline `make train-yolo --recall-focus`; integração geo já no ensemble
 
 ---
 

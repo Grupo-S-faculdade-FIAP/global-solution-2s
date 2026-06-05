@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
 import pytest
+
+# Evita carregar torch/YOLO durante pytest (segfault macOS com ML no mesmo processo)
+os.environ.setdefault("RISK_SKIP_YOLO", "1")
 
 _root = Path(__file__).parent.parent
 sys.path.insert(0, str(_root / "src"))
