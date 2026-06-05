@@ -17,12 +17,17 @@ RUN yum install -y gcc gcc-c++ --setopt=install_weak_deps=False
 # Copy yolov5 source from stage 1 — small layer (~20 MB), does NOT affect pip layer hashes.
 COPY --from=yolov5_clone /opt/yolov5_src /opt/yolov5_src
 
-# Install base API dependencies
-COPY requirements-lambda.txt .
+# Install base API dependencies (build context = repo root)
+COPY src/requirements-lambda.txt .
+
+# Pin numpy 1.x BEFORE sklearn/torch — evita build from source no AL2 (GCC 7.3)
+RUN pip install "numpy>=1.23,<2.0" --no-cache-dir
+
 RUN pip install -r requirements-lambda.txt --no-cache-dir
 
-# Pin numpy to 1.x — pre-built manylinux wheel, no compilation needed.
-RUN pip install "numpy>=1.23,<2.0" --no-cache-dir
+# ML (AgriRiskModel) — scipy pin evita pull de scipy 1.17+ (exige numpy 2.x)
+RUN pip install "scipy>=1.4.1,<1.14" --no-cache-dir
+RUN pip install scikit-learn==1.5.2 joblib==1.4.2 --no-cache-dir
 
 # CPU-only torch — avoids the ~2 GB CUDA build.
 RUN pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu --no-cache-dir
@@ -53,8 +58,10 @@ ENV MPLCONFIGDIR=/tmp/matplotlib
 RUN yum install -y mesa-libGL libxcb git --setopt=install_weak_deps=False && \
     git config --system --add safe.directory /opt/yolov5_src
 
-# Copy application source
-COPY app/ app/
+# Copy application source (+ BFF dashboard handlers used by dashboard_bff router)
+COPY src/app/ app/
+COPY src/dashboard/ dashboard/
+COPY models/agri_risk_model.pkl models/agri_risk_scaler.pkl models/
 
 # Lambda entry point: app.main.handler (Mangum wrapping FastAPI + S3 trigger router)
 CMD ["app.main.handler"]

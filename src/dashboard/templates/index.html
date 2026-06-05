@@ -1,409 +1,29 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-  <meta name="theme-color" content="#0d1117" />
+  <meta name="theme-color" content="#0d1117" id="meta-theme-color" />
   <title>Global Solutions — Alertas de Chuva</title>
-
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <!-- Bootstrap Icons -->
+  <script>
+    (function () {
+      var k = "dashboard-theme";
+      var saved = localStorage.getItem(k);
+      var theme = (saved === "dark" || saved === "light")
+        ? saved
+        : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      var root = document.documentElement;
+      root.setAttribute("data-theme", theme);
+      root.classList.add(theme === "dark" ? "theme-dark" : "theme-light");
+      root.style.colorScheme = theme;
+      var meta = document.getElementById("meta-theme-color");
+      if (meta) meta.content = theme === "dark" ? "#0d1117" : "#ffffff";
+    })();
+  </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
-  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-
-  <style>
-    /* ── Tema: Dark (padrão) ─────────────────────────────────────────────── */
-    html[data-theme="dark"] {
-      --bg-base:    #0d1117;
-      --bg-card:    #161b22;
-      --bg-card-2:  #1c2330;
-      --border:     #30363d;
-      --text-prim:  #e6edf3;
-      --text-sec:   #8b949e;
-      --blue:       #58a6ff;
-      --green:      #3fb950;
-      --yellow:     #d29922;
-      --red:        #f85149;
-      --purple:     #bc8cff;
-    }
-
-    /* ── Tema: Light ─────────────────────────────────────────────────────── */
-    html[data-theme="light"] {
-      --bg-base:    #ffffff;
-      --bg-card:    #f6f8fb;
-      --bg-card-2:  #eaeef2;
-      --border:     #d0d7de;
-      --text-prim:  #24292f;
-      --text-sec:   #57606a;
-      --blue:       #0969da;
-      --green:      #1a7f37;
-      --yellow:     #9e6a03;
-      --red:        #cf222e;
-      --purple:     #8250df;
-    }
-
-    /* ── Base ────────────────────────────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg-base);
-      color: var(--text-prim);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 14px;
-      line-height: 1.5;
-      min-height: 100vh;
-      transition: background-color 0.3s, color 0.3s;
-    }
-
-    /* ── Topbar (sticky) ─────────────────────────────────────────────────── */
-    .topbar {
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border);
-      padding: 0.75rem 1rem;
-      height: auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      flex-wrap: wrap;
-    }
-    .topbar-brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 700;
-      font-size: 14px;
-      color: var(--text-prim);
-      text-decoration: none;
-      flex-shrink: 0;
-    }
-    .topbar-brand .icon-satellite {
-      color: var(--blue);
-      font-size: 20px;
-    }
-    .topbar-badge {
-      font-size: 10px;
-      background: rgba(88,166,255,.15);
-      color: var(--blue);
-      border: 1px solid rgba(88,166,255,.3);
-      border-radius: 20px;
-      padding: 2px 8px;
-      font-weight: 500;
-      white-space: nowrap;
-    }
-    .topbar-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-shrink: 0;
-    }
-    .topbar-meta {
-      font-size: 11px;
-      color: var(--text-sec);
-      display: none;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-    .theme-toggle {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--text-prim);
-      width: 36px;
-      height: 36px;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      transition: border-color 0.2s, background-color 0.2s;
-    }
-    .theme-toggle:hover {
-      border-color: var(--blue);
-      background: rgba(88,166,255,.1);
-    }
-    .pulse {
-      width: 6px;
-      height: 6px;
-      background: var(--green);
-      border-radius: 50%;
-      animation: pulse 2s infinite;
-      flex-shrink: 0;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    /* ── Layout ──────────────────────────────────────────────────────────── */
-    .page {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 1rem;
-    }
-    @media (min-width: 768px) {
-      .page { padding: 1.5rem; }
-    }
-    .section-title {
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--text-sec);
-      margin-bottom: 0.75rem;
-      margin-top: 1.25rem;
-    }
-    .section-title:first-child { margin-top: 0; }
-
-    /* ── KPI Grid (mobile-first) ────────────────────────────────────────── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
-      margin-bottom: 1.25rem;
-    }
-    @media (min-width: 640px) {
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (min-width: 1024px) {
-      .kpi-grid { grid-template-columns: repeat(4, 1fr); }
-    }
-
-    .kpi-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.9rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      transition: border-color 0.2s, background-color 0.2s;
-    }
-    .kpi-card:hover {
-      border-color: var(--blue);
-      background: var(--bg-card-2);
-    }
-    .kpi-label {
-      font-size: 10px;
-      color: var(--text-sec);
-      font-weight: 500;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .kpi-label i { font-size: 12px; }
-    .kpi-value {
-      font-size: 26px;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-    @media (min-width: 768px) {
-      .kpi-value { font-size: 32px; }
-    }
-    .kpi-sub {
-      font-size: 10px;
-      color: var(--text-sec);
-    }
-    .text-blue { color: var(--blue); }
-    .text-green { color: var(--green); }
-    .text-yellow { color: var(--yellow); }
-    .text-purple { color: var(--purple); }
-
-    /* ── Chart Grid (mobile-first) ────────────────────────────────────────── */
-    .chart-grid-2 {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
-      margin-bottom: 0.75rem;
-    }
-    @media (min-width: 1024px) {
-      .chart-grid-2 { grid-template-columns: 2fr 1fr; }
-    }
-
-    .chart-grid-2b {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
-      margin-bottom: 0.75rem;
-    }
-    @media (min-width: 1024px) {
-      .chart-grid-2b { grid-template-columns: 1fr 1fr; }
-    }
-
-    /* ── Cards ───────────────────────────────────────────────────────────── */
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.9rem;
-      transition: border-color 0.2s;
-    }
-    @media (min-width: 768px) {
-      .card { padding: 1.25rem; }
-    }
-    .card:hover { border-color: var(--blue); }
-    .card-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.75rem;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    .card-head-title {
-      font-weight: 600;
-      font-size: 12px;
-      line-height: 1.4;
-    }
-    @media (min-width: 768px) {
-      .card-head-title { font-size: 13px; }
-    }
-    .card-head-sub {
-      font-size: 10px;
-      color: var(--text-sec);
-    }
-    canvas {
-      max-height: 240px;
-      width: 100% !important;
-    }
-    @media (min-width: 768px) {
-      canvas { max-height: 320px; }
-    }
-
-    /* ── Heatmap ─────────────────────────────────────────────────────────── */
-    .heatmap-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      margin: -0.5rem;
-      padding: 0.5rem;
-    }
-    .heatmap-table {
-      border-collapse: separate;
-      border-spacing: 2px;
-      min-width: 400px;
-    }
-    .heatmap-table th {
-      font-size: 8px;
-      color: var(--text-sec);
-      text-align: center;
-      padding: 0 1px;
-      font-weight: 500;
-      height: 24px;
-    }
-    .heatmap-table td {
-      width: 18px;
-      height: 16px;
-      border-radius: 3px;
-      background: var(--bg-card-2);
-      cursor: default;
-      transition: transform 0.1s;
-    }
-    @media (min-width: 768px) {
-      .heatmap-table td {
-        width: 22px;
-        height: 18px;
-      }
-    }
-    .heatmap-table td:hover {
-      transform: scale(1.2);
-      z-index: 1;
-      position: relative;
-    }
-    .hm-day {
-      font-size: 9px;
-      color: var(--text-sec);
-      padding-right: 4px;
-      white-space: nowrap;
-      font-weight: 500;
-    }
-    @media (min-width: 768px) {
-      .hm-day { font-size: 10px; padding-right: 6px; }
-    }
-
-    /* ── Windy Card ──────────────────────────────────────────────────────── */
-    .windy-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-      margin-bottom: 1.5rem;
-      transition: border-color 0.2s;
-    }
-    .windy-card:hover { border-color: var(--blue); }
-    .windy-head {
-      padding: 0.75rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-    }
-    .windy-head span {
-      font-weight: 600;
-      font-size: 12px;
-    }
-    @media (min-width: 768px) {
-      .windy-head span { font-size: 13px; }
-    }
-    .windy-head small {
-      color: var(--text-sec);
-      font-size: 10px;
-      margin-left: auto;
-      white-space: nowrap;
-    }
-    .windy-frame {
-      display: block;
-      width: 100%;
-      height: 350px;
-      border: none;
-      background: var(--bg-card-2);
-    }
-    @media (min-width: 768px) {
-      .windy-frame { height: 480px; }
-    }
-
-    /* ── Footer ──────────────────────────────────────────────────────────── */
-    .footer {
-      text-align: center;
-      padding: 1.5rem 1rem;
-      color: var(--text-sec);
-      font-size: 10px;
-      border-top: 1px solid var(--border);
-      margin-top: 1.5rem;
-    }
-
-    /* ── Responsive adjustments ──────────────────────────────────────────── */
-    @media (min-width: 768px) {
-      .topbar-meta { display: flex; }
-    }
-
-    /* ── Page heading ────────────────────────────────────────────────────── */
-    .page-heading {
-      margin-bottom: 1rem;
-      margin-top: 0.5rem;
-    }
-    .page-heading h5 {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    }
-    @media (min-width: 768px) {
-      .page-heading h5 { font-size: 20px; }
-    }
-    .page-heading p {
-      color: var(--text-sec);
-      font-size: 11px;
-      margin: 0;
-    }
-  </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}?v=3" />
 </head>
 <body>
 
@@ -415,12 +35,18 @@
       <span class="topbar-badge">FIAP 2026</span>
     </a>
     <div class="topbar-controls">
-      <button class="theme-toggle" id="theme-toggle" title="Alternar tema" aria-label="Alternar tema">
-        <i class="bi bi-moon-stars-fill"></i>
-      </button>
+      <span class="data-source-chip demo" id="data-source-chip" title="Fonte dos dados exibidos">Demonstração</span>
+      <div class="theme-switch" id="theme-switch">
+        <span class="theme-mode-label" id="theme-mode-label">Escuro</span>
+        <button class="theme-toggle" id="theme-toggle" type="button"
+          title="Alternar tema" aria-label="Alternar tema claro/escuro"
+          aria-pressed="false">
+          <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+        </button>
+      </div>
       <div class="topbar-meta">
         <span class="pulse"></span>
-        Ao vivo &nbsp;·&nbsp; <span id="ts">—</span>
+        <span id="data-source-updated">—</span>
       </div>
     </div>
   </header>
@@ -429,94 +55,198 @@
 
     <!-- ── Subtítulo ──────────────────────────────────────────────────────── -->
     <div class="page-heading">
-      <h5>🌧️ Dashboard — Alertas de Chuva</h5>
-      <p>Distribuição temporal de alertas climáticos (últimos 30 dias)</p>
+      <h5><i class="bi bi-cloud-rain-heavy"></i> Painel da propriedade — Alertas de chuva</h5>
+      <p>Monitoramento climático, risco na lavoura e histórico de alertas (últimos 30 dias)</p>
+    </div>
+
+    <!-- ── Localização ────────────────────────────────────────────────────── -->
+    <div class="location-bar" id="location-bar">
+      <p class="location-bar-title">Escolha sua região</p>
+      <div>
+        <label for="select-city">Cidade</label>
+        <select id="select-city" aria-label="Cidade"></select>
+      </div>
+      <div class="location-picker-wrap">
+        <label>Mapa</label>
+        <div id="location-picker-map" role="application" aria-label="Clique no mapa para definir local"></div>
+        <p class="location-bar-hint">Clique no mapa para definir local</p>
+      </div>
+      <button type="button" id="btn-geo" title="Usar localização do dispositivo"><i class="bi bi-geo-alt-fill"></i> Minha posição</button>
+      <button type="button" class="primary" id="btn-apply-location">Aplicar</button>
+      <span id="location-label" class="location-label">—</span>
+      <details class="location-advanced" id="location-advanced">
+        <summary>Avançado — latitude / longitude</summary>
+        <div class="location-advanced-fields">
+          <div>
+            <label for="input-lat">Latitude</label>
+            <input type="number" id="input-lat" step="0.0001" min="-90" max="90" value="-23.55" aria-label="Latitude">
+          </div>
+          <div>
+            <label for="input-lon">Longitude</label>
+            <input type="number" id="input-lon" step="0.0001" min="-180" max="180" value="-46.63" aria-label="Longitude">
+          </div>
+        </div>
+      </details>
     </div>
 
     <!-- ── KPI Cards ──────────────────────────────────────────────────────── -->
-    <p class="section-title">Indicadores</p>
+    <p class="section-title">Resumo do período</p>
     <div class="kpi-grid" id="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label text-blue"><i class="bi bi-bell-fill"></i>Total (30 dias)</div><div class="kpi-value text-blue" id="kpi-total">—</div><div class="kpi-sub">alertas emitidos</div></div>
-      <div class="kpi-card"><div class="kpi-label text-green"><i class="bi bi-bar-chart-line-fill"></i>Média diária</div><div class="kpi-value text-green" id="kpi-avg">—</div><div class="kpi-sub">alertas / dia</div></div>
-      <div class="kpi-card"><div class="kpi-label text-yellow"><i class="bi bi-calendar-week-fill"></i>Dia pico</div><div class="kpi-value text-yellow" id="kpi-day" style="font-size:22px;padding-top:5px">—</div><div class="kpi-sub">maior incidência semanal</div></div>
-      <div class="kpi-card"><div class="kpi-label text-purple"><i class="bi bi-clock-fill"></i>Hora pico</div><div class="kpi-value text-purple" id="kpi-hour" style="font-size:22px;padding-top:5px">—</div><div class="kpi-sub">faixa horária crítica</div></div>
+      <div class="kpi-card"><div class="kpi-label text-blue"><i class="bi bi-bell-fill"></i>Total (30 dias)</div><div class="kpi-value text-blue is-loading" id="kpi-total">—</div><div class="kpi-sub">alertas emitidos</div></div>
+      <div class="kpi-card"><div class="kpi-label text-green"><i class="bi bi-bar-chart-line-fill"></i>Média diária</div><div class="kpi-value text-green is-loading" id="kpi-avg">—</div><div class="kpi-sub">alertas / dia</div></div>
+      <div class="kpi-card"><div class="kpi-label text-yellow"><i class="bi bi-calendar-week-fill"></i>Dia pico</div><div class="kpi-value text-yellow kpi-text is-loading" id="kpi-day">—</div><div class="kpi-sub">maior incidência semanal</div></div>
+      <div class="kpi-card"><div class="kpi-label text-purple"><i class="bi bi-clock-fill"></i>Hora pico</div><div class="kpi-value text-purple kpi-text is-loading" id="kpi-hour">—</div><div class="kpi-sub">faixa horária crítica</div></div>
     </div>
 
     <!-- ── Real-Time Data (Weather & Risk) ───────────────────────────────── -->
-    <p class="section-title">Dados em tempo real</p>
+    <p class="section-title">Situação agora na sua região</p>
     <div class="chart-grid-2">
       <!-- Weather Card -->
-      <div class="card">
+      <div class="dash-card">
         <div class="card-head">
           <div>
-            <div class="card-head-title">🌡️ Condições atuais — São Paulo</div>
-            <div class="card-head-sub">Temperatura, umidade, pressão</div>
+            <div class="card-head-title"><i class="bi bi-thermometer-half"></i> Clima agora</div>
+            <div class="card-head-sub" id="weather-location-sub">Temperatura, umidade, pressão e vento</div>
           </div>
         </div>
-        <div id="weather-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; font-size: 13px; line-height: 1.8;">
-          <div><span style="color: var(--text-sec);">Temperatura</span><br><span style="font-size: 18px; font-weight: 600;" id="weather-temp">—</span></div>
-          <div><span style="color: var(--text-sec);">Umidade</span><br><span style="font-size: 18px; font-weight: 600;" id="weather-humidity">—</span></div>
-          <div><span style="color: var(--text-sec);">Pressão</span><br><span style="font-size: 18px; font-weight: 600;" id="weather-pressure">—</span></div>
-          <div><span style="color: var(--text-sec);">Vento</span><br><span style="font-size: 18px; font-weight: 600;" id="weather-wind">—</span></div>
+        <div id="weather-container" class="weather-grid">
+          <div><span class="stat-label">Temperatura</span><br><span class="stat-value is-loading" id="weather-temp">—</span></div>
+          <div><span class="stat-label">Umidade</span><br><span class="stat-value is-loading" id="weather-humidity">—</span></div>
+          <div><span class="stat-label">Pressão</span><br><span class="stat-value is-loading" id="weather-pressure">—</span></div>
+          <div><span class="stat-label">Vento</span><br><span class="stat-value is-loading" id="weather-wind">—</span></div>
         </div>
-        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 10px; color: var(--text-sec);">
+        <div class="weather-meta">
           <span id="weather-timestamp">—</span>
         </div>
       </div>
 
       <!-- Risk Assessment Card -->
-      <div class="card">
+      <div class="dash-card">
         <div class="card-head">
           <div>
-            <div class="card-head-title">⚠️ Avaliação de risco</div>
+            <div class="card-head-title"><i class="bi bi-exclamation-triangle"></i> Avaliação de risco</div>
             <div class="card-head-sub">Nível previsto para a região</div>
           </div>
         </div>
-        <div id="risk-container" style="display: flex; flex-direction: column; gap: 1rem; justify-content: center; padding: 1rem 0;">
-          <div style="text-align: center;">
-            <div style="font-size: 48px; font-weight: 700; margin-bottom: 0.5rem;" id="risk-badge">—</div>
-            <div style="font-size: 13px; color: var(--text-sec);" id="risk-category">—</div>
+        <div id="risk-container" class="risk-panel">
+          <div class="risk-score-wrap">
+            <div class="risk-score is-loading" id="risk-badge">—</div>
+            <div class="risk-category" id="risk-category">—</div>
           </div>
-          <div style="padding: 0.75rem; background: rgba(88,166,255,.1); border-radius: 6px; font-size: 12px; line-height: 1.6; color: var(--text-prim);" id="risk-recommendation">—</div>
+          <div class="risk-recommendation" id="risk-recommendation">—</div>
         </div>
       </div>
     </div>
 
-    <!-- ── YOLO Storm Detection Status ────────────────────────────────────── -->
-    <p class="section-title">Detecção de tempestades (YOLO)</p>
-    <div class="card">
+    <!-- ── ML Agrícola — Predictor Interativo ─────────────────────────────── -->
+    <p class="section-title">Risco na lavoura (simulação)</p>
+    <div class="dash-card">
       <div class="card-head">
         <div>
-          <div class="card-head-title">🤖 Status do detector YOLO v8</div>
-          <div class="card-head-sub">Modelo de reconhecimento de padrões de nuvens chuvosas</div>
+          <div class="card-head-title"><i class="bi bi-flower1"></i> Calculadora de risco agrícola</div>
+          <div class="card-head-sub">Valores iniciais do clima da sua região — ajuste para simular cenários</div>
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; padding: 1rem 0;">
-        <div>
-          <div style="font-size: 10px; color: var(--text-sec); text-transform: uppercase; font-weight: 500; margin-bottom: 0.5rem;">Status do modelo</div>
-          <div style="font-size: 16px; font-weight: 600;" id="yolo-status">⏳ Verificando...</div>
+      <div class="ml-sliders">
+        <div class="ml-slider">
+          <label for="sl-temp">TEMPERATURA (°C)</label>
+          <input type="range" id="sl-temp" min="5" max="45" value="28" step="0.5">
+          <div class="ml-slider-range"><span>5°C</span><span class="val" id="lbl-temp">28°C</span><span>45°C</span></div>
         </div>
-        <div>
-          <div style="font-size: 10px; color: var(--text-sec); text-transform: uppercase; font-weight: 500; margin-bottom: 0.5rem;">Última detecção</div>
-          <div style="font-size: 16px; font-weight: 600;" id="yolo-last-detection">—</div>
+        <div class="ml-slider">
+          <label for="sl-umid">UMIDADE (%)</label>
+          <input type="range" id="sl-umid" min="20" max="100" value="65" step="1">
+          <div class="ml-slider-range"><span>20%</span><span class="val" id="lbl-umid">65%</span><span>100%</span></div>
         </div>
-        <div>
-          <div style="font-size: 10px; color: var(--text-sec); text-transform: uppercase; font-weight: 500; margin-bottom: 0.5rem;">Confiança média</div>
-          <div style="font-size: 16px; font-weight: 600;" id="yolo-avg-confidence">—</div>
+        <div class="ml-slider">
+          <label for="sl-prec">PRECIPITAÇÃO (mm/h)</label>
+          <input type="range" id="sl-prec" min="0" max="50" value="0" step="0.5">
+          <div class="ml-slider-range"><span>0</span><span class="val" id="lbl-prec">0 mm/h</span><span>50</span></div>
+        </div>
+        <div class="ml-slider">
+          <label for="sl-vento">VENTO (km/h)</label>
+          <input type="range" id="sl-vento" min="0" max="120" value="10" step="1">
+          <div class="ml-slider-range"><span>0</span><span class="val" id="lbl-vento">10 km/h</span><span>120</span></div>
         </div>
       </div>
-      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-        <button id="btn-test-detection" style="background: var(--blue); color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;">
-          Simular detecção de tempestade
+
+      <div class="ml-result">
+        <div>
+          <div class="ml-result-label">RISCO CALCULADO</div>
+          <div class="ml-result-score-row">
+            <span class="ml-result-score" id="ml-score">—</span>
+            <span class="ml-result-class" id="ml-classe">—</span>
+          </div>
+          <div class="ml-result-rec" id="ml-rec">—</div>
+        </div>
+        <div class="ml-result-probas-wrap">
+          <div class="ml-result-label">PROBABILIDADES</div>
+          <div style="font-size:11px;line-height:1.8;" id="ml-probas">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── YOLO Storm Detection ─────────────────────────────────────────────── -->
+    <p class="section-title">Detecção de tempestades no satélite</p>
+    <div class="dash-card">
+      <div class="card-head">
+        <div>
+          <div class="card-head-title"><i class="bi bi-radar"></i> Alertas por imagem de satélite</div>
+          <div class="card-head-sub">Modelo treinado com imagens NASA — confiança mínima 40%</div>
+        </div>
+      </div>
+      <div class="yolo-stats">
+        <div>
+          <div class="yolo-stat-label">Status do modelo</div>
+          <div class="yolo-stat-value" id="yolo-status">Verificando...</div>
+        </div>
+        <div>
+          <div class="yolo-stat-label">Última detecção</div>
+          <div class="yolo-stat-value" id="yolo-last-detection">—</div>
+        </div>
+        <div>
+          <div class="yolo-stat-label">Confiança média</div>
+          <div class="yolo-stat-value" id="yolo-avg-confidence">—</div>
+        </div>
+      </div>
+      <div id="storms-recent-list" class="storms-recent-list">
+        Carregando alertas recentes…
+      </div>
+      {% if demo_mode %}
+      <div class="dev-actions" id="yolo-dev-actions">
+        <span class="dev-actions-label">Ferramentas de demonstração</span>
+        <button type="button" id="btn-detect-sample" class="btn-action btn-success">
+          Testar imagem NASA (amostra)
         </button>
-        <span style="margin-left: 1rem; font-size: 11px; color: var(--text-sec);" id="test-status"></span>
+        <button type="button" id="btn-test-detection" class="btn-action btn-primary">
+          Simular alerta
+        </button>
+        <span class="test-status" id="test-status"></span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Galeria NASA Worldview ──────────────────────────────────────────── -->
+    <p class="section-title">Imagens de satélite — NASA Worldview (GOES-East IR C13)</p>
+    <div class="dash-card">
+      <div class="card-head">
+        <div>
+          <div class="card-head-title"><i class="bi bi-globe-americas"></i> Capturas recentes</div>
+          <div class="card-head-sub">Canal infravermelho 10.3µm · mesmo canal do Windy · dataset de treino do YOLO</div>
+        </div>
+        <span id="nasa-total" class="nasa-total-meta">—</span>
+      </div>
+      <div id="nasa-gallery" class="nasa-gallery">
+        <div class="section-error" style="grid-column:1/-1;" id="nasa-empty">
+          Carregando imagens...
+        </div>
       </div>
     </div>
 
     <!-- ── Linha 1: Tendência 30d + Semanal ──────────────────────────────── -->
-    <p class="section-title">Tendência &amp; Distribuição</p>
+    <p class="section-title">Histórico de alertas</p>
     <div class="chart-grid-2">
-      <div class="card">
+      <div class="dash-card">
         <div class="card-head">
           <div>
             <div class="card-head-title">Tendência — Últimos 30 dias</div>
@@ -525,7 +255,7 @@
         </div>
         <canvas id="trendChart"></canvas>
       </div>
-      <div class="card">
+      <div class="dash-card">
         <div class="card-head">
           <div>
             <div class="card-head-title">Por Dia da Semana</div>
@@ -538,7 +268,7 @@
 
     <!-- ── Linha 2: Horário + Heatmap ────────────────────────────────────── -->
     <div class="chart-grid-2b">
-      <div class="card">
+      <div class="dash-card">
         <div class="card-head">
           <div>
             <div class="card-head-title">Por Hora do Dia</div>
@@ -547,7 +277,7 @@
         </div>
         <canvas id="hourlyChart"></canvas>
       </div>
-      <div class="card">
+      <div class="dash-card">
         <div class="card-head">
           <div>
             <div class="card-head-title">Heatmap — Dia × Hora</div>
@@ -563,410 +293,56 @@
       </div>
     </div>
 
-    <!-- ── Mapa Windy ─────────────────────────────────────────────────────── -->
-    <p class="section-title">Mapa climático em tempo real</p>
+    <!-- ── Mapa da região (Leaflet + alertas) ─────────────────────────────── -->
+    <p class="section-title">Mapa da região</p>
+    <div class="region-map-card">
+      <div class="windy-head">
+        <i class="bi bi-map-fill text-blue"></i>
+        <span>Alertas de tempestade na sua área</span>
+        <small id="region-map-coords">—</small>
+      </div>
+      <div class="region-map-wrap">
+        <div id="region-map" role="application" aria-label="Mapa de alertas na região"></div>
+        <div id="region-map-empty" class="map-empty-state" hidden>
+          Nenhum alerta na sua região ainda
+        </div>
+      </div>
+      <div class="map-legend" aria-hidden="false">
+        <span><span class="map-legend-dot" aria-hidden="true"></span> Alerta de tempestade</span>
+        <span>Toque no marcador para ver confiança e horário</span>
+      </div>
+    </div>
+
+    <!-- ── Radar meteorológico (Windy) ───────────────────────────────────── -->
+    <p class="section-title">Radar meteorológico</p>
     <div class="windy-card">
       <div class="windy-head">
         <i class="bi bi-globe2 text-blue"></i>
-        <span>Precipitação — Brasil</span>
+        <span id="windy-map-title">Chuva na região</span>
         <small>via Windy.com &nbsp;·&nbsp; overlay: chuva</small>
       </div>
-      <iframe
-        class="windy-frame"
-        src="https://embed.windy.com/embed2.html?lat=-15.77&lon=-51.93&detailLat=-15.77&detailLon=-47.92&zoom=4&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1"
-        allowfullscreen
-        loading="lazy"
-      ></iframe>
+      <div class="windy-frame-wrap">
+        <div class="windy-loading" id="windy-loading">Carregando radar…</div>
+        <iframe
+          class="windy-frame"
+          id="windy-iframe"
+          data-src-template="https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&detailLat={lat}&detailLon={lon}&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1"
+          allowfullscreen
+          loading="lazy"
+          title="Radar meteorológico Windy"
+        ></iframe>
+      </div>
     </div>
 
   </main>
 
   <footer class="footer">
-    Global Solutions · FIAP 2026 · dados mockados para demonstração
+    Global Solutions · FIAP 2026 · alertas: armazenamento simulado (JSON local) até AWS DynamoDB estar pronto
   </footer>
 
-  <!-- Chart.js -->
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-
-  <script>
-    // ── Theme Management ─────────────────────────────────────────────────────
-    (function () {
-      const THEME_KEY = "dashboard-theme";
-      const savedTheme = localStorage.getItem(THEME_KEY) || "dark";
-      const html = document.documentElement;
-      
-      function setTheme(theme) {
-        html.setAttribute("data-theme", theme);
-        localStorage.setItem(THEME_KEY, theme);
-        updateChartDefaults();
-        updateWindyIframe();
-      }
-
-      function toggleTheme() {
-        const current = html.getAttribute("data-theme") || "dark";
-        const next = current === "dark" ? "light" : "dark";
-        setTheme(next);
-        updateThemeIcon(next);
-      }
-
-      function updateThemeIcon(theme) {
-        const btn = document.getElementById("theme-toggle");
-        btn.innerHTML = theme === "dark" 
-          ? '<i class="bi bi-sun-fill"></i>' 
-          : '<i class="bi bi-moon-stars-fill"></i>';
-      }
-
-      // Initialize theme
-      setTheme(savedTheme);
-      updateThemeIcon(savedTheme);
-      document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
-    })();
-
-    // ── Chart Defaults (tema-aware) ────────────────────────────────────────────
-    function getThemeColors() {
-      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-      return isDark
-        ? { text: "#8b949e", border: "#21262d", blue: "#58a6ff", green: "#3fb950" }
-        : { text: "#57606a", border: "#d0d7de", blue: "#0969da", green: "#1a7f37" };
-    }
-
-    function updateChartDefaults() {
-      const colors = getThemeColors();
-      Chart.defaults.color = colors.text;
-      Chart.defaults.borderColor = colors.border;
-      // Redraw active charts if needed (aqui seria necessário invalidar cache)
-    }
-
-    // ── Lazy-load Windy iframe ────────────────────────────────────────────────
-    function lazyLoadWindy() {
-      const iframe = document.querySelector(".windy-frame");
-      if (!iframe) return;
-
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting && !iframe.src) {
-            iframe.src = "https://embed.windy.com/embed2.html?lat=-15.77&lon=-51.93&detailLat=-15.77&detailLon=-47.92&zoom=4&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1";
-            observer.unobserve(iframe);
-          }
-        });
-      }, { rootMargin: "100px" });
-
-      observer.observe(iframe);
-    }
-
-    function updateWindyIframe() {
-      // Windy pode ter seu próprio tema; este é apenas um placeholder
-      // Para mudanças reais, seria necessário recarregar o iframe
-    }
-
-    // ── Defaults ─────────────────────────────────────────────────────────────
-    const colors = getThemeColors();
-    Chart.defaults.color = colors.text;
-    Chart.defaults.font.family = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-
-    // ── Timestamp ─────────────────────────────────────────────────────────────
-    document.getElementById("ts").textContent =
-      new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-
-    // ── KPIs ──────────────────────────────────────────────────────────────────
-    async function loadKPIs() {
-      const r = await fetch("/api/alerts/summary", { cache: "force-cache" });
-      const d = await r.json();
-      document.getElementById("kpi-total").textContent = d.total_30d;
-      document.getElementById("kpi-avg").textContent   = d.daily_avg;
-      document.getElementById("kpi-day").textContent   = d.peak_day;
-      document.getElementById("kpi-hour").textContent  = d.peak_hour;
-    }
-
-    // ── Real-Time Weather Data ─────────────────────────────────────────────────
-    async function loadWeatherData() {
-      try {
-        const r = await fetch("/api/weather/current?lat=-23.55&lon=-46.63");
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const data = await r.json();
-        
-        document.getElementById("weather-temp").textContent = `${data.temperature}°C`;
-        document.getElementById("weather-humidity").textContent = `${data.humidity}%`;
-        document.getElementById("weather-pressure").textContent = `${data.pressure} hPa`;
-        document.getElementById("weather-wind").textContent = `${data.wind_speed} m/s`;
-        
-        const ts = new Date(data.timestamp).toLocaleString("pt-BR", { 
-          dateStyle: "short", 
-          timeStyle: "short" 
-        });
-        document.getElementById("weather-timestamp").textContent = `Atualizado: ${ts}`;
-      } catch (err) {
-        console.error("Failed to load weather data:", err);
-        document.getElementById("weather-container").innerHTML = 
-          '<div style="grid-column: 1/-1; color: var(--text-sec); text-align: center;">Indisponível</div>';
-      }
-    }
-
-    // ── Real-Time Risk Assessment ──────────────────────────────────────────────
-    async function loadRiskData() {
-      try {
-        const r = await fetch("/api/risk/forecast?lat=-23.55&lon=-46.63");
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const data = await r.json();
-        
-        // Determine badge color based on risk category
-        const categoryColors = {
-          "LOW": { bg: "#3fb950", text: "BAIXO" },
-          "MEDIUM": { bg: "#d29922", text: "MÉDIO" },
-          "HIGH": { bg: "#f85149", text: "ALTO" }
-        };
-        
-        const colorSet = categoryColors[data.risk_category] || categoryColors.LOW;
-        
-        document.getElementById("risk-badge").textContent = 
-          `${(data.risk_score * 100).toFixed(0)}%`;
-        document.getElementById("risk-badge").style.color = colorSet.bg;
-        
-        document.getElementById("risk-category").textContent = 
-          `Risco ${colorSet.text}`;
-        document.getElementById("risk-category").style.color = colorSet.bg;
-        
-        document.getElementById("risk-recommendation").textContent = 
-          data.recommendation;
-      } catch (err) {
-        console.error("Failed to load risk data:", err);
-        document.getElementById("risk-container").innerHTML = 
-          '<div style="color: var(--text-sec); text-align: center;">Indisponível</div>';
-      }
-    }
-
-    // ── YOLO Storm Detector Status ──────────────────────────────────────────────
-    async function loadYOLOStatus() {
-      try {
-        const r = await fetch("/api/storms/detect", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image_url: "test" })
-        });
-        
-        // Se conseguiu responder (mesmo que error), o detector está disponível
-        const data = await r.json();
-        
-        if (r.ok || r.status === 400) {
-          document.getElementById("yolo-status").textContent = "✅ Operacional";
-          document.getElementById("yolo-status").style.color = "#3fb950";
-        } else {
-          document.getElementById("yolo-status").textContent = "⚠️ Indisponível";
-          document.getElementById("yolo-status").style.color = "#d29922";
-        }
-      } catch (err) {
-        console.error("Failed to load YOLO status:", err);
-        document.getElementById("yolo-status").textContent = "❌ Erro";
-        document.getElementById("yolo-status").style.color = "#f85149";
-      }
-    }
-
-    // ── Test Storm Detection (Simulate) ────────────────────────────────────────
-    async function testStormDetection() {
-      const btn = document.getElementById("btn-test-detection");
-      const status = document.getElementById("test-status");
-      
-      btn.disabled = true;
-      status.textContent = "⏳ Processando...";
-      
-      try {
-        const r = await fetch("/api/alerts/simulate-detection", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            confidence: 0.85,
-            lat: -23.55,
-            lon: -46.63
-          })
-        });
-        
-        const data = await r.json();
-        
-        if (data.success) {
-          status.textContent = "✅ Alerta gerado com sucesso!";
-          document.getElementById("yolo-last-detection").textContent = 
-            new Date(data.alert.timestamp).toLocaleTimeString("pt-BR");
-          document.getElementById("yolo-avg-confidence").textContent = 
-            `${(data.alert.confidence * 100).toFixed(0)}%`;
-          
-          setTimeout(() => {
-            status.textContent = "";
-            btn.disabled = false;
-          }, 3000);
-        } else {
-          status.textContent = `❌ ${data.error}`;
-          btn.disabled = false;
-        }
-      } catch (err) {
-        console.error("Failed to test detection:", err);
-        status.textContent = `❌ Erro: ${err.message}`;
-        btn.disabled = false;
-      }
-    }
-
-    // ── Trend chart ───────────────────────────────────────────────────────────
-    async function loadTrend() {
-      const r = await fetch("/api/alerts/daily", { cache: "force-cache" });
-      const d = await r.json();
-      const c = getThemeColors();
-      new Chart(document.getElementById("trendChart"), {
-        type: "line",
-        data: {
-          labels: Object.keys(d),
-          datasets: [{
-            label: "Alertas",
-            data: Object.values(d),
-            borderColor: c.blue,
-            backgroundColor: `${c.blue}15`,
-            borderWidth: 2,
-            pointRadius: 2,
-            pointHoverRadius: 5,
-            tension: 0.35,
-            fill: true,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: c.text }, grid: { color: c.border } },
-            y: { beginAtZero: true, ticks: { color: c.text }, grid: { color: c.border } },
-          },
-        },
-      });
-    }
-
-    // ── Weekly chart ──────────────────────────────────────────────────────────
-    async function loadWeekly() {
-      const r = await fetch("/api/alerts/weekly", { cache: "force-cache" });
-      const d = await r.json();
-      const c = getThemeColors();
-      new Chart(document.getElementById("weeklyChart"), {
-        type: "bar",
-        data: {
-          labels: Object.keys(d),
-          datasets: [{
-            data: Object.values(d),
-            backgroundColor: `${c.blue}b3`,
-            borderColor: c.blue,
-            borderWidth: 1,
-            borderRadius: 4,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: c.text }, grid: { color: c.border } },
-            y: { beginAtZero: true, ticks: { color: c.text }, grid: { color: c.border } },
-          },
-        },
-      });
-    }
-
-    // ── Hourly chart ──────────────────────────────────────────────────────────
-    async function loadHourly() {
-      const r = await fetch("/api/alerts/hourly", { cache: "force-cache" });
-      const d = await r.json();
-      const c = getThemeColors();
-      new Chart(document.getElementById("hourlyChart"), {
-        type: "bar",
-        data: {
-          labels: Object.keys(d),
-          datasets: [{
-            data: Object.values(d),
-            backgroundColor: `${c.green}b3`,
-            borderColor: c.green,
-            borderWidth: 1,
-            borderRadius: 3,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: c.text, maxTicksLimit: 12 }, grid: { color: c.border } },
-            y: { beginAtZero: true, ticks: { color: c.text }, grid: { color: c.border } },
-          },
-        },
-      });
-    }
-
-    // ── Heatmap ───────────────────────────────────────────────────────────────
-    async function loadHeatmap() {
-      const r    = await fetch("/api/alerts/heatmap", { cache: "force-cache" });
-      const data = await r.json();
-
-      const DAYS  = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
-      const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2,"0")}h`);
-
-      // Build lookup
-      const map = {};
-      data.forEach(({ x, y, v }) => { map[`${y}-${x}`] = v; });
-      const maxV = Math.max(...data.map(d => d.v), 1);
-
-      // Interpolate blue → cyan for intensity
-      function cell_color(v) {
-        const t = v / maxV;
-        if (t === 0) return "rgba(28,35,48,.6)";
-        const r = Math.round(20  + t * 38);
-        const g = Math.round(60  + t * 185);
-        const b = Math.round(130 + t * 120);
-        return `rgba(${r},${g},${b},${0.3 + t * 0.7})`;
-      }
-
-      const thead = document.querySelector("#heatmap-table thead tr");
-      const tbody = document.querySelector("#heatmap-table tbody");
-
-      // Header: hours
-      thead.innerHTML = "<th></th>";
-      HOURS.forEach(h => {
-        const th = document.createElement("th");
-        th.textContent = h.replace("h","");
-        thead.appendChild(th);
-      });
-
-      // Rows
-      DAYS.forEach((day, dy) => {
-        const tr = document.createElement("tr");
-        const label = document.createElement("td");
-        label.className = "hm-day";
-        label.textContent = day;
-        tr.appendChild(label);
-
-        HOURS.forEach((_, hx) => {
-          const v  = map[`${dy}-${hx}`] ?? 0;
-          const td = document.createElement("td");
-          td.style.background = cell_color(v);
-          td.title = `${day} ${HOURS[hx]}: ${v} alerta(s)`;
-          tr.appendChild(td);
-        });
-
-        tbody.appendChild(tr);
-      });
-    }
-
-    // ── Bootstrap ─────────────────────────────────────────────────────────────
-    lazyLoadWindy();
-    
-    // Event listeners
-    document.getElementById("btn-test-detection").addEventListener("click", testStormDetection);
-    
-    // Load all data
-    Promise.all([
-      loadKPIs(), 
-      loadTrend(), 
-      loadWeekly(), 
-      loadHourly(), 
-      loadHeatmap(), 
-      loadWeatherData(), 
-      loadRiskData(),
-      loadYOLOStatus()
-    ]);
-  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="{{ url_for('static', filename='dashboard.js') }}?v=3" defer></script>
 </body>
 </html>
-

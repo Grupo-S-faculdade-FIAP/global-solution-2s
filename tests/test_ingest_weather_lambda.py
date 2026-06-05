@@ -4,14 +4,22 @@ This Lambda is triggered by CloudWatch Events every 30 minutes.
 It fetches weather data from Open-Meteo API and stores in DynamoDB.
 """
 
+import sys
 import pytest
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 from datetime import datetime
-from src.app.lambdas.ingest_weather import (
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from app.lambdas.ingest_weather import (  # noqa: E402
     lambda_handler,
     WeatherMetricsRepository,
     parse_locations,
 )
+
+# Módulo real usado nos patches (sem prefixo src.)
+_MODULE = "app.lambdas.ingest_weather"
 
 
 class TestWeatherIngestLambda:
@@ -19,8 +27,8 @@ class TestWeatherIngestLambda:
 
     def test_lambda_handler_success(self):
         """Test successful weather ingestion."""
-        with patch("src.app.lambdas.ingest_weather.WeatherService") as mock_service:
-            with patch("src.app.lambdas.ingest_weather.WeatherMetricsRepository") as mock_repo:
+        with patch("app.lambdas.ingest_weather.WeatherService") as mock_service:
+            with patch("app.lambdas.ingest_weather.WeatherMetricsRepository") as mock_repo:
                 # Mock weather data
                 mock_service.return_value.get_current.return_value = {
                     "temperature": 28.5,
@@ -41,8 +49,8 @@ class TestWeatherIngestLambda:
                 
     def test_lambda_handler_multiple_locations(self):
         """Test ingestion for multiple locations."""
-        with patch("src.app.lambdas.ingest_weather.WeatherService") as mock_service:
-            with patch("src.app.lambdas.ingest_weather.WeatherMetricsRepository") as mock_repo:
+        with patch("app.lambdas.ingest_weather.WeatherService") as mock_service:
+            with patch("app.lambdas.ingest_weather.WeatherMetricsRepository") as mock_repo:
                 # Mock weather data
                 mock_weather = {
                     "temperature": 25.0,
@@ -63,8 +71,8 @@ class TestWeatherIngestLambda:
                 
     def test_lambda_handler_stores_in_dynamodb(self):
         """Test that weather data is stored in DynamoDB."""
-        with patch("src.app.lambdas.ingest_weather.WeatherService") as mock_service:
-            with patch("src.app.lambdas.ingest_weather.WeatherMetricsRepository") as mock_repo:
+        with patch("app.lambdas.ingest_weather.WeatherService") as mock_service:
+            with patch("app.lambdas.ingest_weather.WeatherMetricsRepository") as mock_repo:
                 mock_weather = {
                     "temperature": 28.5,
                     "humidity": 75,
@@ -83,8 +91,8 @@ class TestWeatherIngestLambda:
                 
     def test_lambda_handler_graceful_error(self):
         """Test that Lambda handles errors gracefully."""
-        with patch("src.app.lambdas.ingest_weather.WeatherService") as mock_service:
-            with patch("src.app.lambdas.ingest_weather.WeatherMetricsRepository") as mock_repo:
+        with patch("app.lambdas.ingest_weather.WeatherService") as mock_service:
+            with patch("app.lambdas.ingest_weather.WeatherMetricsRepository") as mock_repo:
                 # Simulate API error
                 mock_service.return_value.get_current.side_effect = Exception("API error")
                 
@@ -95,8 +103,8 @@ class TestWeatherIngestLambda:
             
     def test_lambda_handler_returns_valid_response(self):
         """Test that Lambda returns valid AWS Lambda response format."""
-        with patch("src.app.lambdas.ingest_weather.WeatherService") as mock_service:
-            with patch("src.app.lambdas.ingest_weather.WeatherMetricsRepository") as mock_repo:
+        with patch("app.lambdas.ingest_weather.WeatherService") as mock_service:
+            with patch("app.lambdas.ingest_weather.WeatherMetricsRepository") as mock_repo:
                 mock_service.return_value.get_current.return_value = {
                     "temperature": 20.0,
                     "humidity": 50,
@@ -148,7 +156,7 @@ class TestWeatherMetricsRepository:
         
     def test_metric_includes_required_fields(self):
         """Test that weather metric has all required fields."""
-        from src.app.lambdas.ingest_weather import format_weather_metric
+        from app.lambdas.ingest_weather import format_weather_metric
         
         weather = {
             "temperature": 28.5,
@@ -174,7 +182,7 @@ class TestWeatherMetricsRepository:
 class TestParseLocations:
     """Test location parsing from settings."""
     
-    @patch("src.app.lambdas.ingest_weather.settings")
+    @patch("app.lambdas.ingest_weather.settings")
     def test_parse_locations_valid(self, mock_settings):
         """Test parsing valid location string."""
         mock_settings.WEATHER_LOCATIONS = "-23.5505,-46.6333,-22.9068,-43.1729"
@@ -185,7 +193,7 @@ class TestParseLocations:
         assert locations[0] == (-23.5505, -46.6333)
         assert locations[1] == (-22.9068, -43.1729)
         
-    @patch("src.app.lambdas.ingest_weather.settings")
+    @patch("app.lambdas.ingest_weather.settings")
     def test_parse_locations_single(self, mock_settings):
         """Test parsing single location."""
         mock_settings.WEATHER_LOCATIONS = "-23.5505,-46.6333"
@@ -195,7 +203,7 @@ class TestParseLocations:
         assert len(locations) == 1
         assert locations[0] == (-23.5505, -46.6333)
         
-    @patch("src.app.lambdas.ingest_weather.settings")
+    @patch("app.lambdas.ingest_weather.settings")
     def test_parse_locations_invalid(self, mock_settings):
         """Test that odd number of values raises error."""
         mock_settings.WEATHER_LOCATIONS = "-23.5505,-46.6333,-22.9068"

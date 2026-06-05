@@ -1,11 +1,13 @@
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.wsgi import WSGIMiddleware
 from mangum import Mangum
 
 from app.core.config import settings
-from app.routers import cv, ml, iot, dashboard, data_integration
+from app.routers import cv, ml, iot, dashboard, data_integration, dashboard_bff
 from app.routers.cv import process_s3_image
 
 logger = logging.getLogger(__name__)
@@ -29,11 +31,38 @@ app.include_router(ml.router, prefix="/ml", tags=["Machine Learning"])
 app.include_router(iot.router, prefix="/iot", tags=["IoT"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(data_integration.router, prefix="", tags=["Data Integration"])
+# BFF /api/* no FastAPI (antes do mount Flask) — formato esperado pelo index.html
+app.include_router(dashboard_bff.router)
+
+
+def _mount_dashboard_ui(application: FastAPI) -> None:
+    """
+    Dashboard Flask (HTML + rotas /api/* BFF) no mesmo processo que a API.
+    Rotas FastAPI registradas acima têm prioridade; o restante vai ao Flask.
+    Desative em Lambda com MOUNT_DASHBOARD=false.
+    """
+    if os.environ.get("MOUNT_DASHBOARD", "true").strip().lower() not in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    ):
+        return
+    try:
+        from dashboard.app import app as flask_dashboard
+
+        application.mount("/", WSGIMiddleware(flask_dashboard))
+        logger.info("Dashboard UI montado em / (porta única)")
+    except Exception as exc:
+        logger.warning("Dashboard UI não montado: %s", exc)
 
 
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "ok"}
+
+
+_mount_dashboard_ui(app)
 
 
 _http_handler = Mangum(app)

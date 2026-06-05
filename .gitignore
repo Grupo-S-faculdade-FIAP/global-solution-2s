@@ -63,3 +63,9 @@ data/models/
 # Node/npm (if applicable)
 node_modules/
 npm-debug.log
+
+# Dados gerados (imagens grandes — não commitar)
+data/goes_raw/
+data/nasa_captures/*.png
+runs/
+yolov5/

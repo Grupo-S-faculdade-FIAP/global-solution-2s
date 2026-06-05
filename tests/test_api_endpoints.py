@@ -188,3 +188,34 @@ class TestMapOverlayEndpoint:
             assert feature["type"] == "Feature"
             assert "properties" in feature
             assert "geometry" in feature
+
+
+class TestAlertsAnalyticsEndpoints:
+    """Test analytics endpoints for dashboard bar charts."""
+
+    def test_get_alerts_weekly_success(self):
+        """Test weekly alerts endpoint returns expected weekday keys."""
+        response = client.get("/alerts/weekly?days=30")
+
+        # May return 200 with real data or 500 without AWS credentials
+        assert response.status_code in [200, 500]
+
+        if response.status_code == 200:
+            data = response.json()
+            expected_keys = {
+                "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"
+            }
+            assert set(data.keys()) == expected_keys
+
+    def test_get_alerts_hourly_success(self):
+        """Test hourly alerts endpoint returns 24 hour buckets."""
+        response = client.get("/alerts/hourly?days=30")
+
+        # May return 200 with real data or 500 without AWS credentials
+        assert response.status_code in [200, 500]
+
+        if response.status_code == 200:
+            data = response.json()
+            assert len(data) == 24
+            assert "00h" in data
+            assert "23h" in data

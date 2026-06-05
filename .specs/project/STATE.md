@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** —
-**Last updated:** 2026-06-01 (estrutura de repositório ajustada conforme template TIAO-2026)
+**Last updated:** 2026-06-04 (RPI de integração publicado)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -11,10 +11,11 @@
 
 ## Current Focus
 
-**Active feature:** data-integration-dashboard (integração Dataset YOLO + Open-Meteo API + Dashboard)
-**Last task completed:** ✅ T-11 (Integrar FastAPI com Flask dashboard; proxy routes + real-time cards) (2026-06-02)
-**Next task:** T-01 (Setup DynamoDB) — Foundation para persistência de dados de tempo real
+**Active feature:** ci-cd-pipeline
+**Last task completed:** Pipeline GitHub Actions (CI pytest + CD Lambda OIDC) — workflows, docs/CI-CD.md, make test (2026-06-04)
+**Next task:** Configurar OIDC na AWS + secrets/vars no GitHub; gs-closure Fase C DynamoDB real
 **Blockers:** nenhum
+**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — Relatório de Progresso e Integração (v1.0, 2026-06-04)
 
 ---
 
@@ -36,6 +37,7 @@
 | 2026-06-02 | D-012 | Windy API widget (não REST) | Free tier + widget interativo; widget é suficiente | Dashboard |
 | 2026-06-02 | D-013 | T-11/T-12 revisadas para usar Flask dashboard existente | Reutilizar codebase; não recriar do zero | Frontend |
 | 2026-06-02 | D-014 | Centralizar variáveis de ambiente em .env (pydantic-settings) | Sem hardcoding; fácil deployment; team-friendly | Toda a API |
+| 2026-06-04 | D-015 | CI/CD via GitHub Actions + OIDC (sem access keys) | Credenciais temporárias; least privilege; deploy auto na main | Lambda gs2-api |
 
 ---
 
@@ -50,6 +52,13 @@
 ## Lessons Learned
 
 - 2026-06-01 — Projeto inicializado com spec-driven. Manter cada módulo com seu próprio `spec.md` para facilitar divisão entre integrantes.
+- 2026-06-04 — Os docs de `.specs/codebase/` estavam como template genérico; manter mapeamento real evita decisões baseadas em suposição.
+- 2026-06-04 — Treino YOLO: usar só NASA por ora; screenshots Windy antigos fora do dataset; futuras capturas Windy podem entrar depois com rótulo revisado.
+- 2026-06-04 — Retreino NASA com `--limiar 200 --area 600`: 266 bboxes, mAP@0.5 ≈ 0.546 (época 46), precision ~0.89, recall ~0.42. Modelo em `src/models/weights/best.pt`.
+- 2026-06-04 — DynamoDB mock: `DYNAMODB_USE_MOCK=true` (default) → `data/demo/storm_alerts.json`; `POST /alerts/simulate`; gráficos e `/storms/recent` usam o mesmo store.
+- 2026-06-04 — Dashboard: `DEMO_MODE=true` (default) mantém fallbacks de gráficos; `false` exige FastAPI e oculta botões de dev. Localização em `localStorage` (`dashboard-location`).
+- 2026-06-04 — Dashboard: seção **Mapa da região** (Leaflet CDN) consome `/api/map/overlay` com bbox da localização; Windy permanece como **Radar meteorológico**.
+- 2026-06-04 — Dois servidores (5000+8000) confundiam usuários e `make demo` falhava se :8000 ocupada (só Flask, BFF quebrado). Solução: `WSGIMiddleware` monta Flask em `/` após rotas FastAPI; URL única `http://127.0.0.1:8000`. Causa KPIs "—": abrir :8000 sem UI ou JS abortado antes do `bootstrapDashboard` (listeners em sliders nulos).
 
 ---
 

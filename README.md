@@ -53,6 +53,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 - **`docs/`**: Documentação textual do projeto — como: brainstorm, diagramas de arquitetura, desenhos de fluxo, prints, storyboard, estratégia de IA, especificações de hardware (ESP32/Wokwi), atas de reunião e decisões técnicas.
   - setup da AWS: https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki/AWS%E2%80%90STATE
   - **Deploy da Lambda:** [docs/DEPLOY-LAMBDA.md](docs/DEPLOY-LAMBDA.md)
+  - **CI/CD (GitHub Actions + OIDC):** [docs/CI-CD.md](docs/CI-CD.md)
 
 - **`src/`**: Todo o código-fonte desenvolvido — API FastAPI (routers de CV, IoT e Dashboard), scripts de treinamento YOLO, notebooks de exploração e análise de dados, código para ESP32 e modelos serializados.
 
@@ -68,7 +69,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 - **Repositório GitHub:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s
 - **Vídeo de demonstração (5min):** *(link a ser adicionado após gravação)*
-- **Dashboard (Streamlit):** *(link a ser adicionado após deploy)*
+- **Dashboard (Streamlit):** *(link a ser adicionado após deploy)* — **demo local:** http://127.0.0.1:8000 (`make demo`; tema claro/escuro na topbar)
 - **API Backend (AWS):** https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com
 
 **Decisões técnicas relevantes:**
@@ -79,6 +80,43 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 **Observações gerais:**
 - Este projeto foi desenvolvido no contexto da Global Solution da FIAP (Graduação ON em IA)
+
+### Status de Execução (Caroline e Lucas) — 2026-06-04
+
+Evidências objetivas aplicadas no projeto:
+
+- Caroline (Análise de dados):
+  - Gráficos de alertas por dia da semana e horário no dashboard agora consomem agregação real via API (`/alerts/weekly` e `/alerts/hourly`) com dados do DynamoDB, mantendo fallback local para demo sem nuvem.
+- Lucas (YOLO + pipeline de dados):
+  - Captura NASA incremental executada com sucesso (+3 imagens no dia).
+  - Conversão NASA -> YOLO executada em 36 imagens.
+  - Dataset de treino atualizado para 46 imagens e 46 labels.
+  - Retreino smoke (1 época) executado com sucesso e `best.pt` atualizado em `src/models/weights/best.pt`.
+
+Números atuais verificados:
+
+- `data/nasa_captures`: 36 imagens PNG
+- `data/model-dataset/images/train`: 46 imagens
+- `data/model-dataset/labels/train`: 46 labels
+
+Trilha YOLO NASA (concluída):
+
+1. `data/nasa_captures`: 90 imagens
+2. Dataset só NASA (`--limiar 200 --area 600`): mAP@0.5 ≈ **0,55**
+3. Endpoints: `GET /storms/recent`, `GET /map/overlay` (DynamoDB `storm_alerts`)
+
+**Demo local (API + dashboard — uma porta):**
+
+```bash
+make demo
+# Abra http://127.0.0.1:8000
+```
+
+**Dashboard produtor:** painel HTML em `/` com tema **claro/escuro** (botão na topbar; preferência salva em `localStorage`). Gráficos, heatmap e mapas Leaflet acompanham o tema. Detalhes e checklist de validação: [docs/RPI.md](docs/RPI.md) §7.2.
+
+**Alertas / DynamoDB (enquanto AWS não estiver pronta):** por padrão `DYNAMODB_USE_MOCK=true` — dados em `data/demo/storm_alerts.json` (seed automático + `POST /alerts/simulate`). Quando a AWS estiver ok: `DYNAMODB_USE_MOCK=false` no `.env`.
+
+Checklist de entrega: `.specs/project/CHECKLIST_ENTREGA.md`
 
 ---
 

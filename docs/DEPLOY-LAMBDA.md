@@ -2,6 +2,8 @@
 
 Guia para o time republicar a API na AWS após mudanças no backend.
 
+**Deploy automatizado:** merge na `main` dispara [CI/CD via GitHub Actions](CI-CD.md). Use este guia como fallback manual.
+
 **Referência de infraestrutura:** [AWS-STATE.md](https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki/AWS%E2%80%90STATE) (ARNs, armadilhas, permissões).
 
 ---

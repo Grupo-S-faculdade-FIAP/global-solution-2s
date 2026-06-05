@@ -1,0 +1,72 @@
+{
+  "limiar_ref": 210,
+  "area_ref_px": 400,
+  "total_flags": 7,
+  "flags": [
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1342.png",
+      "split": "train",
+      "n_bboxes": 8,
+      "bright_ratio": 0.0126,
+      "motivos": [
+        "muitas_bboxes"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1350.png",
+      "split": "train",
+      "n_bboxes": 11,
+      "bright_ratio": 0.0096,
+      "motivos": [
+        "muitas_bboxes"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1521.png",
+      "split": "train",
+      "n_bboxes": 8,
+      "bright_ratio": 0.0126,
+      "motivos": [
+        "muitas_bboxes"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1528.png",
+      "split": "train",
+      "n_bboxes": 11,
+      "bright_ratio": 0.0096,
+      "motivos": [
+        "muitas_bboxes"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1536.png",
+      "split": "train",
+      "n_bboxes": 27,
+      "bright_ratio": 0.0315,
+      "motivos": [
+        "muitas_bboxes"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1540.png",
+      "split": "train",
+      "n_bboxes": 11,
+      "bright_ratio": 0.0154,
+      "motivos": [
+        "muitas_bboxes"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1531.png",
+      "split": "val",
+      "n_bboxes": 9,
+      "bright_ratio": 0.0072,
+      "motivos": [
+        "muitas_bboxes"
+      ]
+    }
+  ],
+  "overlays_em": "/Users/caroline/Desktop/FIAP/global-solutions/data/label_review",
+  "recomendacao": "Considerar --area 600 ou --limiar 215 (ruído / bboxes em excesso)."
+}

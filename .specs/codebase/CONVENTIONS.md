@@ -1,10 +1,9 @@
 # Conventions
 
-**Project:** [Project Name]
-**Mapped on:** [YYYY-MM-DD]
+**Project:** global-solution-2s
+**Mapped on:** 2026-06-04
 
-> These are the coding conventions discovered in this codebase.
-> Agents MUST follow these when generating or modifying code.
+Estas convencoes foram observadas no codigo atual e devem ser seguidas em novas alteracoes.
 
 ---
 
@@ -12,43 +11,40 @@
 
 | Entity | Convention | Example |
 |--------|-----------|---------|
-| Files (components) | PascalCase | `UserCard.tsx` |
-| Files (utils/services) | camelCase | `authService.ts` |
-| Files (routes/pages) | kebab-case | `user-profile/page.tsx` |
-| Variables / functions | camelCase | `getUserById` |
-| Constants | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT` |
-| Types / Interfaces | PascalCase | `UserProfile`, `AuthState` |
-| CSS classes | kebab-case | `user-card__avatar` |
+| Arquivos Python | snake_case | `risk_assessment.py`, `ingest_weather.py` |
+| Funcoes e variaveis | snake_case | `process_s3_image`, `validate_coordinates` |
+| Classes | PascalCase | `WeatherService`, `AgriRiskModel` |
+| Constantes | UPPER_SNAKE_CASE | `MODEL_PATH`, `YOLO_CONFIDENCE_THRESHOLD` |
+| Rotas HTTP | kebab-case e prefixadas por modulo | `/predict/agricultural-risk`, `/storms/recent` |
 
 ---
 
 ## File Organization
 
-```
+```text
 src/
-├── app/               # Next.js pages / routes
-├── components/        # Reusable UI components
-│   └── [Component]/
-│       ├── index.tsx
-│       └── [Component].test.tsx
-├── services/          # Business logic
-├── repositories/      # Data access layer
-├── hooks/             # Custom React hooks
-├── lib/               # Shared utilities
-├── types/             # Global TypeScript types
-└── config/            # App configuration
+├── app/
+│   ├── core/       # configuracao e fundamentos
+│   ├── models/     # schemas pydantic
+│   ├── routers/    # endpoints por dominio
+│   ├── services/   # regras de negocio
+│   ├── clients/    # clientes externos
+│   ├── lambdas/    # handlers agendados/event-driven
+│   └── main.py     # app FastAPI + entrypoint Lambda
+├── dashboard/      # app Flask para visualizacao
+├── models/         # artefatos de modelo (weights e pkl)
+└── tests/          # testes locais da camada src
 ```
 
 ---
 
 ## Code Style
 
-- **Formatter:** [e.g., Prettier — config in `.prettierrc`]
-- **Linter:** [e.g., ESLint — config in `eslint.config.ts`]
-- **Tab width:** [e.g., 2 spaces]
-- **Quotes:** [e.g., single quotes]
-- **Semicolons:** [e.g., required / omitted]
-- **Trailing commas:** [e.g., all / none]
+- Linguagem principal: Python com type hints.
+- Imports em blocos: stdlib -> terceiros -> app local.
+- Logging por modulo com `logging.getLogger(__name__)`.
+- Validacao de entrada HTTP com Query constraints e Pydantic.
+- Configuracao via `BaseSettings` em `app/core/config.py`.
 
 ---
 
@@ -56,62 +52,56 @@ src/
 
 ### Error Handling
 
-```typescript
-// Pattern used in this codebase:
-// [describe or show the error handling pattern]
+```python
+try:
+	# chamada de servico externo ou inferencia
+	...
+except Exception as e:
+	raise HTTPException(status_code=500, detail=str(e))
 ```
 
 ### API Responses
 
-```typescript
-// Standard response shape:
-// { data: T | null, error: string | null }
+```python
+# Rotas usam response_model quando aplicavel
+@router.get("/weather/current", response_model=WeatherResponse)
+def get_weather_current(...):
+	return WeatherResponse(...)
 ```
 
-### Async / Await
+### Async / Sync
 
-```typescript
-// Use async/await, not .then()
-// Wrap in try/catch at the service boundary
+```python
+# Ha mistura de handlers sync e async
+@router.get("/status")
+def status(): ...
+
+@router.post("/detect/storm")
+async def detect_storm(...): ...
 ```
 
-### Imports
+### Imports on-demand
 
-```typescript
-// Order: external libs → internal aliases → relative paths
-import { useState } from 'react'
-import { db } from '@/lib/db'
-import { UserCard } from '../UserCard'
+```python
+# Em alguns endpoints, imports de servicos sao feitos dentro da funcao
+from app.services.agri_risk_model import AgriRiskModel
 ```
 
 ---
 
 ## Prohibited Patterns
 
-- ❌ No `any` type in TypeScript — use `unknown` + type guards
-- ❌ No direct DB queries in components or API routes — use services/repositories
-- ❌ No hardcoded secrets — use environment variables
-- ❌ No `console.log` in production code — use structured logger
-- ❌ No inline styles — use Tailwind classes or CSS modules
+- Nao hardcodar segredos e ARNs; usar `.env` + settings.
+- Nao colocar regra de negocio complexa diretamente em router.
+- Nao commitar artefatos temporarios, caches e credenciais.
+- Evitar testes que dependem de internet sem fallback de mock.
 
 ---
 
 ## Git Conventions
 
-**Commit format:** Conventional Commits 1.0.0
+Conforme `.github/copilot-instructions.md`:
 
-```
-<type>(<scope>): <description>
-```
-
-| Type | When |
-|------|------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `refactor` | Code change, no behavior change |
-| `test` | Test additions/corrections |
-| `docs` | Documentation only |
-| `chore` | Maintenance, deps |
-| `ci` | CI/CD changes |
-
-**Branch naming:** `[type]/[short-description]` — e.g., `feat/user-auth`, `fix/cart-total`
+- Conventional Commits: `<type>(<scope>): <description>`
+- Tipos aceitos: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`
+- Um commit por unidade atomica de trabalho
