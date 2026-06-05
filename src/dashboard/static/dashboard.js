@@ -297,12 +297,20 @@ function refreshHeatmapColors() {
 }
 
 // ── API fetch (evita cache de respostas 503 antigas no navegador) ─────────
-async function fetchApi(url, options = {}) {
-  return fetch(url, {
+async function fetchApi(url, options = {}, retries = 3) {
+  const fetchOpts = {
     cache: "no-store",
     headers: { Accept: "application/json", ...(options.headers || {}) },
     ...options,
-  });
+  };
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const r = await fetch(url, fetchOpts);
+    if (r.ok || ![502, 503, 504].includes(r.status) || attempt === retries) {
+      return r;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
+  }
+  return fetch(url, fetchOpts);
 }
 
 // ── Localização & config ───────────────────────────────────────────────────
@@ -326,7 +334,7 @@ const BRAZIL_CITIES = [
 ];
 var dashboardConfig = { demo_mode: true, default_lat: DEFAULT_LOC.lat, default_lon: DEFAULT_LOC.lon };
 var userLocation = { ...DEFAULT_LOC };  // var (não let) — evita TDZ no IIFE de tema
-var lastDataSource = "demo";
+var lastDataSource = "pending";
 var locationPickerMap = null;
 var locationPickerMarker = null;
 var locationPickerRadius = null;
@@ -770,16 +778,20 @@ function setDataSourceChip(source) {
   if (source === "live") lastDataSource = "live";
   else if (source === "demo") lastDataSource = lastDataSource === "live" ? "live" : "demo";
   else if (source === "unavailable") lastDataSource = "offline";
+  else if (source === "pending") lastDataSource = "pending";
 
   const chip = document.getElementById("data-source-chip");
   if (!chip) return;
   const labels = {
+    pending: ["Carregando…", "demo"],
     demo: ["Demonstração", "demo"],
     live: ["Dados reais", "live"],
     offline: ["Offline", "offline"],
   };
-  const mode = dashboardConfig.demo_mode && lastDataSource === "demo" ? "demo"
-    : lastDataSource === "offline" ? "offline" : "live";
+  // Chip reflete a fonte real da resposta (header X-Data-Source), não a flag DEMO_MODE do servidor
+  const mode = lastDataSource === "offline" ? "offline"
+    : lastDataSource === "demo" ? "demo"
+    : lastDataSource === "live" ? "live" : "pending";
   const [text, cls] = labels[mode];
   chip.textContent = text;
   chip.className = `data-source-chip ${cls}`;
@@ -811,15 +823,16 @@ function setLastUpdated(date) {
 async function loadDashboardConfig() {
   try {
     const r = await fetchApi("/api/dashboard/config");
-    if (r.ok) dashboardConfig = await r.json();
+    if (r.ok) {
+      dashboardConfig = await r.json();
+      noteResponseSource(r);
+    }
   } catch { /* defaults */ }
   if (!dashboardConfig.demo_mode) {
     const dev = document.getElementById("yolo-dev-actions");
     if (dev) dev.style.display = "none";
-    setDataSourceChip("live");
-  } else {
-    setDataSourceChip("demo");
   }
+  setDataSourceChip("pending");
 }
 
 function applyLocationFromInputs() {

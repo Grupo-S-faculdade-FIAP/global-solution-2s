@@ -190,8 +190,16 @@ def _demo_storms_recent(hours: int = 24) -> list[dict[str, Any]]:
 
 
 def dashboard_config() -> tuple[Any, str, int]:
+    storage = "mock_json"
+    try:
+        from app.services.storm_alerts_store import use_mock_store
+        storage = "mock_json" if use_mock_store() else "dynamodb"
+    except ImportError:
+        pass
+    # demo_mode no frontend = permite fallback local; chip usa X-Data-Source da resposta real
     return _ok({
         "demo_mode": DEMO_MODE,
+        "storage": storage,
         "default_lat": DEFAULT_WEATHER_LAT,
         "default_lon": DEFAULT_WEATHER_LON,
     }, "live")
