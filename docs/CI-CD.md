@@ -180,9 +180,10 @@ Fluxo automático na `main`:
 3. `docker build` em `src/` (contexto igual ao [DEPLOY-LAMBDA.md](DEPLOY-LAMBDA.md))
 4. Push com tags `:latest` e `:sha-<commit>`
 5. `aws lambda update-function-code`
-6. `aws lambda update-function-configuration` (env vars de produção: `DEMO_MODE=false`, etc.)
-7. Aguarda `State=Active` e `LastUpdateStatus=Successful`
-8. Smoke test: `GET /health` → `{"status":"ok"}`
+6. `aws lambda wait function-updated` (evita `ResourceConflictException` no passo seguinte)
+7. `aws lambda update-function-configuration` (env vars de produção: `DEMO_MODE=false`, etc.)
+8. Aguarda `State=Active` e `LastUpdateStatus=Successful`
+9. Smoke test: `GET /health` → `{"status":"ok"}`
 
 A primeira build no CI pode levar 15–20 min (layers torch/YOLO). Builds seguintes usam cache de layers do Docker.
 

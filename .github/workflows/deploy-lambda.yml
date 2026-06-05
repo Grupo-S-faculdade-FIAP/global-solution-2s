@@ -81,6 +81,12 @@ jobs:
             --image-uri "${{ steps.image.outputs.tag_latest }}" \
             --region "${{ env.AWS_REGION }}"
 
+      - name: Wait for image deploy
+        run: |
+          aws lambda wait function-updated \
+            --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
+            --region "${{ env.AWS_REGION }}"
+
       - name: Update Lambda environment
         run: |
           aws lambda update-function-configuration \
