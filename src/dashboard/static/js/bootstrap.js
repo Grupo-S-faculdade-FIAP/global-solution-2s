@@ -8,7 +8,21 @@ import { loadYOLOStatus, loadRecentStorms } from "./sections/yolo.js";
 import { loadNASAGallery } from "./sections/nasa.js";
 import { loadRegionMap } from "./maps/region.js";
 
+/** Aquece a Lambda antes do burst de /api/* (cold start pode levar 60–90 s). */
+async function warmBackend() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 120_000);
+  try {
+    await fetch("/health", { cache: "no-store", signal: controller.signal });
+  } catch {
+    /* segue — loaders individuais tratam falha */
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function bootstrapDashboard() {
+  await warmBackend();
   await Promise.allSettled([
     loadDashboardConfig(),
     safeLoad("kpis", loadKPIs),

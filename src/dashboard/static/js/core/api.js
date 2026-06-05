@@ -1,8 +1,10 @@
 /** Cliente HTTP do dashboard com timeout e retry em 502/503/504. */
 
 export const FETCH_TIMEOUT_MS = 15000;
+/** Após warmBackend(), cold start já passou — menos retries evita loading longo. */
+export const FETCH_RETRIES = 1;
 
-export async function fetchApi(url, options = {}, retries = 2) {
+export async function fetchApi(url, options = {}, retries = FETCH_RETRIES) {
   const baseOpts = {
     cache: "no-store",
     headers: { Accept: "application/json", ...(options.headers || {}) },

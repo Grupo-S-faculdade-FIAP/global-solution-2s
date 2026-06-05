@@ -15,7 +15,7 @@
 **Last task completed:** event bus (`core/events.js`), orchestrator, `api/endpoints.js`, `constants.js`/`selectors.js`; maps↔sections desacoplados; docs `.specs/codebase/CONVENTIONS.md` + `INTEGRATIONS.md`.
 **Next task:** Merge `feature/ajustes` → `main` (deploy produção); smoke AWS; vídeo/PDF FIAP
 **Blockers:** nenhum
-**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.2 (2026-06-04); atualizar p/ v1.3 com IoT + arquitetura
+**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.3 (2026-06-05): IoT MVP, Clean Architecture, YOLO v2, ES modules, 84 testes, CI/CD OIDC
 
 ---
 

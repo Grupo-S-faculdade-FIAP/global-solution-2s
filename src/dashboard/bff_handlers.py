@@ -464,20 +464,24 @@ def _demo_iot_readings() -> list[dict[str, Any]]:
 
 
 def iot_latest(hours: int = 24) -> tuple[Any, str, int]:
-    status, body = backend_get("/iot/readings/latest", params={"hours": hours})
-    if status == 200 and isinstance(body, dict):
-        return _ok(body, "live")
-    if DEMO_MODE:
-        readings = _demo_iot_readings()
-        return _ok({"readings": readings, "count": len(readings), "storage": "demo"}, "demo")
-    return _err("IoT backend offline", 503)
+    """Leituras IoT — fallback demo enquanto ESP32/DynamoDB iot_readings não estiver pronto."""
+    if not _env_bool("IOT_USE_MOCK", default=True):
+        status, body = backend_get("/iot/readings/latest", params={"hours": hours})
+        if status == 200 and isinstance(body, dict):
+            return _ok(body, "live")
+    readings = _demo_iot_readings()
+    return _ok({"readings": readings, "count": len(readings), "storage": "demo"}, "demo")
 
 
 def iot_status() -> tuple[Any, str, int]:
-    status, body = backend_get("/iot/status")
-    if status == 200 and isinstance(body, dict):
-        return _ok(body, "live")
-    return _ok({"module": "iot", "status": "demo", "storage": "mock_json"}, "demo")
+    if not _env_bool("IOT_USE_MOCK", default=True):
+        status, body = backend_get("/iot/status")
+        if status == 200 and isinstance(body, dict):
+            return _ok(body, "live")
+    return _ok(
+        {"module": "iot", "status": "demo", "storage": "mock_json", "note": "ESP32 mockado (MVP)"},
+        "demo",
+    )
 
 
 def _default_nasa_sample_path() -> Path | None:

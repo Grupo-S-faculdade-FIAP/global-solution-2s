@@ -176,6 +176,7 @@ def test_bff_iot_routes(tmp_path, monkeypatch):
     monkeypatch.setattr(store.settings, "DYNAMODB_USE_MOCK", True)
     path.write_text("[]", encoding="utf-8")
     monkeypatch.setenv("BFF_INPROCESS", "true")
+    monkeypatch.setenv("IOT_USE_MOCK", "false")
 
     # Reseta o singleton do test client para captar o novo ambiente
     import dashboard.bff_backend as bff_be
