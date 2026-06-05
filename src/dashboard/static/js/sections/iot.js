@@ -1,10 +1,10 @@
-import { fetchApi } from "../core/api.js";
+import { iot } from "../core/api/endpoints.js";
 import { clearIotLoading } from "../core/dom.js";
 import { noteResponseSource } from "../core/ui.js";
 
 export async function loadIoTReadings() {
   try {
-    const resp = await fetchApi("/api/iot/readings/latest?hours=24");
+    const resp = await iot.latestReadings(24);
     noteResponseSource(resp);
     const data = resp.ok ? await resp.json() : null;
     const readings = data?.readings ?? [];

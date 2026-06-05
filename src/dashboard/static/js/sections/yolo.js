@@ -1,12 +1,11 @@
 import { state } from "../core/state.js";
-import { fetchApi } from "../core/api.js";
+import { alerts, storms } from "../core/api/endpoints.js";
+import { emit } from "../core/events.js";
 import { noteResponseSource } from "../core/ui.js";
-import { loadKPIs, loadTrend, loadWeekly, loadHourly, loadHeatmap } from "./alerts.js";
-import { loadRegionMap } from "../maps/region.js";
 
 export async function loadYOLOStatus() {
   try {
-    const r = await fetchApi("/api/storms/detector-status");
+    const r = await storms.detectorStatus();
     const data = await r.json();
     const el = document.getElementById("yolo-status");
     if (!el) return;
@@ -33,17 +32,17 @@ export async function loadRecentStorms() {
   const el = document.getElementById("storms-recent-list");
   if (!el) return;
   try {
-    const r = await fetchApi("/api/storms/recent?hours=168");
+    const r = await storms.recent(168);
     noteResponseSource(r);
-    const storms = await r.json();
-    if (!Array.isArray(storms) || storms.length === 0) {
+    const stormsList = await r.json();
+    if (!Array.isArray(stormsList) || stormsList.length === 0) {
       el.innerHTML =
         '<div class="section-empty" style="padding:0.5rem 0;">' +
         '<i class="bi bi-cloud-slash" aria-hidden="true"></i>' +
         "Nenhum alerta no store local — clique em Simular alerta.</div>";
       return;
     }
-    el.innerHTML = storms.slice(0, 8).map((s) => {
+    el.innerHTML = stormsList.slice(0, 8).map((s) => {
       const t = s.timestamp ? new Date(s.timestamp).toLocaleString("pt-BR") : "—";
       return `<div style="padding:4px 0;border-bottom:1px solid var(--border);">
         <strong>${(s.confidence * 100).toFixed(0)}%</strong> · ${t} · ${s.latitude?.toFixed(2)}, ${s.longitude?.toFixed(2)}
@@ -61,7 +60,7 @@ export async function detectSampleImage() {
   btn.disabled = true;
   status.textContent = "Inferência YOLO…";
   try {
-    const r = await fetchApi("/api/storms/detect-sample", { method: "POST" });
+    const r = await storms.detectSample();
     const data = await r.json();
     if (data.success) {
       status.textContent = data.message || "Detecção concluída";
@@ -87,14 +86,10 @@ export async function testStormDetection() {
   status.textContent = "Processando...";
 
   try {
-    const r = await fetchApi("/api/alerts/simulate-detection", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        confidence: 0.85,
-        lat: state.userLocation.lat,
-        lon: state.userLocation.lon,
-      }),
+    const r = await alerts.simulateDetection({
+      confidence: 0.85,
+      lat: state.userLocation.lat,
+      lon: state.userLocation.lon,
     });
 
     const data = await r.json();
@@ -106,12 +101,7 @@ export async function testStormDetection() {
       document.getElementById("yolo-avg-confidence").textContent =
         `${(data.alert.confidence * 100).toFixed(0)}%`;
       loadRecentStorms();
-      loadWeekly();
-      loadHourly();
-      loadTrend();
-      loadHeatmap();
-      loadKPIs();
-      loadRegionMap();
+      await emit("dashboard:reload", { scope: "post-storm-simulate" });
 
       setTimeout(() => {
         status.textContent = "";

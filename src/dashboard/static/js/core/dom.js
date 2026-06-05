@@ -1,44 +1,23 @@
-/** Helpers de DOM e layouts injetáveis. */
+/** Helpers de DOM — markup estrutural vive nos partials Jinja. */
+
+import { SEL } from "./selectors.js";
 
 export const $ = (id) => document.getElementById(id);
 
-export const WEATHER_GRID_HTML = `
-  <div><span class="stat-label">Temperatura</span><br><span class="stat-value is-loading" id="weather-temp">—</span></div>
-  <div><span class="stat-label">Umidade</span><br><span class="stat-value is-loading" id="weather-humidity">—</span></div>
-  <div><span class="stat-label">Pressão</span><br><span class="stat-value is-loading" id="weather-pressure">—</span></div>
-  <div><span class="stat-label">Vento</span><br><span class="stat-value is-loading" id="weather-wind">—</span></div>`;
-
-export const RISK_PANEL_HTML = `
-  <div class="risk-score-wrap">
-    <div class="risk-score is-loading" id="risk-badge" aria-busy="true">—</div>
-    <div class="risk-category" id="risk-category">—</div>
-  </div>
-  <div class="risk-recommendation" id="risk-recommendation">—</div>`;
-
-export function ensureWeatherLayout() {
-  const el = $("weather-container");
-  if (!el || $("weather-temp")) return;
-  el.innerHTML = WEATHER_GRID_HTML;
-}
-
-export function ensureRiskLayout() {
-  const el = $("risk-container");
-  if (!el || $("risk-badge")) return;
-  el.innerHTML = RISK_PANEL_HTML;
-}
+const KPI_IDS = [SEL.kpiTotal, SEL.kpiAvg, SEL.kpiDay, SEL.kpiHour];
+const STAT_IDS = [SEL.weatherTemp, SEL.weatherHumidity, SEL.weatherPressure, SEL.weatherWind, SEL.riskBadge];
+const IOT_IDS = ["iot-temp", "iot-umid", "iot-cidade", "iot-ts"];
 
 export function clearKpiLoading() {
-  ["kpi-total", "kpi-avg", "kpi-day", "kpi-hour"].forEach((id) => $(id)?.classList.remove("is-loading"));
+  KPI_IDS.forEach((id) => $(id)?.classList.remove("is-loading"));
 }
 
 export function clearStatLoading() {
-  ["weather-temp", "weather-humidity", "weather-pressure", "weather-wind", "risk-badge"].forEach((id) =>
-    $(id)?.classList.remove("is-loading")
-  );
+  STAT_IDS.forEach((id) => $(id)?.classList.remove("is-loading"));
 }
 
 export function clearIotLoading() {
-  ["iot-temp", "iot-umid", "iot-cidade", "iot-ts"].forEach((id) => $(id)?.classList.remove("is-loading"));
+  IOT_IDS.forEach((id) => $(id)?.classList.remove("is-loading"));
 }
 
 export function clearSectionError(containerId) {
@@ -51,8 +30,6 @@ export function clearSectionError(containerId) {
 export function showSectionError(containerId, message) {
   const el = $(containerId);
   if (!el) return;
-  if (containerId === "weather-container") ensureWeatherLayout();
-  if (containerId === "risk-container") ensureRiskLayout();
   el.classList.add("has-error");
   let err = el.querySelector(":scope > .section-error");
   if (!err) {

@@ -1,29 +1,28 @@
+import { state } from "../core/state.js";
 import {
-  state,
   BRAZIL_CITIES,
   LOC_KEY,
   LOC_COLLAPSED_KEY,
   LOC_RADIUS_KM,
   MAP_APPLY_DEBOUNCE_MS,
-} from "../core/state.js";
+} from "../core/constants.js";
+import { emit } from "../core/events.js";
 import { getCssVar } from "../core/css.js";
 import { showToast } from "../core/ui.js";
+import { SEL } from "../core/selectors.js";
 import { mapTileConfig } from "./tiles.js";
 import { cityDisplayName, nearestCityId } from "./cities.js";
-import { refreshWindyMap } from "./windy.js";
-import { reloadLocationDependentData } from "../sections/climate.js";
 
 const applyBtnDefaultText = "Aplicar coordenadas";
 
 export function updateLocationHeader(lat, lon) {
-  const cityEl = document.getElementById("location-city-name");
-  const label = document.getElementById("location-label");
-  const txt = `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+  const cityEl = document.getElementById(SEL.locationCityName);
+  const label = document.getElementById(SEL.locationLabel);
   if (cityEl) cityEl.textContent = cityDisplayName(lat, lon);
-  if (label) label.textContent = txt;
-  const windyTitle = document.getElementById("windy-map-title");
+  if (label) label.textContent = `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+  const windyTitle = document.getElementById(SEL.windyMapTitle);
   if (windyTitle) windyTitle.textContent = `Chuva em tempo real — ${cityDisplayName(lat, lon)}`;
-  const loadingText = document.getElementById("windy-loading-text");
+  const loadingText = document.getElementById(SEL.windyLoadingText);
   if (loadingText) loadingText.textContent = `Carregando radar para ${cityDisplayName(lat, lon)}…`;
 }
 
@@ -98,7 +97,7 @@ export function setPickerCoords(lat, lon, fly = true) {
   syncCitySelect(lat, lon);
   syncAdvancedAccordion(nearestCityId(lat, lon));
   updateLocationHeader(lat, lon);
-  const sub = document.getElementById("weather-location-sub");
+  const sub = document.getElementById(SEL.weatherLocationSub);
   if (sub) sub.textContent = `Coordenadas: ${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
   ensureLocationPickerMap();
   if (state.locationPickerMap && state.locationPickerMarker) {
@@ -149,7 +148,6 @@ function saveLocation(lat, lon) {
   state.userLocation = { lat, lon };
   localStorage.setItem(LOC_KEY, JSON.stringify(state.userLocation));
   setPickerCoords(lat, lon, true);
-  refreshWindyMap();
 }
 
 export async function applyLocationAndReload(lat, lon, opts = {}) {
@@ -165,7 +163,7 @@ export async function applyLocationAndReload(lat, lon, opts = {}) {
   if (same && state.hasAppliedLocationOnce && !force) return;
   setLocationLoading(true);
   try {
-    await reloadLocationDependentData();
+    await emit("location:changed", { lat, lon });
     state.hasAppliedLocationOnce = true;
     if (!silent) showToast(`Região atualizada — ${cityDisplayName(lat, lon)}`, "success");
     if (collapseMobile && window.innerWidth < 768) collapseLocationBar(true);
@@ -177,7 +175,7 @@ export async function applyLocationAndReload(lat, lon, opts = {}) {
 }
 
 function collapseLocationBar(collapsed) {
-  const bar = document.getElementById("location-bar");
+  const bar = document.getElementById(SEL.locationBar);
   const btn = document.getElementById("btn-location-collapse");
   if (!bar || !btn) return;
   const wasCompact = bar.classList.contains("is-compact");
@@ -240,7 +238,7 @@ function requestGeolocation() {
 }
 
 export function initLocationBarUX() {
-  const bar = document.getElementById("location-bar");
+  const bar = document.getElementById(SEL.locationBar);
   const collapseBtn = document.getElementById("btn-location-collapse");
   const badge = document.getElementById("location-badge");
   if (localStorage.getItem(LOC_COLLAPSED_KEY) === "1") collapseLocationBar(true);

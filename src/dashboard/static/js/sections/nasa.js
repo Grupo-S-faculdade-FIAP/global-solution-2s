@@ -1,8 +1,8 @@
-import { fetchApi } from "../core/api.js";
+import { nasa } from "../core/api/endpoints.js";
 
 export async function loadNASAGallery() {
   try {
-    const r = await fetchApi("/api/nasa/capturas?limite=12");
+    const r = await nasa.capturas(12);
     const d = await r.json();
     const gallery = document.getElementById("nasa-gallery");
     const empty = document.getElementById("nasa-empty");

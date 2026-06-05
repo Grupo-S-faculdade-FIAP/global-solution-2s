@@ -1,5 +1,6 @@
 import { state } from "./state.js";
-import { clearIotLoading, clearKpiLoading, clearStatLoading } from "./dom.js";
+import { clearIotLoading, clearKpiLoading, clearStatLoading, showChartError } from "./dom.js";
+import { SEL } from "./selectors.js";
 
 export function showToast(message, type = "info") {
   const container = document.getElementById("toast-container");
@@ -23,7 +24,7 @@ export function setDataSourceChip(source) {
   else if (source === "unavailable") state.lastDataSource = "offline";
   else if (source === "pending") state.lastDataSource = "pending";
 
-  const chip = document.getElementById("data-source-chip");
+  const chip = document.getElementById(SEL.dataSourceChip);
   if (!chip) return;
 
   const labels = {
@@ -40,7 +41,7 @@ export function setDataSourceChip(source) {
   chip.textContent = text;
   chip.className = `data-source-chip ${cls}`;
 
-  const footerHint = document.getElementById("footer-storage-hint");
+  const footerHint = document.getElementById(SEL.footerStorageHint);
   if (footerHint) {
     footerHint.textContent =
       mode === "live" ? "dados via AWS DynamoDB" :
@@ -55,7 +56,7 @@ export function noteResponseSource(response) {
 }
 
 export function setLastUpdated(date) {
-  const el = document.getElementById("data-source-updated");
+  const el = document.getElementById(SEL.dataSourceUpdated);
   if (!el) return;
   const ts =
     date instanceof Date && !isNaN(date)
@@ -73,8 +74,6 @@ export function finalizeDashboardLoad() {
   else if (state.dashboardConfig.demo_mode) setDataSourceChip("demo");
   else setDataSourceChip("offline");
 }
-
-import { showChartError } from "./dom.js";
 
 const CHART_ERROR_MSG = "Dados indisponíveis";
 

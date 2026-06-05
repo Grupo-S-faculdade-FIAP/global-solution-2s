@@ -11,8 +11,8 @@
 
 ## Current Focus
 
-**Active feature:** refatoração frontend dashboard (concluído 2026-06-05)
-**Last task completed:** `dashboard.js` monolítico dividido em 21 módulos ES6; `index.html` em partials Jinja; tokens em `css/tokens.css`.
+**Active feature:** boas práticas frontend + desacoplamento (concluído 2026-06-05)
+**Last task completed:** event bus (`core/events.js`), orchestrator, `api/endpoints.js`, `constants.js`/`selectors.js`; maps↔sections desacoplados; docs `.specs/codebase/CONVENTIONS.md` + `INTEGRATIONS.md`.
 **Next task:** Merge `feature/ajustes` → `main` (deploy produção); smoke AWS; vídeo/PDF FIAP
 **Blockers:** nenhum
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.2 (2026-06-04); atualizar p/ v1.3 com IoT + arquitetura

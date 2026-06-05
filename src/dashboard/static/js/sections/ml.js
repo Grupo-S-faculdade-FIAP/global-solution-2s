@@ -1,5 +1,19 @@
 import { state } from "../core/state.js";
-import { fetchApi } from "../core/api.js";
+import { ml } from "../core/api/endpoints.js";
+
+export function syncSlidersFromWeather(data) {
+  const slTemp = document.getElementById("sl-temp");
+  const slUmid = document.getElementById("sl-umid");
+  const slPrec = document.getElementById("sl-prec");
+  const slVento = document.getElementById("sl-vento");
+  if (data.temperature != null && slTemp) slTemp.value = Math.min(45, Math.max(5, data.temperature));
+  if (data.humidity != null && slUmid) slUmid.value = Math.round(data.humidity);
+  if (data.precipitation != null && slPrec) slPrec.value = Math.min(50, Math.max(0, data.precipitation));
+  if (data.wind_speed != null && slVento) {
+    slVento.value = Math.round(Math.min(120, Math.max(0, data.wind_speed * 3.6)));
+  }
+  updateMLPredictor();
+}
 
 export async function updateMLPredictor() {
   const temp = parseFloat(document.getElementById("sl-temp").value);
@@ -15,9 +29,12 @@ export async function updateMLPredictor() {
   clearTimeout(state.mlDebounce);
   state.mlDebounce = setTimeout(async () => {
     try {
-      const r = await fetchApi(
-        `/api/ml/agricultural-risk?temperatura=${temp}&umidade=${umid}&precipitacao=${prec}&vento_kmh=${vento}`
-      );
+      const r = await ml.agriculturalRisk({
+        temperatura: temp,
+        umidade: umid,
+        precipitacao: prec,
+        vento_kmh: vento,
+      });
       if (!r.ok) throw new Error();
       const d = await r.json();
 

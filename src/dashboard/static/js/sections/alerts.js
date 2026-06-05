@@ -1,6 +1,7 @@
 import { state } from "../core/state.js";
-import { fetchApi } from "../core/api.js";
+import { alerts } from "../core/api/endpoints.js";
 import { clearKpiLoading } from "../core/dom.js";
+import { SEL } from "../core/selectors.js";
 import { noteResponseSource } from "../core/ui.js";
 import {
   renderTrendChart,
@@ -11,15 +12,15 @@ import {
 
 export async function loadKPIs() {
   try {
-    const r = await fetchApi("/api/alerts/summary");
+    const r = await alerts.summary();
     noteResponseSource(r);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
     if (d.total_30d == null) throw new Error("empty");
-    const kTotal = document.getElementById("kpi-total");
-    const kAvg = document.getElementById("kpi-avg");
-    const kDay = document.getElementById("kpi-day");
-    const kHour = document.getElementById("kpi-hour");
+    const kTotal = document.getElementById(SEL.kpiTotal);
+    const kAvg = document.getElementById(SEL.kpiAvg);
+    const kDay = document.getElementById(SEL.kpiDay);
+    const kHour = document.getElementById(SEL.kpiHour);
     if (!kTotal || !kAvg || !kDay || !kHour) return;
     kTotal.textContent = d.total_30d;
     kAvg.textContent = d.daily_avg;
@@ -29,7 +30,7 @@ export async function loadKPIs() {
   } catch (err) {
     console.warn("KPIs:", err);
     clearKpiLoading();
-    ["kpi-total", "kpi-avg", "kpi-day", "kpi-hour"].forEach((id) => {
+    [SEL.kpiTotal, SEL.kpiAvg, SEL.kpiDay, SEL.kpiHour].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.textContent = "—";
     });
@@ -38,7 +39,7 @@ export async function loadKPIs() {
 
 export async function loadTrend() {
   if (typeof Chart === "undefined") return;
-  const r = await fetchApi("/api/alerts/daily");
+  const r = await alerts.daily();
   noteResponseSource(r);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const d = await r.json();
@@ -49,7 +50,7 @@ export async function loadTrend() {
 
 export async function loadWeekly() {
   if (typeof Chart === "undefined") return;
-  const r = await fetchApi("/api/alerts/weekly");
+  const r = await alerts.weekly();
   noteResponseSource(r);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const d = await r.json();
@@ -60,7 +61,7 @@ export async function loadWeekly() {
 
 export async function loadHourly() {
   if (typeof Chart === "undefined") return;
-  const r = await fetchApi("/api/alerts/hourly");
+  const r = await alerts.hourly();
   noteResponseSource(r);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const d = await r.json();
@@ -70,7 +71,7 @@ export async function loadHourly() {
 }
 
 export async function loadHeatmap() {
-  const r = await fetchApi("/api/alerts/heatmap");
+  const r = await alerts.heatmap();
   noteResponseSource(r);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const data = await r.json();
