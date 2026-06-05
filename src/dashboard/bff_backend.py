@@ -19,11 +19,11 @@ def _env_bool(name: str, default: bool = True) -> bool:
 
 def use_inprocess_backend() -> bool:
     """
-    Retorna True apenas se BFF_INPROCESS=true explícito.
-    Padrão é False: o BFF usa HTTP loopback (http://127.0.0.1:PORT).
-    Isso evita deadlock ao chamar TestClient de dentro de um worker
-    thread do uvicorn/anyio.
+    Lambda: sempre in-process (não há loopback HTTP local).
+    Dev uvicorn: só se BFF_INPROCESS=true (evita deadlock em worker threads).
     """
+    if os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        return True
     raw = os.environ.get("BFF_INPROCESS", "false").strip().lower()
     return raw in ("1", "true", "yes", "on")
 
