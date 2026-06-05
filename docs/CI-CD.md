@@ -113,6 +113,7 @@ Crie uma policy inline ou managed e anexe à role:
       "Effect": "Allow",
       "Action": [
         "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
         "lambda:GetFunction",
         "lambda:GetFunctionConfiguration"
       ],
@@ -179,8 +180,9 @@ Fluxo automático na `main`:
 3. `docker build` em `src/` (contexto igual ao [DEPLOY-LAMBDA.md](DEPLOY-LAMBDA.md))
 4. Push com tags `:latest` e `:sha-<commit>`
 5. `aws lambda update-function-code`
-6. Aguarda `State=Active` e `LastUpdateStatus=Successful`
-7. Smoke test: `GET /health` → `{"status":"ok"}`
+6. `aws lambda update-function-configuration` (env vars de produção: `DEMO_MODE=false`, etc.)
+7. Aguarda `State=Active` e `LastUpdateStatus=Successful`
+8. Smoke test: `GET /health` → `{"status":"ok"}`
 
 A primeira build no CI pode levar 15–20 min (layers torch/YOLO). Builds seguintes usam cache de layers do Docker.
 
@@ -212,7 +214,8 @@ aws s3 cp data/model-dataset/images/test/test-storm.jpg \
 |---------|----------------|---------|
 | `Not authorized to perform sts:AssumeRoleWithWebIdentity` | Trust policy incorreta | Conferir `sub` com repo/branch exatos |
 | `AccessDenied` no ECR push | Policy ECR incompleta | Incluir `GetAuthorizationToken` + ações de upload |
-| `AccessDenied` no Lambda update | Policy Lambda incompleta | Adicionar `UpdateFunctionCode` na role |
+| `AccessDenied` no Lambda update (code) | Policy Lambda incompleta | Adicionar `lambda:UpdateFunctionCode` na role |
+| `AccessDenied` no `UpdateFunctionConfiguration` | Policy sem env update | Adicionar `lambda:UpdateFunctionConfiguration` na role `github-actions-gs2-deploy` (ver policy em `docs/iam/`) |
 | Deploy não dispara | Path filter | Mudança fora de `src/app/`, Dockerfile ou requirements-lambda |
 | CI falha com `ModuleNotFoundError: app` | PYTHONPATH | Workflow usa `PYTHONPATH=.` em `src/` |
 | Smoke test timeout | Cold start Lambda | Normal na 1ª invocação (~60–90 s); reexecutar workflow |
