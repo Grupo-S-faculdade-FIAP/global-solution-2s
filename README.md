@@ -119,7 +119,7 @@ Números atuais verificados:
 Trilha YOLO NASA (concluída):
 
 1. `data/nasa_captures`: 90 imagens
-2. Dataset só NASA (`--limiar 200 --area 600`): mAP@0.5 ≈ **0,55**
+2. Dataset NASA pipeline v2 (`--limiar 185 --area 80`, letterbox 640 + UI mask): labels sem bbox fantasma; retreino pendente
 3. Endpoints: `GET /storms/recent`, `GET /map/overlay` (DynamoDB `storm_alerts`)
 
 **Demo local (API + dashboard — uma porta):**

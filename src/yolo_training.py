@@ -19,6 +19,27 @@ from pathlib import Path
 # Root do projeto = dois níveis acima deste arquivo (src/yolo_training.py)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATASET_ROOT = PROJECT_ROOT / "data" / "model-dataset"
+_GOES_PIPELINE = PROJECT_ROOT / "scripts" / "goes_pipeline"
+
+
+def _run_label_quality_gate() -> None:
+    """Bloqueia treino se labels tiverem bboxes fantasma ou distribuição inválida."""
+    if str(_GOES_PIPELINE) not in sys.path:
+        sys.path.insert(0, str(_GOES_PIPELINE))
+    from label_utils import audit_dataset, format_audit_summary, save_audit_report  # noqa: E402
+
+    report = audit_dataset(DATASET_ROOT)
+    out = PROJECT_ROOT / "data" / "label_review" / "audit.json"
+    data = save_audit_report(report, out)
+    print(format_audit_summary(data))
+    if not report.passed:
+        raise RuntimeError(
+            "Label quality gate FAILED — corrija o dataset antes de treinar.\n"
+            "  python scripts/goes_pipeline/04_nasa_to_yolo.py --clean\n"
+            "  python scripts/goes_pipeline/06_audit_labels.py --strict\n"
+            f"  Relatório: {out}"
+        )
+    print("✅ Label quality gate passed\n")
 
 
 def _resolved_dataset_yaml(dataset_yaml: str) -> Path:
@@ -79,8 +100,9 @@ def train_yolo_storm_detector(
     device: str        = "cpu",
     patience: int      = 20,
     project_dir: str   = "runs/train",
-    run_name: str      = "storm-detector",
+    run_name: str      = "storm-detector-v2",
     recall_focus: bool = False,
+    skip_quality_gate: bool = False,
 ) -> Path:
     """
     Treina YOLOv5 para detecção de tempestades.
@@ -94,6 +116,9 @@ def train_yolo_storm_detector(
 
     if not DATASET_ROOT.exists():
         raise FileNotFoundError(f"Dataset dir não encontrado: {DATASET_ROOT}")
+
+    if not skip_quality_gate:
+        _run_label_quality_gate()
 
     _ensure_yolov5(yolov5_dir)
 
@@ -199,6 +224,8 @@ if __name__ == "__main__":
                         help="Somente validar best.pt existente (sem treinar)")
     parser.add_argument("--recall-focus", action="store_true",
                         help="Usar hyp.recall.yaml (viés para recall)")
+    parser.add_argument("--skip-quality-gate", action="store_true",
+                        help="Pular auditoria de labels (não recomendado)")
     parser.add_argument("--export",   choices=["onnx", "torchscript", "tflite"],
                         help="Exportar modelo após treinamento")
 
@@ -217,6 +244,7 @@ if __name__ == "__main__":
         device=args.device,
         patience=args.patience,
         recall_focus=args.recall_focus,
+        skip_quality_gate=args.skip_quality_gate,
     )
 
     if args.validate:

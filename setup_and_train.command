@@ -140,8 +140,9 @@ NASA_COUNT=$(ls data/nasa_captures/*.png 2>/dev/null | wc -l | tr -d ' ')
 if [ "$NASA_COUNT" -gt 0 ]; then
     echo ""
     info "Convertendo $NASA_COUNT imagens NASA para formato YOLO..."
-    python3 scripts/goes_pipeline/04_nasa_to_yolo.py
-    ok "Dataset YOLO atualizado"
+    python3 scripts/goes_pipeline/04_nasa_to_yolo.py --clean --limiar 175 --area 50
+    python3 scripts/goes_pipeline/06_audit_labels.py --strict
+    ok "Dataset YOLO atualizado (pipeline v2)"
 else
     warn "Sem imagens NASA — usando apenas dataset existente"
 fi

@@ -39,8 +39,13 @@ echo "  Download concluído! Convertendo para YOLO..."
 echo "================================================"
 echo ""
 
-# --clean: reconstrói train/val só com NASA (ignora screenshots Windy antigos)
-python3 scripts/goes_pipeline/04_nasa_to_yolo.py --clean
+# --clean: reconstrói train/val só com NASA (pipeline v2: letterbox + UI mask)
+python3 scripts/goes_pipeline/04_nasa_to_yolo.py --clean --limiar 175 --area 50
+
+echo ""
+echo "Revisão visual dos labels..."
+python3 scripts/goes_pipeline/05_review_nasa_labels.py
+python3 scripts/goes_pipeline/06_audit_labels.py --strict
 
 echo ""
 echo "================================================"

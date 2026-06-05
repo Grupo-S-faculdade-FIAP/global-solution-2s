@@ -1,140 +1,96 @@
 """
 GOES Pipeline — Etapa 4: Converter imagens NASA Worldview para formato YOLO
 ===========================================================================
-Lê os screenshots PNG do NASA Worldview (data/nasa_captures/) e gera
-labels .txt automáticos detectando regiões de convecção profunda.
+Lê screenshots PNG do NASA Worldview (data/nasa_captures/) e gera labels .txt
+detectando regiões de convecção profunda (topos frios / pixels brilhantes).
 
-No NASA Worldview GOES-East IR C13:
-  - Pixels brancos/muito claros = nuvem com topo muito frio = tempestade
-  - Pixels cinza médio = nuvem baixa/média
-  - Pixels escuros = céu limpo / superfície quente
-
-O detector identifica manchas brancas brilhantes e gera bboxes YOLO.
+Correções v2 (2026-06):
+  - Letterbox 640×640 (mesmo espaço de coordenadas do treino YOLO)
+  - Detecção na imagem final de treino (não na resolução original)
+  - Máscara de chrome da UI NASA (canto superior esquerdo)
+  - Validação de bright_ratio dentro de cada bbox
 
 Execute a partir do root do projeto (global-solutions/):
-    python scripts/goes_pipeline/04_nasa_to_yolo.py
-    python scripts/goes_pipeline/04_nasa_to_yolo.py --limiar 210 --area 300
+    python scripts/goes_pipeline/04_nasa_to_yolo.py --clean
+    python scripts/goes_pipeline/04_nasa_to_yolo.py --clean --limiar 175 --area 50
 """
 
+from __future__ import annotations
+
 import argparse
+import sys
 from pathlib import Path
 
 import cv2
-import numpy as np
+
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+
+from label_utils import (  # noqa: E402
+    DEFAULT_AREA_PX,
+    DEFAULT_LIMIAR,
+    audit_dataset,
+    detect_storms,
+    format_audit_summary,
+    letterbox_resize,
+    save_audit_report,
+    write_label_file,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-NASA_DIR     = PROJECT_ROOT / "data" / "nasa_captures"
-IMG_TRAIN    = PROJECT_ROOT / "data" / "model-dataset" / "images" / "train"
-IMG_VAL      = PROJECT_ROOT / "data" / "model-dataset" / "images" / "val"
-LBL_TRAIN    = PROJECT_ROOT / "data" / "model-dataset" / "labels" / "train"
-LBL_VAL      = PROJECT_ROOT / "data" / "model-dataset" / "labels" / "val"
+NASA_DIR = PROJECT_ROOT / "data" / "nasa_captures"
+DATASET_ROOT = PROJECT_ROOT / "data" / "model-dataset"
+IMG_TRAIN = DATASET_ROOT / "images" / "train"
+IMG_VAL = DATASET_ROOT / "images" / "val"
+LBL_TRAIN = DATASET_ROOT / "labels" / "train"
+LBL_VAL = DATASET_ROOT / "labels" / "val"
+REVIEW_DIR = PROJECT_ROOT / "data" / "label_review"
 
 for d in [IMG_TRAIN, IMG_VAL, LBL_TRAIN, LBL_VAL]:
     d.mkdir(parents=True, exist_ok=True)
 
-# Limiar de brilho: pixels acima disso são considerados topo frio (storm)
-# NASA IR C13: branco brilhante (>210/255) = nuvem convectiva
-DEFAULT_LIMIAR  = 210
-DEFAULT_AREA_PX = 400   # área mínima em pixels para gerar bbox
 
-
-def detectar_storms_nasa(img_bgr: np.ndarray, limiar: int, area_min: int) -> list[dict]:
-    """
-    Detecta regiões de storm em screenshot do NASA Worldview.
-
-    Estratégia:
-      1. Converte para grayscale
-      2. Mascara pixels muito brilhantes (> limiar) — topos frios
-      3. Remove ruído com morfologia
-      4. Rotula regiões conectadas e gera bboxes YOLO normalizadas
-
-    Returns:
-        Lista de dicts com x_c, y_c, w, h (0-1)
-    """
-    H, W = img_bgr.shape[:2]
-    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-
-    # Máscara: pixels muito brancos = topo de nuvem convectiva frio
-    _, mascara = cv2.threshold(gray, limiar, 255, cv2.THRESH_BINARY)
-
-    # Remove ruído pequeno com erosão/dilatação
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    mascara = cv2.morphologyEx(mascara, cv2.MORPH_OPEN,  kernel, iterations=2)
-    mascara = cv2.morphologyEx(mascara, cv2.MORPH_CLOSE, kernel, iterations=3)
-
-    # Rotula regiões conectadas
-    n_labels, labels, stats, _ = cv2.connectedComponentsWithStats(mascara, connectivity=8)
-
-    bboxes = []
-    for i in range(1, n_labels):  # 0 = background
-        area = stats[i, cv2.CC_STAT_AREA]
-        if area < area_min:
-            continue
-
-        x0 = stats[i, cv2.CC_STAT_LEFT]
-        y0 = stats[i, cv2.CC_STAT_TOP]
-        bw = stats[i, cv2.CC_STAT_WIDTH]
-        bh = stats[i, cv2.CC_STAT_HEIGHT]
-
-        # Normaliza para YOLO
-        x_c = (x0 + bw / 2) / W
-        y_c = (y0 + bh / 2) / H
-        w_n = bw / W
-        h_n = bh / H
-
-        # Descarta bboxes que cobrem quase a imagem toda (artefatos de UI)
-        if w_n > 0.90 or h_n > 0.90:
-            continue
-
-        bboxes.append({"x_c": x_c, "y_c": y_c, "w": w_n, "h": h_n, "area": area})
-
-    return bboxes
-
-
-def processar_imagem(png_path: Path, split: str, limiar: int, area_min: int) -> dict:
-    """Converte um PNG NASA para imagem 640×640 + label YOLO."""
+def processar_imagem(
+    png_path: Path,
+    split: str,
+    limiar: int,
+    area_min: int,
+) -> dict:
+    """Converte um PNG NASA para imagem letterbox 640×640 + label YOLO alinhado."""
     img_dir = IMG_TRAIN if split == "train" else IMG_VAL
     lbl_dir = LBL_TRAIN if split == "train" else LBL_VAL
 
-    stem     = png_path.stem
-    dst_png  = img_dir / f"{stem}.png"
-    dst_lbl  = lbl_dir / f"{stem}.txt"
+    stem = png_path.stem
+    dst_png = img_dir / f"{stem}.png"
+    dst_lbl = lbl_dir / f"{stem}.txt"
 
     img = cv2.imread(str(png_path))
     if img is None:
         return {"arquivo": png_path.name, "status": "erro", "erro": "Não conseguiu ler imagem"}
 
-    # Redimensiona para padrão YOLOv5 (640×640)
-    img_640 = cv2.resize(img, (640, 640), interpolation=cv2.INTER_AREA)
-    cv2.imwrite(str(dst_png), img_640)
+    img_yolo = letterbox_resize(img)
+    cv2.imwrite(str(dst_png), img_yolo)
 
-    # Detecta storms na imagem original (resolução maior = mais preciso)
-    bboxes = detectar_storms_nasa(img, limiar, area_min)
-
-    with open(dst_lbl, "w") as f:
-        for bb in bboxes:
-            f.write(f"0 {bb['x_c']:.6f} {bb['y_c']:.6f} {bb['w']:.6f} {bb['h']:.6f}\n")
+    bboxes = detect_storms(img_yolo, limiar=limiar, area_min=area_min)
+    write_label_file(dst_lbl, bboxes)
 
     return {
-        "arquivo":  png_path.name,
-        "split":    split,
+        "arquivo": png_path.name,
+        "split": split,
         "n_bboxes": len(bboxes),
-        "status":   "ok",
+        "status": "ok",
     }
 
 
 def limpar_dataset_nao_nasa() -> int:
-    """
-    Remove imagens/labels que não são do pipeline NASA (ex.: screenshots Windy antigos).
-    Mantém apenas arquivos cujo stem começa com 'nasa_'.
-    """
+    """Remove imagens/labels que não são do pipeline NASA."""
     removidos = 0
     for pasta in (IMG_TRAIN, IMG_VAL, LBL_TRAIN, LBL_VAL):
         for path in list(pasta.glob("*")):
             if not path.is_file():
                 continue
-            stem = path.stem
-            if stem.startswith("nasa_"):
+            if path.stem.startswith("nasa_"):
                 continue
             path.unlink()
             removidos += 1
@@ -142,7 +98,7 @@ def limpar_dataset_nao_nasa() -> int:
 
 
 def limpar_splits_yolo() -> int:
-    """Remove todo o conteúdo de train/val (imagens + labels) antes de reconstruir."""
+    """Remove todo o conteúdo de train/val antes de reconstruir."""
     removidos = 0
     for pasta in (IMG_TRAIN, IMG_VAL, LBL_TRAIN, LBL_VAL):
         for path in list(pasta.glob("*")):
@@ -158,8 +114,8 @@ def main(
     train_frac: float = 0.85,
     clean: bool = False,
     nasa_only: bool = False,
-):
-
+    skip_audit: bool = False,
+) -> int:
     if clean:
         n = limpar_splits_yolo()
         print(f"🧹 Dataset limpo: {n} arquivo(s) removido(s) de train/val\n")
@@ -169,24 +125,29 @@ def main(
             print(f"🧹 Removidos {n} arquivo(s) não-NASA (Windy/outros)\n")
 
     arquivos = sorted(NASA_DIR.glob("*.png"))
-
     if not arquivos:
         raise FileNotFoundError(
             f"Nenhum .png em {NASA_DIR}\n"
             "Rode build_dataset_nasa.command primeiro para baixar as imagens."
         )
 
-    np.random.seed(42)
-    idx_train = set(np.random.choice(
-        len(arquivos),
-        size=max(1, int(len(arquivos) * train_frac)),
-        replace=False,
-    ))
+    import numpy as np
 
-    print(f"Convertendo {len(arquivos)} imagens NASA → YOLO")
-    print(f"  Limiar brilho: > {limiar}/255 = storm")
-    print(f"  Área mínima  : {area_min} px")
-    print(f"  Split        : {train_frac:.0%} train / {1-train_frac:.0%} val\n")
+    np.random.seed(42)
+    idx_train = set(
+        np.random.choice(
+            len(arquivos),
+            size=max(1, int(len(arquivos) * train_frac)),
+            replace=False,
+        )
+    )
+
+    print(f"Convertendo {len(arquivos)} imagens NASA → YOLO (pipeline v2)")
+    print(f"  Limiar brilho : > {limiar}/255")
+    print(f"  Área mínima   : {area_min} px")
+    print(f"  Resize        : letterbox {640}×{640}")
+    print(f"  UI mask       : topo {12:.0%} + esquerda {18:.0%}")
+    print(f"  Split         : {train_frac:.0%} train / {1 - train_frac:.0%} val\n")
 
     resultados = []
     for i, arq in enumerate(arquivos):
@@ -200,42 +161,53 @@ def main(
     n_clear = len(resultados) - n_storm
     total_boxes = sum(r.get("n_bboxes", 0) for r in resultados)
 
-    print(f"\n{'='*55}")
+    print(f"\n{'=' * 55}")
     print(f"  Total imagens   : {len(resultados)}")
     print(f"  Com storm       : {n_storm}")
     print(f"  Sem storm (neg) : {n_clear}")
     print(f"  Total bboxes    : {total_boxes}")
     print(f"\n  Train: {IMG_TRAIN}")
     print(f"  Val  : {IMG_VAL}")
-    print("\n✓ Pronto → rode src/yolo_training.py para retreinar o modelo")
+
+    if not skip_audit:
+        print(f"\n{'=' * 55}")
+        report = audit_dataset(DATASET_ROOT)
+        data = save_audit_report(report, REVIEW_DIR / "audit.json")
+        print(format_audit_summary(data))
+        if not report.passed:
+            print("\n⚠️  Auditoria falhou — revise data/label_review/ antes de treinar.")
+            print("    Rode: python scripts/goes_pipeline/05_review_nasa_labels.py")
+            return 1
+
+    print("\n✓ Pronto → python src/yolo_training.py --epochs 50 --batch 8")
+    return 0
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Converte screenshots NASA Worldview para dataset YOLO",
+        description="Converte screenshots NASA Worldview para dataset YOLO (v2)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--limiar",  type=int,   default=DEFAULT_LIMIAR,
+    parser.add_argument("--limiar", type=int, default=DEFAULT_LIMIAR,
                         help="Limiar de brilho (0-255) para detectar storm")
-    parser.add_argument("--area",    type=int,   default=DEFAULT_AREA_PX,
+    parser.add_argument("--area", type=int, default=DEFAULT_AREA_PX,
                         help="Área mínima (px²) para gerar bbox")
-    parser.add_argument("--split",   type=float, default=0.85,
+    parser.add_argument("--split", type=float, default=0.85,
                         help="Fração para treino (0-1)")
-    parser.add_argument(
-        "--clean",
-        action="store_true",
-        help="Apaga train/val e reconstrói só a partir de data/nasa_captures/",
-    )
-    parser.add_argument(
-        "--nasa-only",
-        action="store_true",
-        help="Remove arquivos em train/val que não começam com nasa_ (ex.: Windy antigo)",
-    )
+    parser.add_argument("--clean", action="store_true",
+                        help="Apaga train/val e reconstrói só a partir de data/nasa_captures/")
+    parser.add_argument("--nasa-only", action="store_true",
+                        help="Remove arquivos em train/val que não começam com nasa_")
+    parser.add_argument("--skip-audit", action="store_true",
+                        help="Não rodar auditoria ao final")
     args = parser.parse_args()
-    main(
-        limiar=args.limiar,
-        area_min=args.area,
-        train_frac=args.split,
-        clean=args.clean,
-        nasa_only=args.nasa_only,
+    raise SystemExit(
+        main(
+            limiar=args.limiar,
+            area_min=args.area,
+            train_frac=args.split,
+            clean=args.clean,
+            nasa_only=args.nasa_only,
+            skip_audit=args.skip_audit,
+        )
     )

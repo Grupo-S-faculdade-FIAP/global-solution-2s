@@ -1,0 +1,16 @@
+{
+  "total_images": 93,
+  "total_bbox_lines": 285,
+  "unique_bbox_lines": 210,
+  "ghost_file_count": 0,
+  "ghost_file_ratio": 0.0,
+  "ghost_bbox_line_count": 0,
+  "dominant_bbox": "0 0.767188 0.692187 0.053125 0.040625",
+  "dominant_bbox_count": 2,
+  "dominant_bbox_ratio": 0.007,
+  "empty_label_count": 29,
+  "negative_ratio": 0.3118,
+  "passed": true,
+  "failures": [],
+  "flags": []
+}

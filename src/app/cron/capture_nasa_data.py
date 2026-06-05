@@ -80,12 +80,28 @@ def _url(bbox: str, data: str) -> str:
 
 
 def _limpar_ui(page) -> None:
+    """Remove chrome da UI NASA Worldview que gera bboxes fantasma no pipeline YOLO."""
     try:
         page.evaluate("""
-            ['#timeline-footer','#app-sidebar','#toolbar','.ol-control',
-             '#wv-logo','.notification-banner','.tour-overlay','#data-panel']
-            .forEach(s => document.querySelectorAll(s)
-                .forEach(el => el.style.display = 'none'));
+            const selectors = [
+                '#timeline-footer', '#app-sidebar', '#toolbar', '.ol-control',
+                '#wv-logo', '.notification-banner', '.tour-overlay', '#data-panel',
+                '#layers-sidebar', '#events-sidebar', '.layer-info', '.layer-options',
+                '.date-display', '.date-selector', '.time-selector', '.timeline',
+                '.timeline-axis', '.timeline-label', '.timeline-tick',
+                '.wv-date-line', '.wv-date-line-layer', '#date-selector',
+                '.settings-dropdown', '.settings-panel', '.layer-list-header',
+                '.layer-category', '.layer-category-header', '.layer-category-content',
+                '[class*="legend"]', '[class*="Legend"]', '[id*="legend"]',
+                '.distro-tooltip', '.tooltip', '.modal', '.modal-backdrop',
+                'header', 'footer', 'nav',
+            ];
+            selectors.forEach(s => {
+                document.querySelectorAll(s).forEach(el => {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                });
+            });
         """)
     except Exception:
         pass

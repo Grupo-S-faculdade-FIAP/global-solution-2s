@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** —
-**Last updated:** 2026-06-05 (3 melhorias MVP + UX dashboard)
+**Last updated:** 2026-06-05 (pipeline YOLO labels v2)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -11,9 +11,9 @@
 
 ## Current Focus
 
-**Active feature:** architecture-refactor (concluído 2026-06-05)
-**Last task completed:** Todas as 4 fases do refactor de arquitetura limpa — 79 testes passando.
-**Next task:** Smoke AWS (`DYNAMODB_USE_MOCK=false` real), vídeo/PDF FIAP
+**Active feature:** yolo-label-quality v2.1 (concluído 2026-06-05)
+**Last task completed:** Retreino `storm-detector-v2` com 285 bboxes (limiar 175 / area 50). Val: P≈0,27, R≈0,17, mAP@0.5≈0,14 (vs 0,078 na v2.0).
+**Next task:** Smoke AWS; vídeo/PDF FIAP; opcional mais capturas NASA p/ G1 (70%)
 **Blockers:** nenhum
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.2 (2026-06-04); atualizar p/ v1.3 com IoT + arquitetura
 
@@ -41,6 +41,7 @@
 | 2026-06-05 | D-016 | Clean Architecture enxuta: Domain → Application → Infrastructure → Interfaces | Testabilidade; troca mock↔DynamoDB via container.py; sem over-engineering | Toda a API |
 | 2026-06-05 | D-017 | BFF shim strategy invertida: dashboard/ é canonical, interfaces/http/bff/ re-exporta | Preserva backward compat com testes que patcham dashboard.bff_backend._fastapi_test_client | BFF |
 | 2026-06-05 | D-018 | DetectStormUseCase em application/cv/ — routers/cv.py não importa boto3/torch | Separação clara HTTP vs pipeline; testável sem FastAPI | CV |
+| 2026-06-05 | D-019 | Pipeline labels YOLO v2: letterbox 640 + detecção na img de treino + UI mask + audit gate | 74/76 labels eram bbox fantasma (canto sup. esq.); precision alta / recall baixo era artefato posicional | CV / dataset |
 
 ---
 
@@ -57,7 +58,10 @@
 - 2026-06-01 — Projeto inicializado com spec-driven. Manter cada módulo com seu próprio `spec.md` para facilitar divisão entre integrantes.
 - 2026-06-04 — Os docs de `.specs/codebase/` estavam como template genérico; manter mapeamento real evita decisões baseadas em suposição.
 - 2026-06-04 — Treino YOLO: usar só NASA por ora; screenshots Windy antigos fora do dataset; futuras capturas Windy podem entrar depois com rótulo revisado.
-- 2026-06-04 — Retreino NASA com `--limiar 200 --area 600`: 266 bboxes, mAP@0.5 ≈ 0.546 (época 46), precision ~0.89, recall ~0.42. Modelo em `src/models/weights/best.pt`.
+- 2026-06-04 — Retreino NASA com `--limiar 200 --area 600` (pipeline v1, **corrompido**): 266 bboxes, 74/76 com bbox fantasma `0.079687 0.176852…`, mAP@0.5 ≈ 0.546, precision ~0.89, recall ~0.42 — modelo aprendeu artefato de UI, não nuvens.
+- 2026-06-05 — Pipeline v2 (`scripts/goes_pipeline/label_utils.py`): letterbox 640, detecção na img de treino, máscara UI, `--limiar 185 --area 80`. Dataset: 93 img, 34 com storm, 76 bboxes, 0 ghost, audit PASSED.
+- 2026-06-05 — Retreino v2.0 (76 bboxes): P≈0.003, R≈0.688, mAP@0.5≈0.078 — labels honestos, dataset esparsо.
+- 2026-06-05 — Dataset v2.1 (limiar 175 / area 50): 285 bboxes, 64 img com storm, 0 ghost. Retreino `storm-detector-v2`: P≈0.27, R≈0.17, mAP@0.5≈0.14 — mAP quase dobrou; ainda abaixo G1 (70%).
 - 2026-06-04 — DynamoDB mock: `DYNAMODB_USE_MOCK=true` (default) → `data/demo/storm_alerts.json`; `POST /alerts/simulate`; gráficos e `/storms/recent` usam o mesmo store.
 - 2026-06-04 — Dashboard: `DEMO_MODE=true` (default) mantém fallbacks de gráficos; `false` exige FastAPI e oculta botões de dev. Localização em `localStorage` (`dashboard-location`).
 - 2026-06-04 — Dashboard: seção **Mapa da região** (Leaflet CDN) consome `/api/map/overlay` com bbox da localização; Windy permanece como **Radar meteorológico**.
