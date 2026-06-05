@@ -65,7 +65,6 @@ def _run_yolo_inference(image_path: pathlib.Path, model_path: pathlib.Path) -> l
     Inference using the same pattern as src/models/stormdetector.py (the local reference impl).
     torch.hub.load points at the pre-baked /opt/yolov5_src clone so no internet is needed.
     """
-    import cv2    # noqa: PLC0415
     import torch  # noqa: PLC0415
 
     _allow_yolo_checkpoint_load()
@@ -80,8 +79,8 @@ def _run_yolo_inference(image_path: pathlib.Path, model_path: pathlib.Path) -> l
     )
     model.conf = settings.YOLO_CONFIDENCE_THRESHOLD
 
-    im = cv2.imread(str(image_path))
-    results = model(im)
+    # Pass file path (PIL/RGB). cv2.imread() is BGR; YOLOv5 v7 AutoShape does not convert numpy BGR.
+    results = model(str(image_path))
 
     detections = []
     for *xyxy, conf, cls in results.pred[0].tolist():

@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     # ─── S3 ───────────────────────────────────────────────────────────────
     S3_BUCKET_MODELS: str = "model-artifacts"
     S3_BUCKET_IMAGES: str = "satellite-images-gs2"
+<<<<<<< Updated upstream
     S3_BUCKET_OUTPUTS: str = "output-detections"
     
     # ─── Open-Meteo API ───────────────────────────────────────────────────
@@ -51,6 +52,17 @@ class Settings(BaseSettings):
     YOLO_CONFIDENCE_THRESHOLD: float = 0.5
     YOLO_INPUT_SIZE: int = 640
     YOLO_MODEL_RETENTION_DAYS: int = 30
+=======
+    DYNAMODB_TABLE_IOT: str = "iot"
+    DYNAMODB_TABLE_ALERTS: str = "alerts"
+    SNS_TOPIC_ARN: str = ""
+
+    # ML / CV
+    YOLO_MODEL_PATH: str = "models/yolov8_storm.pt"  # kept for local use
+    YOLO_MODEL_S3_KEY: str = "models/best.pt"        # S3 object key for the trained weights
+    YOLO_CONFIDENCE_THRESHOLD: float = 0.25
+    FIRMS_API_KEY: str = ""
+>>>>>>> Stashed changes
 
     # ─── DynamoDB — Alertas (CV pipeline) ─────────────────────────────────
     DYNAMODB_TABLE_ALERTS: str = "storm_alerts"
