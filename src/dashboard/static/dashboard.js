@@ -162,6 +162,31 @@ function clearStatLoading() {
   });
 }
 
+function clearIotLoading() {
+  ["iot-temp", "iot-umid", "iot-cidade", "iot-ts"].forEach((id) => {
+    document.getElementById(id)?.classList.remove("is-loading");
+  });
+}
+
+function hideWindyLoadingSoon(ms = 12000) {
+  const loading = document.getElementById("windy-loading");
+  if (!loading || loading.hidden) return;
+  setTimeout(() => {
+    if (!loading.hidden) loading.hidden = true;
+  }, ms);
+}
+
+function finalizeDashboardLoad() {
+  clearKpiLoading();
+  clearStatLoading();
+  clearIotLoading();
+  if (lastDataSource === "pending") {
+    if (dashboardConfig.storage === "dynamodb") setDataSourceChip("live");
+    else if (dashboardConfig.demo_mode) setDataSourceChip("demo");
+    else setDataSourceChip("offline");
+  }
+}
+
 var trendChartInstance = null;
 var weeklyChartInstance = null;
 var hourlyChartInstance = null;
@@ -297,20 +322,30 @@ function refreshHeatmapColors() {
 }
 
 // ── API fetch (evita cache de respostas 503 antigas no navegador) ─────────
-async function fetchApi(url, options = {}, retries = 3) {
-  const fetchOpts = {
+const FETCH_TIMEOUT_MS = 15000;
+
+async function fetchApi(url, options = {}, retries = 2) {
+  const baseOpts = {
     cache: "no-store",
     headers: { Accept: "application/json", ...(options.headers || {}) },
     ...options,
   };
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const r = await fetch(url, fetchOpts);
-    if (r.ok || ![502, 503, 504].includes(r.status) || attempt === retries) {
-      return r;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const r = await fetch(url, { ...baseOpts, signal: controller.signal });
+      if (r.ok || ![502, 503, 504].includes(r.status) || attempt === retries) {
+        return r;
+      }
+    } catch (err) {
+      if (attempt === retries) throw err;
+    } finally {
+      clearTimeout(timer);
     }
-    await new Promise((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
+    await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
   }
-  return fetch(url, fetchOpts);
+  throw new Error(`fetchApi timeout: ${url}`);
 }
 
 // ── Localização & config ───────────────────────────────────────────────────
@@ -592,6 +627,7 @@ function refreshWindyMap() {
   if (loading) loading.hidden = false;
   iframe.onload = () => { if (loading) loading.hidden = true; };
   iframe.src = windyEmbedUrl(userLocation.lat, userLocation.lon);
+  hideWindyLoadingSoon();
 }
 
 function lazyLoadWindy() {
@@ -604,6 +640,7 @@ function lazyLoadWindy() {
         if (loading) loading.hidden = false;
         iframe.onload = () => { if (loading) loading.hidden = true; };
         iframe.src = windyEmbedUrl(userLocation.lat, userLocation.lon);
+        hideWindyLoadingSoon();
         observer.unobserve(iframe);
       }
     });
@@ -826,13 +863,13 @@ async function loadDashboardConfig() {
     if (r.ok) {
       dashboardConfig = await r.json();
       noteResponseSource(r);
+      if (dashboardConfig.storage === "dynamodb") setDataSourceChip("live");
     }
   } catch { /* defaults */ }
   if (!dashboardConfig.demo_mode) {
     const dev = document.getElementById("yolo-dev-actions");
     if (dev) dev.style.display = "none";
   }
-  setDataSourceChip("pending");
 }
 
 function applyLocationFromInputs() {
@@ -1426,7 +1463,8 @@ async function safeLoad(name, fn) {
 
 async function loadIoTReadings() {
   try {
-    const resp = await fetch("/api/iot/readings/latest?hours=24");
+    const resp = await fetchApi("/api/iot/readings/latest?hours=24");
+    noteResponseSource(resp);
     const data = resp.ok ? await resp.json() : null;
     const readings = data?.readings ?? [];
     const latest = readings[0] ?? null;
@@ -1446,8 +1484,13 @@ async function loadIoTReadings() {
       document.getElementById("iot-umid").textContent  = fmt(latest.umidade, " %");
       document.getElementById("iot-cidade").textContent = latest.cidade ?? "—";
       document.getElementById("iot-ts").textContent    = ts;
-      ["iot-temp","iot-umid","iot-cidade","iot-ts"].forEach(id => document.getElementById(id)?.classList.remove("is-loading"));
+    } else {
+      ["iot-temp", "iot-umid", "iot-cidade", "iot-ts"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = "—";
+      });
     }
+    clearIotLoading();
 
     if (readings.length > 1) {
       const wrap = document.getElementById("iot-history-wrap");
@@ -1462,12 +1505,13 @@ async function loadIoTReadings() {
     }
   } catch (err) {
     console.warn("IoT: falha ao carregar leituras", err);
+    clearIotLoading();
   }
 }
 
 async function bootstrapDashboard() {
-  await loadDashboardConfig();
   await Promise.allSettled([
+    loadDashboardConfig(),
     safeLoad("kpis", loadKPIs),
     safeLoad("trend", loadTrend),
     safeLoad("weekly", loadWeekly),
@@ -1481,6 +1525,7 @@ async function bootstrapDashboard() {
     safeLoad("nasa", loadNASAGallery),
     safeLoad("region-map", loadRegionMap),
   ]);
+  finalizeDashboardLoad();
   setLastUpdated(new Date());
   hasAppliedLocationOnce = true;
 }

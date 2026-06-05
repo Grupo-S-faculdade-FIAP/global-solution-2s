@@ -27,6 +27,7 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:5000",
         "http://localhost:8000",
+        "https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com",
     ]
 
     # ─── AWS ──────────────────────────────────────────────────────────────

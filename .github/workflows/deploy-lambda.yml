@@ -81,6 +81,13 @@ jobs:
             --image-uri "${{ steps.image.outputs.tag_latest }}" \
             --region "${{ env.AWS_REGION }}"
 
+      - name: Update Lambda environment
+        run: |
+          aws lambda update-function-configuration \
+            --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
+            --region "${{ env.AWS_REGION }}" \
+            --environment "Variables={ENVIRONMENT=production,MOUNT_DASHBOARD=false,DEMO_MODE=false,DYNAMODB_USE_MOCK=false,DYNAMODB_TABLE_ALERTS=alerts,S3_BUCKET_IMAGES=satellite-images-gs2}"
+
       - name: Wait for Lambda to become active
         run: |
           echo "Aguardando Lambda ficar Active..."
