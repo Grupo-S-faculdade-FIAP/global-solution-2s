@@ -1,25 +1,28 @@
 """Unit tests for OpenMeteoClient (mocked HTTP)."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
 
-from app.clients.openmeteo import OpenMeteoClient
+from app.clients.openmeteo import OpenMeteoClient, clear_openmeteo_cache
 from weather_fixtures import OPENMETEO_HOURLY_JSON, make_mock_response
 
 
 @pytest.fixture
 def client():
+    clear_openmeteo_cache()
     c = OpenMeteoClient()
     c.session = MagicMock()
     return c
 
 
-def test_get_current_parses_response(client):
-    client.session.get.return_value = make_mock_response(OPENMETEO_HOURLY_JSON)
+@patch("app.clients.openmeteo.requests.get")
+def test_get_current_parses_response(mock_get):
+    mock_get.return_value = make_mock_response(OPENMETEO_HOURLY_JSON)
+    clear_openmeteo_cache()
 
-    result = client.get_current(lat=-23.55, lon=-46.63)
+    result = OpenMeteoClient().get_current(lat=-23.55, lon=-46.63)
 
     assert result["temperature"] == 25.5
     assert result["humidity"] == 70
@@ -28,20 +31,26 @@ def test_get_current_parses_response(client):
     assert result["wind_direction"] == 180
     assert result["precipitation"] == 0.0
     assert result["timestamp"] == "2026-06-05T12:00"
+    mock_get.assert_called_once()
+    assert mock_get.call_args.kwargs.get("timeout") == 10
 
 
-def test_get_current_raises_on_http_error(client):
-    client.session.get.return_value = make_mock_response({}, status_code=429)
-
-    with pytest.raises(Exception, match="Failed to fetch weather data"):
-        client.get_current(lat=-23.55, lon=-46.63)
-
-
-def test_get_current_raises_on_connection_error(client):
-    client.session.get.side_effect = requests.exceptions.ConnectionError("offline")
+@patch("app.clients.openmeteo.requests.get")
+def test_get_current_raises_on_http_error(mock_get):
+    mock_get.return_value = make_mock_response({}, status_code=429)
+    clear_openmeteo_cache()
 
     with pytest.raises(Exception, match="Failed to fetch weather data"):
-        client.get_current(lat=-23.55, lon=-46.63)
+        OpenMeteoClient().get_current(lat=-23.55, lon=-46.63)
+
+
+@patch("app.clients.openmeteo.requests.get")
+def test_get_current_raises_on_connection_error(mock_get):
+    mock_get.side_effect = requests.exceptions.ConnectionError("offline")
+    clear_openmeteo_cache()
+
+    with pytest.raises(Exception, match="Failed to fetch weather data"):
+        OpenMeteoClient().get_current(lat=-23.55, lon=-46.63)
 
 
 def test_get_historical_hourly_parses_records(client):

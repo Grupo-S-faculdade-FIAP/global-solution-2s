@@ -1,0 +1,26 @@
+"""Utilitários compartilhados para stores JSON locais."""
+
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+from pathlib import Path
+from typing import Any
+
+
+def atomic_write_json(path: Path, payload: Any) -> None:
+    """Grava JSON de forma atômica (tempfile + os.replace)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    tmp_path = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, indent=2, ensure_ascii=False))
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_path, path)
+    except Exception:
+        if tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+        raise

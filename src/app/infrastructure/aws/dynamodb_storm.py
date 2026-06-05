@@ -82,13 +82,19 @@ class DynamoDBStormAlertRepository:
             confidence=confidence,
         )
         try:
-            _table().put_item(Item=item)
+            _table().put_item(
+                Item=item,
+                ConditionExpression="attribute_not_exists(alert_id)",
+            )
             logger.info(
                 "Alert saved to DynamoDB %s: %s",
                 settings.DYNAMODB_TABLE_ALERTS,
                 item.get("alert_id"),
             )
-        except (ClientError, BotoCoreError) as exc:
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+                logger.info("Duplicate alert_id %s — skipping write", item.get("alert_id"))
+                return {**item, "_duplicate": True}
             logger.error("DynamoDB put_item failed: %s", exc)
             raise
         return item

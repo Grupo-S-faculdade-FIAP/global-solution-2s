@@ -34,6 +34,24 @@ def test_save_appends_item(repo):
     assert len(store._load_all()) >= 7
 
 
+def test_save_is_idempotent_for_same_s3_object(repo):
+    first = repo.save(
+        s3_key="dup.png",
+        detection_count=2,
+        bucket="test-bucket",
+        simulated=True,
+    )
+    second = repo.save(
+        s3_key="dup.png",
+        detection_count=99,
+        bucket="test-bucket",
+        simulated=True,
+    )
+    assert second["_duplicate"] is True
+    assert second["detection_count"] == first["detection_count"]
+    assert len([i for i in store._load_all() if i.get("s3_key") == "dup.png"]) == 1
+
+
 def test_list_since_hours_filters_old_records(repo, tmp_path, monkeypatch):
     old_ts = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat().replace(
         "+00:00", "Z"
