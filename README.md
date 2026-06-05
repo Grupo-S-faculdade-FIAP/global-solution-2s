@@ -42,6 +42,22 @@ O projeto endereça a falta de sistemas acessíveis que integrem imagens de sat�
 - **Módulo IoT:** ESP32 com sensores de umidade do solo para monitoramento remoto de campo, com dados enviados para a nuvem via HTTP.
 - **Módulo Análise de Dados:** armazenamento dos alertas em banco SQL/NoSQL (dia e horário) com visualização em gráficos de barras para identificação de padrões recorrentes de chuva por dia da semana e faixa de horário.
 
+- ## 💡 Módulo IoT – Desenvolvimento por Rodrigo Dias Figueiroa
+
+Este módulo foi desenvolvido para realizar a coleta de dados de temperatura e umidade utilizando o sensor DHT22 conectado ao ESP32.  
+Os dados são enviados para a nuvem via API Gateway (AWS Lambda + DynamoDB), integrando o monitoramento de campo ao sistema de alertas climáticos.
+
+### 🔧 Funcionalidades implementadas
+- Conexão Wi-Fi automática com verificação de status.
+- Leitura de temperatura e umidade via sensor DHT22.
+- Consulta à API OpenWeather para obter o clima atual da cidade.
+- Envio dos dados para o banco DynamoDB através da API Gateway.
+- Exibição dos dados e status no monitor serial.
+
+### 📂 Estrutura do código
+O código está localizado em:
+
+
 A solução foi desenvolvida como projeto Global Solution da Graduação ON em Inteligência Artificial da FIAP.
 
 ---
