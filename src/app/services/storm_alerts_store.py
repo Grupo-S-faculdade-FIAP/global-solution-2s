@@ -91,9 +91,10 @@ def _build_item(
     timestamp: datetime | None = None,
     simulated: bool = False,
     classes: list[str] | None = None,
+    confidence: float | None = None,
 ) -> dict[str, Any]:
     now = timestamp or datetime.now(timezone.utc)
-    return {
+    item: dict[str, Any] = {
         "alert_type": "storm_detection",
         "timestamp": now.isoformat().replace("+00:00", "Z"),
         "alert_id": alert_id or f"alert_{uuid.uuid4().hex[:12]}",
@@ -106,6 +107,9 @@ def _build_item(
         "classes": classes or ["storm"],
         "simulated": simulated,
     }
+    if confidence is not None:
+        item["confidence"] = round(float(confidence), 4)
+    return item
 
 
 def _dynamodb_table():
@@ -204,6 +208,7 @@ def add_alert(
     alert_id: str | None = None,
     simulated: bool = True,
     classes: list[str] | None = None,
+    confidence: float | None = None,
 ) -> dict[str, Any]:
     bucket_name = bucket or settings.S3_BUCKET_IMAGES
     item = _build_item(
@@ -213,6 +218,7 @@ def add_alert(
         alert_id=alert_id,
         simulated=simulated,
         classes=classes,
+        confidence=confidence,
     )
 
     if use_mock_store():

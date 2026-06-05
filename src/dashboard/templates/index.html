@@ -63,6 +63,7 @@
       <a href="#sec-resumo" class="page-nav-link">Resumo</a>
       <a href="#sec-clima" class="page-nav-link">Clima</a>
       <a href="#sec-lavoura" class="page-nav-link">Lavoura</a>
+      <a href="#sec-iot" class="page-nav-link">IoT</a>
       <a href="#sec-satelite" class="page-nav-link">Satélite</a>
       <a href="#sec-historico" class="page-nav-link">Histórico</a>
       <a href="#sec-alertas-mapa" class="page-nav-link">Alertas</a>
@@ -228,6 +229,36 @@
       </div>
     </div>
 
+    <!-- ── IoT ESP32 — Leituras de campo ─────────────────────────────────── -->
+    <p class="section-title" id="sec-iot">Sensores de campo — ESP32</p>
+    <div class="dash-card">
+      <div class="card-head">
+        <div>
+          <div class="card-head-title"><i class="bi bi-cpu-fill"></i> Leituras IoT (ESP32 + DHT22)</div>
+          <div class="card-head-sub">Temperatura e umidade enviadas pelo sensor de campo</div>
+          <span class="data-source-chip demo" id="iot-source-chip" hidden>Demonstração</span>
+        </div>
+        <span id="iot-status-badge" class="iot-status-badge">—</span>
+      </div>
+      <div class="iot-readings-grid" id="iot-readings-grid">
+        <div class="iot-kpi"><div class="iot-kpi-label"><i class="bi bi-thermometer-half"></i> Temperatura</div><div class="iot-kpi-value is-loading" id="iot-temp">—</div></div>
+        <div class="iot-kpi"><div class="iot-kpi-label"><i class="bi bi-droplet-half"></i> Umidade</div><div class="iot-kpi-value is-loading" id="iot-umid">—</div></div>
+        <div class="iot-kpi"><div class="iot-kpi-label"><i class="bi bi-geo-alt"></i> Cidade</div><div class="iot-kpi-value is-loading" id="iot-cidade">—</div></div>
+        <div class="iot-kpi"><div class="iot-kpi-label"><i class="bi bi-clock"></i> Última leitura</div><div class="iot-kpi-value is-loading" id="iot-ts">—</div></div>
+      </div>
+      <div class="iot-history" id="iot-history-wrap" hidden>
+        <p class="iot-history-title">Histórico recente</p>
+        <table class="iot-history-table" id="iot-history-table">
+          <thead><tr><th>Timestamp</th><th>Device</th><th>Temp (°C)</th><th>Umidade (%)</th><th>Cidade</th></tr></thead>
+          <tbody id="iot-history-body"></tbody>
+        </table>
+      </div>
+      <div class="iot-info">
+        <i class="bi bi-info-circle"></i>
+        Firmware: <code>src/iot/firmware.cpp</code> · endpoint: <code>POST /iot/readings</code> · armazenamento: <span id="iot-storage-label">—</span>
+      </div>
+    </div>
+
     <!-- ── YOLO Storm Detection ─────────────────────────────────────────────── -->
     <p class="section-title" id="sec-satelite">Detecção de tempestades no satélite</p>
     <div class="dash-card">
@@ -384,8 +415,8 @@
 
   </main>
 
-  <footer class="footer">
-    Global Solutions · FIAP 2026 · alertas: armazenamento simulado (JSON local) até AWS DynamoDB estar pronto
+  <footer class="footer" id="page-footer">
+    Global Solutions · FIAP 2026 · <span id="footer-storage-hint">dados via AWS DynamoDB</span>
   </footer>
 
 

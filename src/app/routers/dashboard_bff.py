@@ -137,3 +137,16 @@ def api_simulate_detection(body: Optional[dict] = Body(default=None)) -> JSONRes
 def api_detect_sample() -> JSONResponse:
     data, _, status = bff.detect_storm_sample()
     return JSONResponse(content=data, status_code=status)
+
+
+@router.get("/iot/status")
+def api_iot_status() -> JSONResponse:
+    data, _, status = bff.iot_status()
+    return JSONResponse(content=data, status_code=status)
+
+
+@router.get("/iot/readings/latest")
+def api_iot_readings_latest(hours: int = Query(24, ge=1, le=720)) -> JSONResponse:
+    data, source, status = bff.iot_latest(hours)
+    headers = {"X-Data-Source": source}
+    return JSONResponse(content=data, status_code=status, headers=headers)

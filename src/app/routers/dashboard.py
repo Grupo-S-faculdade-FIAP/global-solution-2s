@@ -1,18 +1,26 @@
-from fastapi import APIRouter
+"""Dashboard router — status e clima da região (proxy para WeatherService)."""
+
+from fastapi import APIRouter, Query, HTTPException
+
+from app.services.weather_service import WeatherService
 
 router = APIRouter()
+_weather = WeatherService()
 
 
 @router.get("/status")
-def dashboard_status():
-    """Status do módulo de Dashboard."""
+def dashboard_status() -> dict:
     return {"module": "dashboard", "status": "ready"}
 
 
 @router.get("/climate/current")
-async def get_current_climate():
-    """
-    Retorna dados climáticos atuais para exibição no dashboard.
-    TODO: integrar com NASA FIRMS e dados de sensores.
-    """
-    return {"data": None, "message": "not implemented yet"}
+def get_current_climate(
+    lat: float = Query(-23.55, ge=-90, le=90, description="Latitude"),
+    lon: float = Query(-46.63, ge=-180, le=180, description="Longitude"),
+) -> dict:
+    """Retorna clima atual da região selecionada (Open-Meteo)."""
+    try:
+        data = _weather.get_current(lat, lon)
+        return {"data": data, "source": "open-meteo"}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Erro ao buscar clima: {exc}") from exc

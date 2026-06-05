@@ -126,8 +126,8 @@ def get_storms_recent(
       - confidence (0-1)
       - timestamp
     
-    **Note:** This endpoint queries DynamoDB storm_detections table.
-    Returns empty list if no detections found (feature not yet integrated).
+    **Note:** This endpoint queries DynamoDB `alerts` table (ou mock JSON em data/demo/).
+    Retorna lista vazia se não houver detecções no intervalo solicitado.
     """
     if hours < 1 or hours > 720:
         raise HTTPException(
