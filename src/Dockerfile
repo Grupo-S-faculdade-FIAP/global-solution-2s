@@ -25,7 +25,8 @@ RUN pip install "numpy>=1.23,<2.0" --no-cache-dir
 
 RUN pip install -r requirements-lambda.txt --no-cache-dir
 
-# ML (AgriRiskModel) — após numpy pin
+# ML (AgriRiskModel) — scipy pin evita pull de scipy 1.17+ (exige numpy 2.x)
+RUN pip install "scipy>=1.4.1,<1.14" --no-cache-dir
 RUN pip install scikit-learn==1.5.2 joblib==1.4.2 --no-cache-dir
 
 # CPU-only torch — avoids the ~2 GB CUDA build.
