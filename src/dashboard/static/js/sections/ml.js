@@ -25,7 +25,16 @@ export function syncWeatherToML(data) {
   updateMLPredictor({ temperatura: temp, umidade: umid, precipitacao: prec, vento_kmh: ventoKmh });
 }
 
+function setMLText(id, text, className) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  if (className != null) el.className = className;
+}
+
 export async function updateMLPredictor(inputs) {
+  if (!document.getElementById("ml-score")) return;
+
   clearTimeout(state.mlDebounce);
   state.mlDebounce = setTimeout(async () => {
     try {
@@ -37,11 +46,9 @@ export async function updateMLPredictor(inputs) {
       const traduz = { LOW: "BAIXO", MEDIUM: "MÉDIO", HIGH: "ALTO" };
       const cls = riskClasses[d.classe] || "";
 
-      document.getElementById("ml-score").textContent = `${Math.round(d.score * 100)}%`;
-      document.getElementById("ml-score").className = cls;
-      document.getElementById("ml-classe").textContent = `Risco ${traduz[d.classe] || d.classe}`;
-      document.getElementById("ml-classe").className = cls;
-      document.getElementById("ml-rec").textContent = d.recomendacao || "—";
+      setMLText("ml-score", `${Math.round(d.score * 100)}%`, cls);
+      setMLText("ml-classe", `Risco ${traduz[d.classe] || d.classe}`, cls);
+      setMLText("ml-rec", d.recomendacao || "—");
 
       const chip = document.getElementById("ml-source-chip");
       const setupHint = document.getElementById("ml-setup-hint");
@@ -60,14 +67,17 @@ export async function updateMLPredictor(inputs) {
         if (setupHint) setupHint.hidden = !needsSetup;
       }
 
+      const probasEl = document.getElementById("ml-probas");
       const p = d.probabilidades || {};
-      document.getElementById("ml-probas").innerHTML =
-        `<span class="risk-low">Baixo</span> ${Math.round((p.LOW || 0) * 100)}%<br>` +
-        `<span class="risk-moderate">Médio</span> ${Math.round((p.MEDIUM || 0) * 100)}%<br>` +
-        `<span class="risk-high">Alto</span> ${Math.round((p.HIGH || 0) * 100)}%`;
+      if (probasEl) {
+        probasEl.innerHTML =
+          `<span class="risk-low">Baixo</span> ${Math.round((p.LOW || 0) * 100)}%<br>` +
+          `<span class="risk-moderate">Médio</span> ${Math.round((p.MEDIUM || 0) * 100)}%<br>` +
+          `<span class="risk-high">Alto</span> ${Math.round((p.HIGH || 0) * 100)}%`;
+      }
     } catch {
-      document.getElementById("ml-score").textContent = "—";
-      document.getElementById("ml-rec").textContent = "Backend indisponível";
+      setMLText("ml-score", "—");
+      setMLText("ml-rec", "Backend indisponível");
     }
   }, 400);
 }

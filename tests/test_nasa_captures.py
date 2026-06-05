@@ -36,7 +36,10 @@ def test_list_nasa_captures_returns_recent_files() -> None:
 def test_cv_nasa_capturas_endpoint() -> None:
     with patch(
         "app.routers.cv.list_nasa_captures",
-        return_value={"total": 2, "capturas": [{"arquivo": "nasa_brasil_20260604.png"}]},
+        return_value={
+            "total": 2,
+            "capturas": [{"arquivo": "nasa_brasil_20260604.png", "url": "/cv/nasa/imagem/nasa_brasil_20260604.png"}],
+        },
     ):
         response = client.get("/cv/nasa/capturas?limite=5")
 
@@ -44,3 +47,20 @@ def test_cv_nasa_capturas_endpoint() -> None:
     body = response.json()
     assert body["total"] == 2
     assert len(body["capturas"]) == 1
+
+
+def test_nasa_imagem_rejects_invalid_name() -> None:
+    response = client.get("/cv/nasa/imagem/not-a-nasa-file.png")
+    assert response.status_code == 404
+
+
+def test_nasa_imagem_serves_file(tmp_path, monkeypatch) -> None:
+    png = tmp_path / "nasa_brasil_test.png"
+    png.write_bytes(b"\x89PNG" + b"\0" * 100_000)
+    monkeypatch.setattr(
+        "app.routers.cv.resolve_nasa_image",
+        lambda nome, fonte="captures": png if nome == "nasa_brasil_test.png" else None,
+    )
+    response = client.get("/cv/nasa/imagem/nasa_brasil_test.png")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"

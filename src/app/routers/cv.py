@@ -8,13 +8,14 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.application.cv.detect_storm import DetectStormUseCase
 from app.container import get_storm_repo
 from app.domain.cv.ports import StormAlertRepository
-from app.services.nasa_captures import list_nasa_captures
+from app.services.nasa_captures import list_nasa_captures, resolve_nasa_image
 from app.services.sns_alerts import sns_status
 from app.core.config import settings
 
@@ -48,6 +49,18 @@ def cv_status() -> dict:
 def nasa_capturas(limite: int = 12) -> dict:
     """Lista capturas NASA Worldview salvas localmente (data/nasa_captures/)."""
     return list_nasa_captures(limite=max(1, min(limite, 100)))
+
+
+@router.get("/nasa/imagem/{nome_arquivo}")
+def nasa_imagem(
+    nome_arquivo: str,
+    fonte: str = Query("captures", pattern="^(captures|dataset)$"),
+) -> FileResponse:
+    """Serve PNG de captura NASA ou do dataset YOLO (demo local)."""
+    path = resolve_nasa_image(nome_arquivo, fonte=fonte)
+    if path is None:
+        raise HTTPException(status_code=404, detail="Imagem não encontrada")
+    return FileResponse(path, media_type="image/png")
 
 
 @router.post("/detect/storm")

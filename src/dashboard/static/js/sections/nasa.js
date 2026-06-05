@@ -29,8 +29,11 @@ export async function loadNASAGallery() {
         hour: "2-digit",
         minute: "2-digit",
       });
+      const thumb = cap.url
+        ? `<img src="${cap.url}" alt="${cap.arquivo}" loading="lazy" width="120" height="80">`
+        : `<i class="bi bi-globe-americas"></i>`;
       div.innerHTML = `
-        <div class="nasa-card-thumb"><i class="bi bi-globe-americas"></i></div>
+        <div class="nasa-card-thumb">${thumb}</div>
         <div class="nasa-card-body">
           <div class="nasa-card-title">${cap.arquivo}</div>
           <div class="nasa-card-meta">${ts} · ${cap.tamanho_kb} KB</div>

@@ -24,7 +24,9 @@ def use_inprocess_backend() -> bool:
     """
     if os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
         return True
-    raw = os.environ.get("BFF_INPROCESS", "false").strip().lower()
+    raw = os.environ.get("BFF_INPROCESS", "true").strip().lower()
+    if raw in ("0", "false", "no", "off"):
+        return False
     return raw in ("1", "true", "yes", "on")
 
 
