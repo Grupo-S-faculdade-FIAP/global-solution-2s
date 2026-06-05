@@ -1,17 +1,5 @@
-# Dataset de detecção de tempestades — YOLO format
-# Fonte atual (treino): NASA Worldview GOES-East IR C13 (04_nasa_to_yolo.py)
-# Futuro: outras imagens Windy (novas capturas), GOES raw via 03_goes_to_yolo.py
-# Screenshots Windy antigos foram removidos do dataset de treino (2026-06-04).
-#
-# Para gerar/atualizar o dataset:
-#   python scripts/goes_pipeline/03_goes_to_yolo.py   # GOES raw → YOLO
-#   python scripts/goes_pipeline/04_nasa_to_yolo.py   # NASA PNG → YOLO
-#
-# Para treinar:
-#   python src/yolo_training.py --epochs 50 --batch 8
-
-train: /Users/caroline/Desktop/FIAP/global-solutions/data/model-dataset/images/train
-val:   /Users/caroline/Desktop/FIAP/global-solutions/data/model-dataset/images/val
+train: images/train
+val: images/val
 
 nc: 1
 names:

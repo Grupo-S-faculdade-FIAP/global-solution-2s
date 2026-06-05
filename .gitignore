@@ -9,6 +9,9 @@ docs/AWS-STATE.md
 # Chaves SSH
 *.pem
 
+# YOLO generated
+data/model-dataset/storm.resolved.yaml
+
 # Python
 __pycache__/
 *.py[cod]

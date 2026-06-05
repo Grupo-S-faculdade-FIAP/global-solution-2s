@@ -6,11 +6,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
-
-from app.core.config import settings
-from app.services.storm_alerts_store import list_alerts_since_days, use_mock_store
+from app.services.storm_alerts_store import list_alerts_since_days
 
 
 WEEKDAYS_PT = [
@@ -65,43 +61,10 @@ def _base_hourly() -> dict[str, int]:
 
 
 class AlertAnalyticsService:
-    """Aggregate storm alert records from DynamoDB into chart-ready buckets."""
-
-    def __init__(self) -> None:
-        self._table = None
-        if not use_mock_store():
-            self._dynamodb = boto3.resource("dynamodb", region_name=settings.AWS_REGION)
-            self._table = self._dynamodb.Table(settings.DYNAMODB_TABLE_ALERTS)
+    """Aggregate storm alert records via storm_alerts_store into chart-ready buckets."""
 
     def _scan_recent_alerts(self, days: int = 30) -> list[dict[str, Any]]:
-        if use_mock_store():
-            return list_alerts_since_days(days)
-
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-        cutoff_iso = cutoff.isoformat().replace("+00:00", "Z")
-
-        items: list[dict[str, Any]] = []
-        scan_kwargs: dict[str, Any] = {
-            "FilterExpression": "alert_type = :atype AND #ts >= :cutoff",
-            "ExpressionAttributeNames": {"#ts": "timestamp"},
-            "ExpressionAttributeValues": {
-                ":atype": "storm_detection",
-                ":cutoff": cutoff_iso,
-            },
-        }
-
-        try:
-            while True:
-                page = self._table.scan(**scan_kwargs)
-                items.extend(page.get("Items", []))
-                last_key = page.get("LastEvaluatedKey")
-                if not last_key:
-                    break
-                scan_kwargs["ExclusiveStartKey"] = last_key
-        except (ClientError, BotoCoreError):
-            return list_alerts_since_days(days)
-
-        return items
+        return list_alerts_since_days(days)
 
     def weekly_alerts(self, days: int = 30) -> dict[str, int]:
         data = _base_weekly()

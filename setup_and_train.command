@@ -104,20 +104,17 @@ else
     ok ".env já existe — mantido"
 fi
 
-# ── 5. Treinar AgriRiskModel (sklearn) ────────────────────────────────────
+# ── 5. Pipeline agrícola (INMET + FAOSTAT + ML) ───────────────────────────
 echo ""
-info "Treinando modelo de risco agrícola (Random Forest)..."
-mkdir -p src/models
-cd src
-python3 - << 'PYEOF'
-import sys
-sys.path.insert(0, '.')
-from app.services.agri_risk_model import treinar_e_salvar
-model, scaler = treinar_e_salvar()
-print("  AgriRiskModel salvo com sucesso")
-PYEOF
-cd "$ROOT"
-ok "AgriRiskModel treinado → src/models/agri_risk_model.pkl"
+info "Pipeline agrícola (INMET BDMEP + FAOSTAT + AgriRiskModel)..."
+if [ -f "data/weather/inmet/training_cache.csv" ]; then
+    ok "Cache INMET já existe — retreino sem novo download"
+    python3 scripts/build_agri_pipeline.py --skip-fetch
+else
+    warn "Cache INMET ausente — baixando BDMEP 2024 (pode levar alguns minutos)"
+    python3 scripts/build_agri_pipeline.py --years 2024
+fi
+ok "AgriRiskModel treinado → models/agri_risk_*.pkl"
 
 # ── 6. Dataset NASA ────────────────────────────────────────────────────────
 echo ""
@@ -225,7 +222,7 @@ echo "================================================"
 echo ""
 echo "  Modelos treinados:"
 ls -lh src/models/weights/best.pt 2>/dev/null && echo "    ✓ YOLO best.pt" || echo "    ✗ YOLO (falhou)"
-ls -lh src/models/agri_risk_model.pkl 2>/dev/null && echo "    ✓ AgriRiskModel.pkl" || echo "    ✗ AgriRisk (falhou)"
+ls -lh models/agri_risk_model.pkl 2>/dev/null && echo "    ✓ AgriRiskModel.pkl" || echo "    ✗ AgriRisk (falhou)"
 echo ""
 echo "  Para iniciar a API:"
 echo "    cd src && uvicorn app.main:app --port 8000 --reload"

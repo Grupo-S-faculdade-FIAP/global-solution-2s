@@ -263,7 +263,10 @@ async function fetchApi(url, options = {}) {
 
 // ── Localização & config ───────────────────────────────────────────────────
 const LOC_KEY = "dashboard-location";
+const LOC_COLLAPSED_KEY = "dashboard-location-collapsed";
 const DEFAULT_LOC = { lat: -23.55, lon: -46.63 };
+const LOC_RADIUS_KM = 50;
+const MAP_APPLY_DEBOUNCE_MS = 400;
 const BRAZIL_CITIES = [
   { id: "sp", name: "São Paulo, SP", lat: -23.5505, lon: -46.6333 },
   { id: "rj", name: "Rio de Janeiro, RJ", lat: -22.9068, lon: -43.1729 },
@@ -282,6 +285,94 @@ var userLocation = { ...DEFAULT_LOC };  // var (não let) — evita TDZ no IIFE 
 var lastDataSource = "demo";
 var locationPickerMap = null;
 var locationPickerMarker = null;
+var locationPickerRadius = null;
+var mapApplyTimer = null;
+var locationReloading = false;
+var hasAppliedLocationOnce = false;
+
+function showToast(message, type = "info") {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  const icons = { success: "bi-check-circle-fill", error: "bi-exclamation-circle-fill", info: "bi-info-circle-fill" };
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.setAttribute("role", "status");
+  toast.innerHTML = `<i class="bi ${icons[type] || icons.info}" aria-hidden="true"></i><span>${message}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3200);
+}
+
+function cityDisplayName(lat, lon) {
+  const id = nearestCityId(lat, lon);
+  const city = BRAZIL_CITIES.find((c) => c.id === id);
+  if (city && city.id !== "custom") return city.name;
+  return "Local personalizado";
+}
+
+function updateLocationHeader(lat, lon) {
+  const cityEl = document.getElementById("location-city-name");
+  const label = document.getElementById("location-label");
+  const txt = `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+  if (cityEl) cityEl.textContent = cityDisplayName(lat, lon);
+  if (label) label.textContent = txt;
+  const windyTitle = document.getElementById("windy-map-title");
+  if (windyTitle) windyTitle.textContent = `Chuva em tempo real — ${cityDisplayName(lat, lon)}`;
+  updateWindyLoadingText(lat, lon);
+}
+
+function updateWindyLoadingText(lat, lon) {
+  const el = document.getElementById("windy-loading-text");
+  if (!el) return;
+  const name = cityDisplayName(lat ?? userLocation.lat, lon ?? userLocation.lon);
+  el.textContent = `Carregando radar para ${name}…`;
+}
+
+var applyBtnDefaultText = "Aplicar coordenadas";
+
+function setLocationLoading(loading) {
+  locationReloading = loading;
+  const ids = ["btn-geo", "btn-reset-sp", "btn-apply-location", "select-city"];
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = loading;
+  });
+  const applyBtn = document.getElementById("btn-apply-location");
+  if (applyBtn) {
+    applyBtn.classList.toggle("is-loading", loading);
+    applyBtn.textContent = loading ? "Atualizando…" : applyBtnDefaultText;
+  }
+}
+
+function syncAdvancedAccordion(cityId) {
+  const details = document.getElementById("location-advanced");
+  if (!details) return;
+  if (cityId === "custom") details.open = true;
+}
+
+function updateLocationPickerRadius(lat, lon) {
+  if (!locationPickerMap || typeof L === "undefined") return;
+  const blue = getCssVar("--blue") || "#58a6ff";
+  if (locationPickerRadius) {
+    locationPickerMap.removeLayer(locationPickerRadius);
+  }
+  locationPickerRadius = L.circle([lat, lon], {
+    radius: LOC_RADIUS_KM * 1000,
+    color: blue,
+    weight: 1.5,
+    opacity: 0.65,
+    fillColor: blue,
+    fillOpacity: 0.08,
+    className: "location-picker-radius",
+  }).addTo(locationPickerMap);
+  if (locationPickerMarker) locationPickerMarker.bringToFront();
+}
+
+function scheduleMapAutoApply(lat, lon) {
+  if (mapApplyTimer) clearTimeout(mapApplyTimer);
+  mapApplyTimer = setTimeout(() => {
+    applyLocationAndReload(lat, lon, { silent: false, collapseMobile: true });
+  }, MAP_APPLY_DEBOUNCE_MS);
+}
 
 function syncCoordInputs(lat, lon) {
   const latEl = document.getElementById("input-lat");
@@ -323,14 +414,16 @@ function populateCitySelect() {
 
 function setPickerCoords(lat, lon, fly = true) {
   syncCoordInputs(lat, lon);
+  const cityId = nearestCityId(lat, lon);
   syncCitySelect(lat, lon);
-  const label = document.getElementById("location-label");
-  if (label) label.textContent = `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+  syncAdvancedAccordion(cityId);
+  updateLocationHeader(lat, lon);
   const sub = document.getElementById("weather-location-sub");
   if (sub) sub.textContent = `Coordenadas: ${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
   ensureLocationPickerMap();
   if (locationPickerMap && locationPickerMarker) {
     locationPickerMarker.setLatLng([lat, lon]);
+    updateLocationPickerRadius(lat, lon);
     if (fly) locationPickerMap.setView([lat, lon], locationPickerMap.getZoom() || 8);
   }
 }
@@ -340,17 +433,24 @@ function ensureLocationPickerMap() {
   const el = document.getElementById("location-picker-map");
   if (!el) return;
   const cfg = mapTileConfig();
-  locationPickerMap = L.map(el, { zoomControl: true, scrollWheelZoom: false });
+  locationPickerMap = L.map(el, {
+    zoomControl: false,
+    scrollWheelZoom: false,
+  });
+  L.control.zoom({ position: "bottomright" }).addTo(locationPickerMap);
   L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 18 }).addTo(locationPickerMap);
   locationPickerMarker = L.marker([userLocation.lat, userLocation.lon], { draggable: true }).addTo(locationPickerMap);
   locationPickerMap.setView([userLocation.lat, userLocation.lon], 8);
   locationPickerMap.on("click", (e) => {
     setPickerCoords(e.latlng.lat, e.latlng.lng, false);
+    scheduleMapAutoApply(e.latlng.lat, e.latlng.lng);
   });
   locationPickerMarker.on("dragend", () => {
     const p = locationPickerMarker.getLatLng();
     setPickerCoords(p.lat, p.lng, false);
+    scheduleMapAutoApply(p.lat, p.lng);
   });
+  updateLocationPickerRadius(userLocation.lat, userLocation.lon);
   setTimeout(() => locationPickerMap.invalidateSize(), 150);
 }
 
@@ -376,11 +476,52 @@ function saveLocation(lat, lon) {
 }
 
 function updateLocationLabel() {
-  const el = document.getElementById("location-label");
+  updateLocationHeader(userLocation.lat, userLocation.lon);
   const sub = document.getElementById("weather-location-sub");
-  const txt = `${userLocation.lat.toFixed(4)}°, ${userLocation.lon.toFixed(4)}°`;
-  el.textContent = txt;
-  if (sub) sub.textContent = `Coordenadas: ${txt}`;
+  if (sub) {
+    const txt = `${userLocation.lat.toFixed(4)}°, ${userLocation.lon.toFixed(4)}°`;
+    sub.textContent = `Coordenadas: ${txt}`;
+  }
+}
+
+async function applyLocationAndReload(lat, lon, opts = {}) {
+  const { silent = false, collapseMobile = false } = opts;
+  if (locationReloading) return;
+  const same =
+    Math.abs(userLocation.lat - lat) < 0.0001 &&
+    Math.abs(userLocation.lon - lon) < 0.0001;
+  saveLocation(lat, lon);
+  if (same && hasAppliedLocationOnce) return;
+  setLocationLoading(true);
+  try {
+    await reloadLocationDependentData();
+    hasAppliedLocationOnce = true;
+    if (!silent) showToast(`Região atualizada — ${cityDisplayName(lat, lon)}`, "success");
+    if (collapseMobile && window.innerWidth < 768) collapseLocationBar(true);
+  } catch {
+    if (!silent) showToast("Falha ao atualizar dados da região", "error");
+  } finally {
+    setLocationLoading(false);
+  }
+}
+
+function collapseLocationBar(collapsed) {
+  const bar = document.getElementById("location-bar");
+  const btn = document.getElementById("btn-location-collapse");
+  if (!bar || !btn) return;
+  const wasCompact = bar.classList.contains("is-compact");
+  bar.classList.toggle("is-compact", collapsed);
+  btn.setAttribute("aria-expanded", String(!collapsed));
+  localStorage.setItem(LOC_COLLAPSED_KEY, collapsed ? "1" : "0");
+  if (wasCompact && !collapsed && locationPickerMap) {
+    setTimeout(() => locationPickerMap.invalidateSize(), 200);
+  }
+}
+
+function resetToSaoPaulo() {
+  const sp = BRAZIL_CITIES.find((c) => c.id === "sp");
+  if (!sp) return;
+  applyLocationAndReload(sp.lat, sp.lon, { silent: false });
 }
 
 function windyEmbedUrl(lat, lon) {
@@ -392,6 +533,7 @@ function refreshWindyMap() {
   const iframe = document.getElementById("windy-iframe") || document.querySelector(".windy-frame");
   const loading = document.getElementById("windy-loading");
   if (!iframe) return;
+  updateWindyLoadingText(userLocation.lat, userLocation.lon);
   if (loading) loading.hidden = false;
   iframe.onload = () => { if (loading) loading.hidden = true; };
   iframe.src = windyEmbedUrl(userLocation.lat, userLocation.lon);
@@ -475,6 +617,7 @@ function refreshLocationPickerTiles() {
     if (layer instanceof L.TileLayer) locationPickerMap.removeLayer(layer);
   });
   L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 18 }).addTo(locationPickerMap);
+  if (locationPickerRadius) locationPickerRadius.bringToFront();
   if (locationPickerMarker) locationPickerMarker.bringToFront();
 }
 
@@ -627,36 +770,120 @@ function applyLocationFromInputs() {
   const lat = parseFloat(document.getElementById("input-lat").value);
   const lon = parseFloat(document.getElementById("input-lon").value);
   if (Number.isNaN(lat) || Number.isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    document.getElementById("location-label").textContent = "Coordenadas inválidas";
+    showToast("Coordenadas inválidas — verifique latitude e longitude", "error");
     return;
   }
-  saveLocation(lat, lon);
-  reloadLocationDependentData();
+  applyLocationAndReload(lat, lon, { collapseMobile: true });
 }
 
 function onCitySelectChange() {
   const sel = document.getElementById("select-city");
   const city = BRAZIL_CITIES.find((c) => c.id === sel?.value);
-  if (!city || city.lat == null) return;
-  saveLocation(city.lat, city.lon);
-  reloadLocationDependentData();
+  if (!city) return;
+  if (city.id === "custom") {
+    syncAdvancedAccordion("custom");
+    return;
+  }
+  if (city.lat == null) return;
+  applyLocationAndReload(city.lat, city.lon, { collapseMobile: true });
 }
 
 function requestGeolocation() {
-  const label = document.getElementById("location-label");
   if (!navigator.geolocation) {
-    label.textContent = "Geolocalização não suportada";
+    showToast("Seu navegador não suporta geolocalização", "error");
     return;
   }
-  label.textContent = "Obtendo posição…";
+  showToast("Obtendo sua posição…", "info");
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      saveLocation(pos.coords.latitude, pos.coords.longitude);
-      reloadLocationDependentData();
+      applyLocationAndReload(pos.coords.latitude, pos.coords.longitude, { collapseMobile: true });
     },
-    () => { label.textContent = "Permissão negada ou indisponível"; },
+    (err) => {
+      const msgs = {
+        1: "Permissão negada — habilite localização nas configurações do navegador",
+        2: "Posição indisponível — tente novamente ou escolha no mapa",
+        3: "Tempo esgotado — tente novamente",
+      };
+      showToast(msgs[err?.code] || "Não foi possível obter sua localização", "error");
+    },
     { enableHighAccuracy: true, timeout: 12000 }
   );
+}
+
+function initLocationBarUX() {
+  const bar = document.getElementById("location-bar");
+  const collapseBtn = document.getElementById("btn-location-collapse");
+  const badge = document.getElementById("location-badge");
+  if (localStorage.getItem(LOC_COLLAPSED_KEY) === "1") collapseLocationBar(true);
+
+  collapseBtn?.addEventListener("click", () => {
+    const isCompact = bar?.classList.contains("is-compact");
+    collapseLocationBar(!isCompact);
+  });
+
+  badge?.addEventListener("click", () => {
+    if (bar?.classList.contains("is-compact")) collapseLocationBar(false);
+  });
+  badge?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (bar?.classList.contains("is-compact")) collapseLocationBar(false);
+    }
+  });
+  if (badge) {
+    badge.setAttribute("role", "button");
+    badge.setAttribute("tabindex", "0");
+    badge.setAttribute("title", "Expandir painel de região");
+  }
+
+  const onScroll = () => {
+    if (!bar) return;
+    const topbarH = document.querySelector(".topbar")?.offsetHeight || 52;
+    const rect = bar.getBoundingClientRect();
+    bar.classList.toggle("is-stuck", rect.top <= topbarH + 4);
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  const navLinks = document.querySelectorAll(".page-nav-link");
+  navLinks.forEach((link) => {
+    link.addEventListener("click", (e) => {
+      const href = link.getAttribute("href");
+      if (!href?.startsWith("#")) return;
+      const target = document.querySelector(href);
+      if (!target) return;
+      e.preventDefault();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      history.replaceState(null, "", href);
+    });
+  });
+
+  const sections = [...navLinks]
+    .map((a) => document.querySelector(a.getAttribute("href")))
+    .filter(Boolean);
+  if (sections.length && "IntersectionObserver" in window) {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const id = entry.target.id;
+          navLinks.forEach((link) => {
+            link.classList.toggle("is-active", link.getAttribute("href") === `#${id}`);
+          });
+        });
+      },
+      { rootMargin: "-30% 0px -55% 0px", threshold: 0 }
+    );
+    sections.forEach((sec) => obs.observe(sec));
+  }
+
+  const mapEl = document.getElementById("location-picker-map");
+  if (mapEl && "ResizeObserver" in window) {
+    const ro = new ResizeObserver(() => {
+      if (locationPickerMap) locationPickerMap.invalidateSize();
+    });
+    ro.observe(mapEl);
+  }
 }
 
 function syncSlidersFromWeather(data) {
@@ -680,6 +907,11 @@ function syncSlidersFromWeather(data) {
 }
 
 async function reloadLocationDependentData() {
+  const badge = document.getElementById("risk-badge");
+  if (badge) {
+    badge.classList.add("is-loading");
+    badge.textContent = "—";
+  }
   await Promise.all([loadWeatherData(), loadRiskData(), loadRegionMap()]);
 }
 
@@ -776,6 +1008,11 @@ async function loadRiskData() {
       data.recommendation;
   } catch {
     clearStatLoading();
+    const badge = document.getElementById("risk-badge");
+    if (badge) {
+      badge.classList.remove("is-loading");
+      badge.textContent = "—";
+    }
     showSectionError("risk-container", "Risco indisponível no momento");
   }
 }
@@ -808,7 +1045,10 @@ async function loadRecentStorms() {
     noteResponseSource(r);
     const storms = await r.json();
     if (!Array.isArray(storms) || storms.length === 0) {
-      el.textContent = "Nenhum alerta no store local — clique em Simular alerta.";
+      el.innerHTML =
+        '<div class="section-empty" style="padding:0.5rem 0;">' +
+        '<i class="bi bi-cloud-slash" aria-hidden="true"></i>' +
+        'Nenhum alerta no store local — clique em Simular alerta.</div>';
       return;
     }
     el.innerHTML = storms.slice(0, 8).map(s => {
@@ -1013,6 +1253,23 @@ async function updateMLPredictor() {
       document.getElementById("ml-classe").className = cls;
       document.getElementById("ml-rec").textContent = d.recomendacao || "—";
 
+      const chip = document.getElementById("ml-source-chip");
+      const setupHint = document.getElementById("ml-setup-hint");
+      if (chip) {
+        const src = d.dataset_source || "";
+        const label = src.includes("inmet")
+          ? "INMET BDMEP"
+          : src.includes("openmeteo")
+            ? "Open-Meteo"
+            : src.includes("synthetic")
+              ? "Sintético"
+              : src || "—";
+        chip.textContent = `Modelo: ${label}`;
+        chip.hidden = !src;
+        const needsSetup = src.includes("synthetic") || src.includes("openmeteo") || !src;
+        if (setupHint) setupHint.hidden = !needsSetup;
+      }
+
       const p = d.probabilidades || {};
       document.getElementById("ml-probas").innerHTML =
         `<span class="risk-low">Baixo</span> ${Math.round((p.LOW||0)*100)}%<br>` +
@@ -1102,6 +1359,7 @@ async function bootstrapDashboard() {
     safeLoad("region-map", loadRegionMap),
   ]);
   setLastUpdated(new Date());
+  hasAppliedLocationOnce = true;
 }
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
@@ -1110,8 +1368,10 @@ bootstrapDashboard();
 
 loadStoredLocation();
 ensureLocationPickerMap();
+initLocationBarUX();
 document.getElementById("btn-apply-location")?.addEventListener("click", applyLocationFromInputs);
 document.getElementById("btn-geo")?.addEventListener("click", requestGeolocation);
+document.getElementById("btn-reset-sp")?.addEventListener("click", resetToSaoPaulo);
 document.getElementById("select-city")?.addEventListener("change", onCitySelectChange);
 lazyLoadWindy();
 lazyInitRegionMap();

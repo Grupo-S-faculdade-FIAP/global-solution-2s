@@ -4,7 +4,6 @@ Reference: https://open-meteo.com/en/docs
 """
 
 import requests
-from datetime import datetime
 from functools import lru_cache
 
 from app.core.config import settings
@@ -30,12 +29,15 @@ class OpenMeteoClient:
         "weather_code"
     ]
     
+    ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+
     def __init__(self):
         """Initialize Open-Meteo client."""
         self.base_url = settings.OPENMETEO_API_URL
+        self.archive_url = self.ARCHIVE_URL
         self.timezone = settings.OPENMETEO_TIMEZONE
         self.session = requests.Session()
-        self.session.timeout = 10  # 10s timeout
+        self.session.timeout = 30
         
     def _validate_coordinates(self, lat: float, lon: float) -> None:
         """Validate latitude and longitude.
@@ -105,5 +107,44 @@ class OpenMeteoClient:
             "wind_speed": float(hourly["wind_speed_10m"][current_index]),
             "wind_direction": int(hourly["wind_direction_10m"][current_index]),
             "precipitation": float(hourly["precipitation"][current_index]),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": hourly["time"][current_index],
         }
+
+    def get_historical_hourly(
+        self,
+        lat: float,
+        lon: float,
+        start_date: str,
+        end_date: str,
+    ) -> list[dict]:
+        """Fetch hourly historical weather from Open-Meteo Archive API."""
+        self._validate_coordinates(lat, lon)
+        params = {
+            "latitude": lat,
+            "longitude": lon,
+            "start_date": start_date,
+            "end_date": end_date,
+            "hourly": ",".join(self.HOURLY_FIELDS),
+            "timezone": self.timezone,
+        }
+        try:
+            response = self.session.get(self.archive_url, params=params, timeout=60)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Failed to fetch historical weather: {e}") from e
+
+        hourly = response.json().get("hourly", {})
+        times = hourly.get("time", [])
+        records: list[dict] = []
+        for i, ts in enumerate(times):
+            wind_ms = float(hourly["wind_speed_10m"][i] or 0)
+            records.append({
+                "timestamp": ts,
+                "temperature": float(hourly["temperature_2m"][i]),
+                "humidity": int(hourly["relative_humidity_2m"][i]),
+                "precipitation": float(hourly["precipitation"][i] or 0),
+                "wind_speed_kmh": round(wind_ms * 3.6, 2),
+                "latitude": lat,
+                "longitude": lon,
+            })
+        return records

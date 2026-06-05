@@ -18,6 +18,22 @@ from pathlib import Path
 
 # Root do projeto = dois níveis acima deste arquivo (src/yolo_training.py)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATASET_ROOT = PROJECT_ROOT / "data" / "model-dataset"
+
+
+def _resolved_dataset_yaml(dataset_yaml: str) -> Path:
+    """Gera YAML com path absoluto para o YOLOv5 (cwd=yolov5/)."""
+    resolved = DATASET_ROOT / "storm.resolved.yaml"
+    resolved.write_text(
+        f"path: {DATASET_ROOT}\n"
+        "train: images/train\n"
+        "val: images/val\n"
+        "nc: 1\n"
+        "names:\n"
+        "  0: storm\n",
+        encoding="utf-8",
+    )
+    return resolved
 
 
 def _ensure_yolov5(yolov5_dir: Path) -> Path:
@@ -64,6 +80,7 @@ def train_yolo_storm_detector(
     patience: int      = 20,
     project_dir: str   = "runs/train",
     run_name: str      = "storm-detector",
+    recall_focus: bool = False,
 ) -> Path:
     """
     Treina YOLOv5 para detecção de tempestades.
@@ -72,11 +89,11 @@ def train_yolo_storm_detector(
         Path para o melhor modelo treinado (best.pt)
     """
     yolov5_dir  = PROJECT_ROOT / "yolov5"
-    dataset_abs = PROJECT_ROOT / dataset_yaml
+    dataset_abs = _resolved_dataset_yaml(dataset_yaml)
     project_abs = PROJECT_ROOT / project_dir
 
-    if not dataset_abs.exists():
-        raise FileNotFoundError(f"Dataset YAML não encontrado: {dataset_abs}")
+    if not DATASET_ROOT.exists():
+        raise FileNotFoundError(f"Dataset dir não encontrado: {DATASET_ROOT}")
 
     _ensure_yolov5(yolov5_dir)
 
@@ -85,6 +102,7 @@ def train_yolo_storm_detector(
     print(f"   Modelo  : {model_name}")
     print(f"   Épocas  : {epochs} | Batch: {batch_size} | Device: {device}\n")
 
+    hyp_path = DATASET_ROOT / "hyp.recall.yaml"
     cmd = [
         sys.executable,
         str(yolov5_dir / "train.py"),
@@ -99,6 +117,9 @@ def train_yolo_storm_detector(
         "--name",     run_name,
         "--exist-ok",
     ]
+    if recall_focus and hyp_path.exists():
+        cmd.extend(["--hyp", str(hyp_path)])
+        print(f"   Hyp     : {hyp_path} (recall-focus)")
 
     result = subprocess.run(cmd, cwd=str(yolov5_dir))
     if result.returncode != 0:
@@ -124,7 +145,7 @@ def validate_model(
 ):
     """Valida o modelo treinado no conjunto de validação."""
     model_abs  = PROJECT_ROOT / model_path
-    dataset_abs = PROJECT_ROOT / dataset_yaml
+    dataset_abs = _resolved_dataset_yaml(dataset_yaml)
     yolov5_dir  = PROJECT_ROOT / "yolov5"
 
     print(f"\n📊 Validando: {model_abs}")
@@ -174,10 +195,18 @@ if __name__ == "__main__":
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument("--validate", action="store_true",
                         help="Validar modelo após treinamento")
+    parser.add_argument("--validate-only", action="store_true",
+                        help="Somente validar best.pt existente (sem treinar)")
+    parser.add_argument("--recall-focus", action="store_true",
+                        help="Usar hyp.recall.yaml (viés para recall)")
     parser.add_argument("--export",   choices=["onnx", "torchscript", "tflite"],
                         help="Exportar modelo após treinamento")
 
     args = parser.parse_args()
+
+    if args.validate_only:
+        validate_model("src/models/weights/best.pt", args.dataset)
+        raise SystemExit(0)
 
     model_path = train_yolo_storm_detector(
         dataset_yaml=args.dataset,
@@ -187,6 +216,7 @@ if __name__ == "__main__":
         batch_size=args.batch,
         device=args.device,
         patience=args.patience,
+        recall_focus=args.recall_focus,
     )
 
     if args.validate:

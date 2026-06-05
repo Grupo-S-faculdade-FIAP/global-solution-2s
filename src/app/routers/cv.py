@@ -1,7 +1,6 @@
 import logging
 import os
 import pathlib
-import datetime
 from typing import Optional
 
 import boto3
@@ -9,6 +8,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.services.storm_alerts_store import add_alert
 
 
 logger = logging.getLogger(__name__)
@@ -100,6 +100,7 @@ def _run_yolo_inference(image_path: pathlib.Path, model_path: pathlib.Path) -> l
             verbose=False,
         )
     model.conf = settings.YOLO_CONFIDENCE_THRESHOLD
+    model.iou = settings.YOLO_IOU_THRESHOLD
 
     # Pass file path (PIL/RGB). cv2.imread() is BGR; YOLOv5 v7 AutoShape does not convert numpy BGR.
     results = model(str(image_path))
@@ -137,30 +138,16 @@ def _publish_alert(bucket: str, key: str, detections: list[dict]) -> str | None:
     return response["MessageId"]
 
 
-def _save_alert_to_dynamodb(bucket: str, key: str, detections: list[dict], message_id: str) -> None:
-    """
-    Persists the alert record to DynamoDB for later dashboard analysis.
-    Table schema (from AWS-STATE.md): PK=alert_type (S), SK=timestamp (S).
-    """
-    if settings.DYNAMODB_USE_MOCK:
-        logger.debug("DYNAMODB_USE_MOCK=true — skipping DynamoDB write in CV pipeline")
-        return
-
-    dynamodb = boto3.resource("dynamodb", region_name=settings.AWS_REGION)
-    table = dynamodb.Table(settings.DYNAMODB_TABLE_ALERTS)
-    now = datetime.datetime.utcnow()
-    table.put_item(Item={
-        "alert_type": "storm_detection",     # partition key
-        "timestamp": now.isoformat() + "Z",  # sort key — ISO-8601 UTC
-        "alert_id": message_id,
-        "date": now.strftime("%Y-%m-%d"),
-        "hour": now.hour,
-        "weekday": now.strftime("%A"),
-        "bucket": bucket,
-        "s3_key": key,
-        "detection_count": len(detections),
-        "classes": list({d["class"] for d in detections}),
-    })
+def _persist_cv_alert(bucket: str, key: str, detections: list[dict], message_id: str | None) -> None:
+    """Persiste alerta via storm_alerts_store (mock JSON ou DynamoDB AWS)."""
+    add_alert(
+        s3_key=key,
+        detection_count=len(detections),
+        bucket=bucket,
+        alert_id=message_id,
+        simulated=False,
+        classes=list({d["class"] for d in detections}),
+    )
 
 
 def process_s3_image(bucket: str, key: str) -> dict:
@@ -189,7 +176,7 @@ def process_s3_image(bucket: str, key: str) -> dict:
     if detections:
         logger.info("%d storm detections found — sending alert", len(detections))
         message_id = _publish_alert(bucket, key, detections)
-        _save_alert_to_dynamodb(bucket, key, detections, message_id or "local")
+        _persist_cv_alert(bucket, key, detections, message_id)
         alert_sent = True
     else:
         logger.info("No storm detected in %s", key)

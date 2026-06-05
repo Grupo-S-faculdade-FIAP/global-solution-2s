@@ -7,3 +7,5 @@
 *.zip
 *.tar.gz
 !sample_*.csv
+weather/inmet/training_cache.csv
+weather/inmet/raw/

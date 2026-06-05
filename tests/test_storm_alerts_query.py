@@ -40,8 +40,8 @@ def test_item_to_detection_shape():
     assert 0 < det["confidence"] <= 1
 
 
-@patch("app.services.storm_alerts_query.use_mock_store", return_value=False)
-@patch("app.services.storm_alerts_query.boto3")
+@patch("app.services.storm_alerts_store.use_mock_store", return_value=False)
+@patch("app.services.storm_alerts_store.boto3")
 def test_recent_detections_returns_mapped_items(mock_boto3, _mock_off):
     mock_table = MagicMock()
     mock_boto3.resource.return_value.Table.return_value = mock_table
@@ -58,14 +58,14 @@ def test_recent_detections_returns_mapped_items(mock_boto3, _mock_off):
     }
 
     svc = StormAlertsQueryService()
-    results = svc.recent_detections(hours=24)
+    results = svc.recent_detections(hours=24 * 365)
     assert len(results) == 1
     assert results[0]["detection_id"] == "a1"
     assert results[0]["confidence"] > 0
 
 
-@patch("app.services.storm_alerts_query.use_mock_store", return_value=False)
-@patch("app.services.storm_alerts_query.boto3")
+@patch("app.services.storm_alerts_store.use_mock_store", return_value=False)
+@patch("app.services.storm_alerts_store.boto3")
 def test_map_overlay_filters_bbox(mock_boto3, _mock_off):
     mock_table = MagicMock()
     mock_boto3.resource.return_value.Table.return_value = mock_table
@@ -95,9 +95,9 @@ def test_map_overlay_filters_bbox(mock_boto3, _mock_off):
     assert features[0].geometry.coordinates[1] == pytest.approx(-23.55)
 
 
-@patch("app.services.storm_alerts_query.use_mock_store", return_value=False)
-@patch("app.services.storm_alerts_query.boto3")
-def test_scan_returns_empty_on_dynamodb_error(mock_boto3, _mock_off):
+@patch("app.services.storm_alerts_store.use_mock_store", return_value=False)
+@patch("app.services.storm_alerts_store.boto3")
+def test_scan_raises_on_dynamodb_error(mock_boto3, _mock_off):
     from botocore.exceptions import ClientError
 
     mock_table = MagicMock()
@@ -108,4 +108,5 @@ def test_scan_returns_empty_on_dynamodb_error(mock_boto3, _mock_off):
     )
 
     svc = StormAlertsQueryService()
-    assert svc.recent_detections(hours=1) == []
+    with pytest.raises(ClientError):
+        svc.recent_detections(hours=1)

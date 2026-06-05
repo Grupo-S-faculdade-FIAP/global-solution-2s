@@ -8,10 +8,6 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
-
-from app.core.config import settings
 from app.models.schemas import GeoJSONFeature, GeoJSONGeometry, GeoJSONProperties
 from app.services.storm_alerts_store import list_alerts_since_hours, use_mock_store
 
@@ -96,46 +92,11 @@ def _point_in_bbox(lat: float, lon: float, south: float, west: float, north: flo
 
 
 class StormAlertsQueryService:
-    """Lê alertas CV da tabela storm_alerts (mesmo schema que alerts_analytics)."""
-
-    def __init__(self) -> None:
-        self._table = None
-        if not use_mock_store():
-            self._dynamodb = boto3.resource("dynamodb", region_name=settings.AWS_REGION)
-            self._table = self._dynamodb.Table(settings.DYNAMODB_TABLE_ALERTS)
+    """Lê alertas CV via storm_alerts_store (mock JSON ou DynamoDB)."""
 
     def _scan_storm_alerts(self, hours: int = 24) -> list[dict[str, Any]]:
-        if use_mock_store():
-            logger.debug("storm_alerts: using local mock store")
-            return list_alerts_since_hours(hours)
-
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
-        cutoff_iso = cutoff.isoformat().replace("+00:00", "Z")
-
-        items: list[dict[str, Any]] = []
-        scan_kwargs: dict[str, Any] = {
-            "FilterExpression": "alert_type = :atype AND #ts >= :cutoff",
-            "ExpressionAttributeNames": {"#ts": "timestamp"},
-            "ExpressionAttributeValues": {
-                ":atype": "storm_detection",
-                ":cutoff": cutoff_iso,
-            },
-        }
-
-        try:
-            while True:
-                page = self._table.scan(**scan_kwargs)
-                items.extend(page.get("Items", []))
-                last_key = page.get("LastEvaluatedKey")
-                if not last_key:
-                    break
-                scan_kwargs["ExclusiveStartKey"] = last_key
-        except (ClientError, BotoCoreError) as exc:
-            logger.warning("DynamoDB storm_alerts scan failed: %s", exc)
-            return []
-
-        items.sort(key=lambda x: str(x.get("timestamp", "")), reverse=True)
-        return items
+        logger.debug("storm_alerts: store=%s", "mock" if use_mock_store() else "dynamodb")
+        return list_alerts_since_hours(hours)
 
     def recent_detections(self, hours: int = 24) -> list[dict[str, Any]]:
         return [item_to_detection(item) for item in self._scan_storm_alerts(hours=hours)]
