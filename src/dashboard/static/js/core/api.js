@@ -1,7 +1,7 @@
 /** Cliente HTTP do dashboard com timeout e retry em 502/503/504. */
 
-export const FETCH_TIMEOUT_MS = 15000;
-/** Após warmBackend(), cold start já passou — menos retries evita loading longo. */
+/** Lambda Docker (torch/YOLO) pode levar 30–90 s no cold start. */
+export const FETCH_TIMEOUT_MS = 45000;
 export const FETCH_RETRIES = 1;
 
 export async function fetchApi(url, options = {}, retries = FETCH_RETRIES) {

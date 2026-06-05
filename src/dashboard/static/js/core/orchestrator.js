@@ -2,7 +2,7 @@ import { on } from "./events.js";
 import { $, clearSectionError } from "./dom.js";
 import { SEL } from "./selectors.js";
 import { loadWeatherData, loadRiskData } from "../sections/climate.js";
-import { loadKPIs, loadTrend, loadWeekly, loadHourly, loadHeatmap } from "../sections/alerts.js";
+import { loadAlertsBundle } from "../sections/alerts.js";
 import { syncSlidersFromWeather } from "../sections/ml.js";
 import { loadRegionMap } from "../maps/region.js";
 import { refreshWindyMap } from "../maps/windy.js";
@@ -20,14 +20,7 @@ async function reloadLocationDependentData() {
 }
 
 async function reloadAfterStormSimulate() {
-  await Promise.all([
-    loadKPIs(),
-    loadTrend(),
-    loadWeekly(),
-    loadHourly(),
-    loadHeatmap(),
-    loadRegionMap(),
-  ]);
+  await Promise.all([loadAlertsBundle(), loadRegionMap()]);
 }
 
 export function initOrchestrator() {
