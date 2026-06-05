@@ -11,11 +11,11 @@
 
 ## Current Focus
 
-**Active feature:** gs-closure — todos os gaps técnicos aplicados (2026-06-05)
-**Last task completed:** Gaps técnicos completos: IoT persistência (DynamoDB + mock), confiança YOLO real, dashboard IoT, firmware corrigido, BFF IoT, testes (73 passing), configs.
+**Active feature:** architecture-refactor (concluído 2026-06-05)
+**Last task completed:** Todas as 4 fases do refactor de arquitetura limpa — 79 testes passando.
 **Next task:** Smoke AWS (`DYNAMODB_USE_MOCK=false` real), vídeo/PDF FIAP
 **Blockers:** nenhum
-**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.2 (2026-06-04); atualizar p/ v1.3 com IoT implementado
+**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.2 (2026-06-04); atualizar p/ v1.3 com IoT + arquitetura
 
 ---
 
@@ -38,6 +38,9 @@
 | 2026-06-02 | D-013 | T-11/T-12 revisadas para usar Flask dashboard existente | Reutilizar codebase; não recriar do zero | Frontend |
 | 2026-06-02 | D-014 | Centralizar variáveis de ambiente em .env (pydantic-settings) | Sem hardcoding; fácil deployment; team-friendly | Toda a API |
 | 2026-06-04 | D-015 | CI/CD via GitHub Actions + OIDC (sem access keys) | Credenciais temporárias; least privilege; deploy auto na main | Lambda gs2-api |
+| 2026-06-05 | D-016 | Clean Architecture enxuta: Domain → Application → Infrastructure → Interfaces | Testabilidade; troca mock↔DynamoDB via container.py; sem over-engineering | Toda a API |
+| 2026-06-05 | D-017 | BFF shim strategy invertida: dashboard/ é canonical, interfaces/http/bff/ re-exporta | Preserva backward compat com testes que patcham dashboard.bff_backend._fastapi_test_client | BFF |
+| 2026-06-05 | D-018 | DetectStormUseCase em application/cv/ — routers/cv.py não importa boto3/torch | Separação clara HTTP vs pipeline; testável sem FastAPI | CV |
 
 ---
 
@@ -61,6 +64,7 @@
 - 2026-06-04 — Dois servidores (5000+8000) confundiam usuários e `make demo` falhava se :8000 ocupada (só Flask, BFF quebrado). Solução: `WSGIMiddleware` monta Flask em `/` após rotas FastAPI; URL única `http://127.0.0.1:8000`. Causa KPIs "—": abrir :8000 sem UI ou JS abortado antes do `bootstrapDashboard` (listeners em sliders nulos).
 - 2026-06-05 — Location-bar: flex-wrap quebrava alinhamento do mapinha; migrado para CSS Grid + header com badge. Auto-apply no mapa (debounce), toast, nav por âncoras, três mapas renomeados. Refinamento: sticky dinâmico compacto, nav scroll horizontal mobile, Leaflet zoom bottom-right, badge clicável para expandir.
 - 2026-06-05 — Gaps técnicos resolvidos: IoT store + router implementados (DynamoDB/mock), confiança YOLO real salva nos alertas, firmware movido para `src/iot/firmware.cpp` apontando para API GS2, seção IoT no dashboard (card leituras + histórico), BFF `/api/iot/*`, 11 novos testes IoT (total 73), configs `.env.example` unificadas.
+- 2026-06-05 — Arquitetura limpa aplicada em 4 fases: Ports (StormAlertRepository, IoTReadingRepository), Adapters DynamoDB + JSON, DetectStormUseCase (extração de cv.py), S3TriggerHandler, container.py para DI, interfaces/http/bff/ como camada canônica de BFF. 79 testes passando. Decisão D-017: shims em interfaces/ re-exportam de dashboard/ (não o contrário) para preservar backward compat com monkeypatch de testes.
 
 ---
 

@@ -7,7 +7,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Body, Query
 from fastapi.responses import JSONResponse
 
-from dashboard import bff_handlers as bff
+from app.interfaces.http.bff import handlers as bff
 
 router = APIRouter(prefix="/api", tags=["Dashboard BFF"])
 

@@ -8,7 +8,6 @@ from mangum import Mangum
 
 from app.core.config import settings
 from app.routers import cv, ml, iot, dashboard, data_integration, dashboard_bff, dashboard_ui
-from app.routers.cv import process_s3_image
 
 logger = logging.getLogger(__name__)
 
@@ -31,21 +30,17 @@ app.include_router(ml.router, prefix="/ml", tags=["Machine Learning"])
 app.include_router(iot.router, prefix="/iot", tags=["IoT"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(data_integration.router, prefix="", tags=["Data Integration"])
-# BFF /api/* no FastAPI (antes do mount Flask) — formato esperado pelo index.html
 app.include_router(dashboard_bff.router)
 
 
 def _mount_dashboard_ui(application: FastAPI) -> None:
     """
-    Dashboard Flask (HTML + rotas /api/* BFF) no mesmo processo que a API.
+    Dashboard Flask no mesmo processo que a API.
     Rotas FastAPI registradas acima têm prioridade; o restante vai ao Flask.
     Desative em Lambda com MOUNT_DASHBOARD=false.
     """
     if os.environ.get("MOUNT_DASHBOARD", "true").strip().lower() not in (
-        "1",
-        "true",
-        "yes",
-        "on",
+        "1", "true", "yes", "on",
     ):
         return
     try:
@@ -63,7 +58,6 @@ def health_check():
 
 
 def _setup_dashboard(application: FastAPI) -> None:
-    """Flask (dev local) ou FastAPI static (Lambda)."""
     mount_flask = os.environ.get("MOUNT_DASHBOARD", "true").strip().lower() in (
         "1", "true", "yes", "on",
     )
@@ -75,29 +69,27 @@ def _setup_dashboard(application: FastAPI) -> None:
 
 _setup_dashboard(app)
 
-
 _http_handler = Mangum(app)
 
 
-def _handle_s3_trigger(event: dict, context: object) -> dict:
-    """Processa eventos de trigger do S3 — chamado quando uma imagem é enviada ao bucket."""
-    results = []
-    for record in event.get("Records", []):
-        bucket = record["s3"]["bucket"]["name"]
-        key = record["s3"]["object"]["key"]
-        logger.info("S3 trigger recebido: s3://%s/%s", bucket, key)
-        result = process_s3_image(bucket=bucket, key=key)
-        results.append(result)
-    return {"processed": len(results), "results": results}
+def _build_s3_handler():
+    """Cria S3TriggerHandler com o use case e repositório corretos."""
+    from app.application.cv.detect_storm import DetectStormUseCase
+    from app.container import get_storm_repo
+    from app.interfaces.events.s3_trigger import S3TriggerHandler
+
+    repo = get_storm_repo()
+    use_case = DetectStormUseCase(repo=repo)
+    return S3TriggerHandler(use_case=use_case)
 
 
 def handler(event: dict, context: object) -> dict:
     """
     Ponto de entrada do Lambda.
-    Roteia eventos S3 (upload de imagem) para o pipeline de CV,
+    Roteia eventos S3 (upload de imagem) para o S3TriggerHandler,
     e eventos HTTP do API Gateway para o app FastAPI via Mangum.
     """
     records = event.get("Records", [])
     if records and records[0].get("eventSource") == "aws:s3":
-        return _handle_s3_trigger(event, context)
+        return _build_s3_handler().handle(event)
     return _http_handler(event, context)
