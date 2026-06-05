@@ -76,23 +76,38 @@ SUMMARY = {
     "peak_hour": max(HOURLY_ALERTS, key=HOURLY_ALERTS.get),
 }
 
-DEMO_WEATHER = {
-    "temperature": 24.0,
-    "humidity": 68.0,
-    "pressure": 1013.0,
-    "wind_speed": 3.2,
-    "wind_direction": 135.0,
-    "precipitation": 0.0,
-    "timestamp": datetime.now().isoformat(),
-}
-DEMO_RISK = {
-    "risk_score": 0.35,
-    "risk_category": "LOW",
-    "recommendation": (
-        "Demonstração: condições estáveis. Inicie a API (porta 8000) para dados ao vivo."
-    ),
-    "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-}
+def _demo_weather(lat: float, lon: float) -> dict[str, Any]:
+    """Fallback demo que varia com lat/lon para a UI refletir troca de região."""
+    seed = int(abs(lat * 100) + abs(lon * 100)) % 1000
+    return {
+        "temperature": round(18.0 + (seed % 14) + abs(lat) % 6 * 0.4, 1),
+        "humidity": round(52.0 + (seed % 38), 1),
+        "pressure": round(1008.0 + (seed % 12), 1),
+        "wind_speed": round(1.8 + (seed % 50) / 10.0, 1),
+        "wind_direction": float((seed * 37) % 360),
+        "precipitation": round((seed % 30) / 10.0, 1),
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+def _demo_risk(lat: float, lon: float) -> dict[str, Any]:
+    seed = int(abs(lat * 100) + abs(lon * 100)) % 1000
+    score = round(0.15 + (seed % 70) / 100.0, 2)
+    if score >= 0.65:
+        category = "HIGH"
+        rec = "Demonstração: risco elevado para a região selecionada."
+    elif score >= 0.4:
+        category = "MEDIUM"
+        rec = "Demonstração: atenção moderada — monitore a previsão."
+    else:
+        category = "LOW"
+        rec = "Demonstração: condições estáveis na região selecionada."
+    return {
+        "risk_score": score,
+        "risk_category": category,
+        "recommendation": rec,
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _DEMO_STORMS_PATH = _PROJECT_ROOT / "data" / "demo" / "storm_alerts.json"
@@ -215,7 +230,7 @@ def weather_current(lat: float, lon: float) -> tuple[Any, str, int]:
     if status == 200 and isinstance(body, dict):
         return _ok(body, "live")
     if DEMO_MODE:
-        return _ok({**DEMO_WEATHER, "timestamp": datetime.now().isoformat()}, "demo")
+        return _ok(_demo_weather(lat, lon), "demo")
     return _err("Failed to fetch weather data", status if status != 200 else 503)
 
 
@@ -228,8 +243,7 @@ def risk_forecast(lat: float, lon: float) -> tuple[Any, str, int]:
     if status == 200 and isinstance(body, dict):
         return _ok(body, "live")
     if DEMO_MODE:
-        ts = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-        return _ok({**DEMO_RISK, "timestamp": ts}, "demo")
+        return _ok(_demo_risk(lat, lon), "demo")
     return _err("Failed to fetch risk forecast", status if status != 200 else 503)
 
 
