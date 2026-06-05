@@ -245,8 +245,15 @@ class AgriRiskModel:
         X_sc = self._scaler.transform(X)
         classe = int(self._model.predict(X_sc)[0])
         proba = self._model.predict_proba(X_sc)[0]
-        score_base = LABEL_MAP[classe]
-        confianca = float(proba[classe])
+
+        # Índice local do predict_proba pode diferir do rótulo original se o modelo
+        # não viu todas as classes no treino (classes_ pode ser [0, 1] sem o 2)
+        known_classes = list(getattr(self._model, "classes_", [0, 1, 2]))
+        local_idx = known_classes.index(classe) if classe in known_classes else 0
+        local_idx = min(local_idx, len(proba) - 1)
+
+        score_base = LABEL_MAP.get(classe, 0.55)
+        confianca = float(proba[local_idx])
         return float(np.clip(score_base * confianca + score_base * (1 - confianca) * 0.8, 0.0, 1.0))
 
     def predict_detalhado(
@@ -260,14 +267,23 @@ class AgriRiskModel:
         X_sc = self._scaler.transform(X)
         classe = int(self._model.predict(X_sc)[0])
         proba = self._model.predict_proba(X_sc)[0]
+
+        # classes_ indica quais classes o modelo conhece (pode ter < 3 se dados de treino
+        # não cobriram todas as classes — ex.: apenas [0, 1] sem nenhum HIGH no histórico)
+        known_classes = list(getattr(self._model, "classes_", [0, 1, 2]))
+        class_names = ["LOW", "MEDIUM", "HIGH"]
+        probas: dict[str, float] = {name: 0.0 for name in class_names}
+        for i, cls_idx in enumerate(known_classes):
+            if cls_idx < len(class_names):
+                probas[class_names[cls_idx]] = round(float(proba[i]), 3)
+
+        # Garante que classe está dentro dos limites
+        classe_name = class_names[classe] if classe < len(class_names) else "MEDIUM"
+
         return {
             "score": round(self.predict(temperatura, umidade, precipitacao, vento_kmh), 3),
-            "classe": ["LOW", "MEDIUM", "HIGH"][classe],
-            "probabilidades": {
-                "LOW": round(float(proba[0]), 3),
-                "MEDIUM": round(float(proba[1]), 3),
-                "HIGH": round(float(proba[2]), 3),
-            },
+            "classe": classe_name,
+            "probabilidades": probas,
             "features": {
                 "temperatura_c": temperatura,
                 "umidade_pct": umidade,

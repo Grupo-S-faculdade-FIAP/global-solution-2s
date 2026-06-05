@@ -29,6 +29,11 @@ def _demo_mode() -> bool:
         return _env_bool("DEMO_MODE", default=True)
 
 
+def _is_demo() -> bool:
+    """Avalia DEMO_MODE em tempo de execução (não cached) para refletir monkeypatch em testes."""
+    return _demo_mode()
+
+
 DEMO_MODE = _demo_mode()
 DEFAULT_WEATHER_LAT = -23.55
 DEFAULT_WEATHER_LON = -46.63
@@ -423,6 +428,48 @@ def simulate_storm_detection(body: dict) -> tuple[Any, str, int]:
         "alert": alert,
         "message": "Alerta simulado (API offline — não persistido)",
     }, "demo")
+
+
+_DEMO_IOT_PATH = _PROJECT_ROOT / "data" / "demo" / "iot_readings.json"
+
+
+def _demo_iot_readings() -> list[dict[str, Any]]:
+    """Fallback demo quando a API está offline."""
+    if _DEMO_IOT_PATH.exists():
+        try:
+            data = json.loads(_DEMO_IOT_PATH.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                return data[:10]
+        except (json.JSONDecodeError, OSError):
+            pass
+    now = datetime.now(timezone.utc)
+    return [
+        {
+            "reading_id": "demo_001",
+            "device_id": "esp32_01",
+            "cidade": "São Paulo",
+            "temperatura": 24.5,
+            "umidade": 68.0,
+            "timestamp": now.isoformat().replace("+00:00", "Z"),
+        }
+    ]
+
+
+def iot_latest(hours: int = 24) -> tuple[Any, str, int]:
+    status, body = backend_get("/iot/readings/latest", params={"hours": hours})
+    if status == 200 and isinstance(body, dict):
+        return _ok(body, "live")
+    if DEMO_MODE:
+        readings = _demo_iot_readings()
+        return _ok({"readings": readings, "count": len(readings), "storage": "demo"}, "demo")
+    return _err("IoT backend offline", 503)
+
+
+def iot_status() -> tuple[Any, str, int]:
+    status, body = backend_get("/iot/status")
+    if status == 200 and isinstance(body, dict):
+        return _ok(body, "live")
+    return _ok({"module": "iot", "status": "demo", "storage": "mock_json"}, "demo")
 
 
 def _default_nasa_sample_path() -> Path | None:

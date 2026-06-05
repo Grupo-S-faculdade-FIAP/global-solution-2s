@@ -140,6 +140,11 @@ def _publish_alert(bucket: str, key: str, detections: list[dict]) -> str | None:
 
 def _persist_cv_alert(bucket: str, key: str, detections: list[dict], message_id: str | None) -> None:
     """Persiste alerta via storm_alerts_store (mock JSON ou DynamoDB AWS)."""
+    max_confidence: float | None = None
+    if detections:
+        confs = [d.get("confidence", 0.0) for d in detections if isinstance(d.get("confidence"), (int, float))]
+        if confs:
+            max_confidence = max(confs)
     add_alert(
         s3_key=key,
         detection_count=len(detections),
@@ -147,6 +152,7 @@ def _persist_cv_alert(bucket: str, key: str, detections: list[dict], message_id:
         alert_id=message_id,
         simulated=False,
         classes=list({d["class"] for d in detections}),
+        confidence=max_confidence,
     )
 
 

@@ -11,11 +11,11 @@
 
 ## Current Focus
 
-**Active feature:** gs-closure (melhorias MVP)
-**Last task completed:** Automação pipeline agrícola — `build_dataset_agri.command`, `scripts/build_agri_pipeline.py`, `make build-agri`, CI/deploy verify, workflow `refresh-agri.yml` (2026-06-05)
-**Next task:** `DYNAMODB_USE_MOCK=false` smoke AWS real; vídeo/PDF FIAP
+**Active feature:** gs-closure — todos os gaps técnicos aplicados (2026-06-05)
+**Last task completed:** Gaps técnicos completos: IoT persistência (DynamoDB + mock), confiança YOLO real, dashboard IoT, firmware corrigido, BFF IoT, testes (73 passing), configs.
+**Next task:** Smoke AWS (`DYNAMODB_USE_MOCK=false` real), vídeo/PDF FIAP
 **Blockers:** nenhum
-**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — Relatório de Progresso e Integração (v1.0, 2026-06-04)
+**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.2 (2026-06-04); atualizar p/ v1.3 com IoT implementado
 
 ---
 
@@ -60,6 +60,7 @@
 - 2026-06-04 — Dashboard: seção **Mapa da região** (Leaflet CDN) consome `/api/map/overlay` com bbox da localização; Windy permanece como **Radar meteorológico**.
 - 2026-06-04 — Dois servidores (5000+8000) confundiam usuários e `make demo` falhava se :8000 ocupada (só Flask, BFF quebrado). Solução: `WSGIMiddleware` monta Flask em `/` após rotas FastAPI; URL única `http://127.0.0.1:8000`. Causa KPIs "—": abrir :8000 sem UI ou JS abortado antes do `bootstrapDashboard` (listeners em sliders nulos).
 - 2026-06-05 — Location-bar: flex-wrap quebrava alinhamento do mapinha; migrado para CSS Grid + header com badge. Auto-apply no mapa (debounce), toast, nav por âncoras, três mapas renomeados. Refinamento: sticky dinâmico compacto, nav scroll horizontal mobile, Leaflet zoom bottom-right, badge clicável para expandir.
+- 2026-06-05 — Gaps técnicos resolvidos: IoT store + router implementados (DynamoDB/mock), confiança YOLO real salva nos alertas, firmware movido para `src/iot/firmware.cpp` apontando para API GS2, seção IoT no dashboard (card leituras + histórico), BFF `/api/iot/*`, 11 novos testes IoT (total 73), configs `.env.example` unificadas.
 
 ---
 
