@@ -71,11 +71,12 @@ src/app/
 │   └── ...
 ├── services/                  # services legados + domain services
 │   ├── weather_service.py
-│   ├── agri_risk_model.py
-│   ├── risk_assessment.py
+│   ├── agri_risk_model.py     # INMET + regressão; limiares em agri_risk_thresholds.json
+│   ├── agri_threshold_ga.py   # otimização DEAP dos limiares ML
+│   ├── risk_assessment.py     # ensemble clima + CV geo + ML → /risk/forecast
 │   ├── alerts_analytics.py
-│   ├── storm_alerts_query.py
-│   └── storm_detector.py
+│   ├── storm_alerts_query.py  # alertas regionais para score CV
+│   └── storm_detector.py      # lazy load YOLO (RISK_SKIP_YOLO em pytest)
 └── main.py                    # wiring FastAPI + Mangum handler
 ```
 
@@ -138,7 +139,7 @@ flowchart TB
 |----------|---------------|--------|-----------|
 | CV / Storms | Lucas | `domain/cv/` | S3, Lambda, DynamoDB, SNS |
 | Weather | Caroline | `services/weather_service.py` | DynamoDB, CloudWatch |
-| ML / Risk | Caroline + Lucas | `services/agri_risk_model.py` | DynamoDB |
+| ML / Risk | Caroline + Lucas | `agri_risk_model.py`, `risk_assessment.py`, `agri_threshold_ga.py` | `models/*.pkl`, `agri_risk_thresholds.json` |
 | IoT | Rodrigo | `domain/iot/` | API Gateway, DynamoDB |
 | Dashboard | Caroline + Enzo | `interfaces/http/bff/` | — |
 | Infra/Deploy | Tiago | `infrastructure/aws/` | Todos |
@@ -181,3 +182,6 @@ Routers recebem via `Depends(get_storm_repo)`. Testes injetam mocks diretamente.
 | Container manual (sem framework DI) | Simples; compatível com FastAPI Depends | Não auto-wires |
 | BFF em `interfaces/http/bff/` | Separa dashboard UI da lógica de agregação | Shims temporários em dashboard/ |
 | Um único Lambda no MVP | Deploy simples; custo zero extra | Cold start pesado com YOLO |
+| Ensemble geo-aware (CV 200 km) | Risco varia por localização; sem satélite → peso CV=0 | `_score_cv` + `StormAlertsQueryService` |
+| YOLO lazy + `RISK_SKIP_YOLO` | Evita carregar torch em pytest/BFF | CV desativado se `best.pt` ausente |
+| sklearn default / LightGBM opcional | Evita segfault torch+lightgbm no macOS | `AGRI_USE_LIGHTGBM=1` só em treino |

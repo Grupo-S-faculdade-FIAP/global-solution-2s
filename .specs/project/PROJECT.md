@@ -21,9 +21,9 @@
 ## Goals
 
 - [ ] **G1** — Detectar tempestades e padrões de nuvens chuvosas em imagens de satélite com YOLO (precisão ≥ 70% no conjunto de validação) — **parcial:** pipeline v2 com labels honestos; mAP@0.5 ≈ 0,14 (abaixo da meta)
-- [x] **G2** — Prever risco agrícola (seca, geada, produtividade) com modelo ML usando dados climáticos (INMET BDMEP + FAOSTAT)
+- [x] **G2** — Prever risco agrícola com ML + clima — `AgriRiskModel` (INMET BDMEP), AG limiares (DEAP), `RiskAssessmentService` ensemble geo-aware, `/risk/forecast`
 - [x] **G3** — Visualizar dados climáticos em tempo real via Windy widget + Open-Meteo em dashboard web integrado
-- [x] **G4** — Coletar dados de solo/ambiente com ESP32 e enviá-los para pipeline cloud na AWS (MVP: `POST /iot/readings`, mock + DynamoDB)
+- [x] **G4** — Coletar dados de ambiente em campo com ESP32 (DHT22) e enviar ao pipeline cloud (`POST /iot/readings`, mock + DynamoDB)
 - [ ] **G5** — Entregar MVP funcional documentado com vídeo de até 5 min dentro do prazo da GS — **parcial:** código ~95%; PDF e vídeo pendentes
 
 ---
@@ -33,11 +33,12 @@
 **Core:**
 - Language: Python 3.11
 - Framework: FastAPI (backend API) + Flask (dashboard UI montado via WSGI)
-- ML/CV: YOLOv5 (PyTorch Hub), scikit-learn, pandas, numpy
+- ML/CV: YOLOv5 (PyTorch Hub), scikit-learn, LightGBM (opcional), DEAP (AG limiares), pandas, numpy
 - Cloud: AWS (Lambda, S3, API Gateway, DynamoDB, SNS)
 - Database: DynamoDB (alertas + dados IoT time-series) — 100% NoSQL
-- Frontend: HTML/JS (ES modules) + Windy API widget + Leaflet + Chart.js
+- Frontend: HTML/JS (ES modules) + Windy widget + Leaflet + Chart.js
 - IoT: ESP32 + Arduino (DHT22 — firmware em `src/iot/firmware.cpp`)
+- Testes: pytest (259), Playwright E2E (53), cobertura CI ≥ 82%
 
 **Key dependencies:** torch, torchvision, fastapi, flask, boto3, httpx, requests, pydantic-settings
 
@@ -48,10 +49,10 @@
 **MVP (v1) inclui:**
 - Pipeline de ingestão e análise de imagens de satélite (NASA GOES via captura Playwright)
 - Modelo YOLO treinado para detecção de tempestades/padrões de nuvens chuvosas
-- Modelo de ML para previsão de risco agrícola (INMET + FAOSTAT)
+- Modelo de ML para previsão de risco agrícola (INMET + FAOSTAT + ensemble)
 - Dashboard HTML com Windy widget, mapas Leaflet e gráficos Chart.js
 - Backend FastAPI na AWS (Lambda + API Gateway) conectado ao DynamoDB
-- ESP32 enviando leituras de sensor para endpoint HTTP (API Gateway → Lambda)
+- ESP32 (DHT22) enviando leituras para endpoint HTTP (API Gateway → Lambda)
 - CI/CD GitHub Actions + OIDC (sem access keys)
 - README completo + PDF de entrega + vídeo demonstrativo
 
@@ -76,11 +77,11 @@
 ## Success Criteria
 
 - [x] Avaliador consegue rodar demo integrada com `make demo` em uma única URL (http://127.0.0.1:8000)
-- [x] Suite de testes passa (`make test` — 89 testes, jun/2026)
-- [x] Dashboard exibe clima, alertas, risco agrícola, mapas e seção IoT com fallback demo documentado
+- [x] Suite de testes passa (`make test` — 259 testes; cobertura **82,44%**, jun/2026)
+- [x] Dashboard exibe clima, alertas, risco agrícola (ensemble), mapas e seção IoT com fallback demo documentado
 - [ ] Vídeo ≤ 5 min no YouTube (não listado) + PDF estruturado entregues na plataforma FIAP
 - [ ] G1 YOLO: mAP@0.5 ≥ 0,70 no conjunto de validação (pendente — v2)
 
 ---
 
-<!-- Size limit: 2,000 tokens (~1,200 words). Keep it concise. -->
+<!-- Size limit: 2,000 tokens (~1,120 words). Keep it concise. -->

@@ -13,7 +13,8 @@ Este documento consolida riscos reais observados no estado atual do código.
 |------|---------|:----:|------------|------------|
 | Pipeline S3 → YOLO → SNS/DynamoDB | `interfaces/events/s3_trigger.py`, `application/cv/detect_storm.py` | High | Fluxo event-driven; cold start pesado; smoke AWS manual | `make smoke-aws`; testes SNS mockados |
 | Modelo YOLO — meta G1 (70%) | `src/models/weights/best.pt`, pipeline v2 | High | mAP@0.5 ≈ 0,14 com labels honestos; dataset pequeno | Mais capturas NASA; augmentação; retreino |
-| Modelo de risco agrícola | `services/agri_risk_model.py` | Medium | Dependência de dados INMET/FAOSTAT; validação limitada | `make verify-agri-models`; testes export FAOSTAT |
+| Modelo de risco agrícola + ensemble | `agri_risk_model.py`, `risk_assessment.py` | Medium | INMET/FAOSTAT; pesos CV dependem de alertas regionais | `make verify-agri-models`; `make build-agri-ci` |
+| torch + LightGBM no macOS | `agri_risk_model.py` | Medium | Segfault em pytest se ambos carregados | Default sklearn HGB; `AGRI_USE_LIGHTGBM=1` só treino |
 | Integração ingestão periódica | `lambdas/ingest_weather.py` | Medium | API externa + DynamoDB | Testes com mocks; retry em prod |
 | Deploy serverless | `docs/DEPLOY-LAMBDA.md`, CI/CD | Low | CD automatizado na main; path filter pode pular dashboard | Documentar `MOUNT_DASHBOARD=false` na Lambda |
 
@@ -30,7 +31,8 @@ Este documento consolida riscos reais observados no estado atual do código.
 | TD-005 | CI/CD inexistente | raiz | — | — | **Resolvido** — GitHub Actions OIDC |
 | TD-006 | BFF shim duplicado (dashboard/ + interfaces/) | `bff_handlers.py` | Confusão de camada canônica | Low | Aberto — decisão D-017 |
 | TD-007 | `src/.env.example` legado vs `.env.example` raiz | config | Docs inconsistentes | Low | Mitigado — raiz canônica |
-| TD-008 | YOLO abaixo meta G1 (70%) | CV pipeline | Avaliação FIAP | High | Aberto — v2 pós-GS |
+| TD-008 | YOLO abaixo meta G1 (70%) | CV pipeline | Avaliação FIAP | High | Aberto — `make train-yolo --recall-focus` |
+| TD-009 | Documentação multi-arquivo | `docs/`, `.specs/`, README | Drift métricas/texto | Medium | **Resolvido** (jun/2026) — `docs-refresh` fases 0–3 |
 
 ---
 

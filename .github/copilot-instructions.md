@@ -238,6 +238,25 @@ Step 5: Flag as uncertain → "I'm not certain about X — here's my reasoning, 
 
 ---
 
+## Projeto GS2 — comandos e docs
+
+**Documentação:** [docs/README.md](docs/README.md) · [docs/RPI.md](docs/RPI.md) · `.specs/codebase/`
+
+```bash
+make install          # dependências
+make demo             # API + dashboard → http://127.0.0.1:8000
+make test             # 259 testes (excl. E2E)
+make test-coverage    # gate cobertura 82% (atual ~82,4%)
+make test-e2e         # 53 testes Playwright
+make build-agri       # pipeline INMET + treino ML
+make train-yolo       # retreino YOLO
+make smoke-aws        # smoke S3 → Lambda
+```
+
+Fonte de imagens CV: **NASA GOES** (não Windy — Windy é só widget radar). IoT: **DHT22** (ar).
+
+---
+
 ## Session Start Checklist
 
 When starting a new session:

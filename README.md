@@ -29,18 +29,25 @@
 
 ---
 
+## 📋 Licença
+
+Este projeto está licenciado sob [Creative Commons Attribution 4.0 International (CC BY 4.0)](LICENSE) — mesmo modelo do [template FIAP TIAO-2026](https://github.com/CaiqueFiap-2026/TEMPLATE-TIAO-2026).
+
+---
+
 ## 📜 Descrição
 
-O **GS2** é uma plataforma de monitoramento climático inteligente que combina visão computacional (YOLOv5), computação em nuvem (AWS) e sensores IoT (ESP32) para detectar padrões de nuvens chuvosas em imagens de satélite e gerar alertas de chuva em tempo real.
+O **GS2** é uma plataforma de inteligência ambiental e agrícola que combina visão computacional (YOLOv5), machine learning, computação em nuvem (AWS) e sensores IoT (ESP32) para detectar padrões de nuvens convectivas em imagens de satélite, prever risco agrícola e gerar alertas acionáveis.
 
-O projeto endereça a falta de sistemas acessíveis que integrem imagens de satélite, inteligência artificial e sensores de campo para antecipar eventos climáticos com impacto direto na agricultura e no cotidiano — conectando dados orbitais a ações práticas no solo.
+O projeto endereça a falta de sistemas acessíveis que integrem imagens orbitais, IA e sensores de campo para antecipar eventos climáticos com impacto direto na agricultura — conectando dados espaciais a decisões no solo.
 
 **Principais componentes da solução:**
 
-- **Módulo Computer Vision (CV):** pipeline de análise de imagens de satélite (Windy.com) com modelo YOLOv5 treinado para detectar padrões de nuvens chuvosas. As imagens são enviadas manualmente ao S3, que aciona automaticamente o processamento via Lambda;
-- **Módulo Cloud/Backend:** API REST construída com FastAPI, hospedada na AWS (Lambda serverless para processamento + SNS para envio de alertas de chuva em tempo real). O fluxo é iniciado pelo upload manual de uma imagem ao bucket S3.
-- **Módulo IoT:** ESP32 com sensores de umidade do solo para monitoramento remoto de campo, com dados enviados para a nuvem via HTTP.
-- **Módulo Análise de Dados:** armazenamento dos alertas em DynamoDB (NoSQL) com visualização em gráficos de barras e heatmap para identificação de padrões recorrentes de chuva por dia da semana e faixa de horário.
+- **Módulo Computer Vision (CV):** captura **NASA GOES** (Playwright), rotulagem pipeline v2 e modelo **YOLOv5** (`best.pt`) para detectar nuvens convectivas. Upload `.jpg` no S3 dispara inferência na **Lambda** (`DetectStormUseCase`);
+- **Módulo ML / Risco agrícola:** `AgriRiskModel` treinado com **INMET BDMEP** + contexto FAOSTAT; limiares otimizados por algoritmo genético (DEAP); **RiskAssessmentService** combina clima (Open-Meteo), sinal CV geo-localizado e ML em `/risk/forecast`;
+- **Módulo Cloud/Backend:** API **FastAPI** + BFF `/api/*`, deploy **AWS Lambda** (Mangum), **DynamoDB**, **SNS** para alertas, **API Gateway**;
+- **Módulo IoT:** **ESP32** + sensor **DHT22** (temperatura e umidade do ar) com envio HTTP para `POST /iot/readings` e exibição no dashboard;
+- **Módulo Análise de Dados / Dashboard:** analytics de alertas (`/alerts/weekly`, heatmap, tendência), mapas **Leaflet**, radar **Windy** (widget), tema claro/escuro, seção ML com breakdown do ensemble.
 
 ### Módulo IoT — Rodrigo Dias Figueiroa
 
@@ -56,14 +63,16 @@ Coleta de temperatura e umidade via sensor **DHT22** no ESP32, com envio para a 
 
 Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
-- **`docs/`**: Documentação textual do projeto — como: brainstorm, diagramas de arquitetura, desenhos de fluxo, prints, storyboard, estratégia de IA, especificações de hardware (ESP32/Wokwi), atas de reunião e decisões técnicas.
-  - setup da AWS: https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki/AWS%E2%80%90STATE
-  - **Deploy da Lambda:** [docs/DEPLOY-LAMBDA.md](docs/DEPLOY-LAMBDA.md)
+- **`docs/`**: Documentação do projeto — índice em [docs/README.md](docs/README.md).
+  - **Status técnico (RPI):** [docs/RPI.md](docs/RPI.md)
+  - **Rubrica FIAP:** [docs/GUIA-DE-AVALIACAO.md](docs/GUIA-DE-AVALIACAO.md)
+  - **Deploy Lambda:** [docs/DEPLOY-LAMBDA.md](docs/DEPLOY-LAMBDA.md)
   - **CI/CD (GitHub Actions + OIDC):** [docs/CI-CD.md](docs/CI-CD.md)
+  - **Wiki AWS:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki/AWS%E2%80%90STATE
 
 - **`src/`**: Todo o código-fonte desenvolvido — API FastAPI (routers de CV, IoT e Dashboard), scripts de treinamento YOLO, notebooks de exploração e análise de dados, código para ESP32 e modelos serializados.
 
-- **`data/`**: Dados utilizados no projeto — amostras de imagens de satélite (Windy.com), datasets de treino/validação do modelo YOLO (imagens rotuladas de nuvens chuvosas) e registros de alertas para análise posterior.
+- **`data/`**: Capturas NASA (`nasa_captures/`), dataset YOLO (`model-dataset/`), dados demo (`demo/`), cache INMET (`weather/inmet/`).
 
 - **`assets/`**: Imagens e recursos estáticos utilizados na documentação (logo FIAP, etc.).
 
@@ -80,8 +89,9 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 - **API Backend (AWS):** https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com
 
 **Decisões técnicas relevantes:**
-- YOLOv5 foi escolhido para detecção de padrões de nuvens chuvosas por ser estado da arte em detecção de objetos, com suporte a pipelines customizados de rotulagem e treino.
-- AWS Lambda processa as imagens de satélite de forma serverless (acionado por S3 trigger); AWS SNS dispara as notificações de alerta de chuva. O upload manual de screenshots do Windy.com para o S3 inicia todo o pipeline.
+- YOLOv5 para detecção de nuvens convectivas; dataset NASA GOES com pipeline de labels v2 (0 bbox fantasma).
+- AWS Lambda processa imagens de satélite (S3 trigger → YOLO → DynamoDB + SNS). Windy é apenas **widget de radar** no frontend (plano free, sem REST API).
+- Ensemble de risco: pesos dinâmicos clima + CV (raio 200 km) + ML; limiares em `models/agri_risk_thresholds.json`.
 - O banco de dados **DynamoDB** (NoSQL) armazena alertas e leituras IoT, alimentando gráficos e mapas no dashboard.
 - Config de segredos via `pydantic-settings` + `.env` — nenhum segredo hard-coded no código.
 
@@ -92,13 +102,16 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 | Área | Evidência |
 |------|-----------|
-| Testes | **89 passed** (`make test`) |
+| Testes unit/integration | **259 passed** (`make test`) |
+| Cobertura CI | **82,44%** (`make test-coverage`) |
+| Testes E2E Playwright | **53** (`make test-e2e`) |
 | Capturas NASA | 93 PNG em `data/nasa_captures` |
 | Dataset YOLO train | 79 imagens + 79 labels (`data/model-dataset/`) |
 | Pipeline labels | v2 — letterbox 640, 0 bbox fantasma; mAP@0.5 ≈ 0,14 (abaixo meta G1 70%) |
-| IoT | API + firmware + dashboard + 11 testes |
+| ML risco | INMET + AG limiares + ensemble geo-aware — `make build-agri` |
+| IoT | ESP32 DHT22 + API + dashboard + 11 testes |
 | CI/CD | GitHub Actions + OIDC — [docs/CI-CD.md](docs/CI-CD.md) |
-| Arquitetura | Clean Architecture — ver [docs/RPI.md](docs/RPI.md) |
+| Arquitetura | Clean Architecture — [docs/RPI.md](docs/RPI.md) |
 
 **Demo local (API + dashboard — uma porta):**
 
@@ -111,7 +124,21 @@ make demo
 
 **Alertas / DynamoDB:** alertas persistem na tabela AWS `alerts`. **IoT ESP32:** simulado por padrão (`IOT_USE_MOCK=true` no `.env`); defina `IOT_USE_MOCK=false` quando o hardware estiver enviando para DynamoDB `iot_readings`.
 
-Checklist de entrega: `.specs/project/CHECKLIST_ENTREGA.md`
+Documentação: [docs/README.md](docs/README.md) · Checklist: `.specs/project/CHECKLIST_ENTREGA.md` · PDF: [docs/PDF-ENTREGA-ESQUELETO.md](docs/PDF-ENTREGA-ESQUELETO.md)
+
+### Comandos úteis
+
+| Comando | Descrição |
+|---------|-----------|
+| `make install` | Dependências Python |
+| `make demo` | API + dashboard em http://127.0.0.1:8000 |
+| `make test` | 259 testes (excl. E2E) |
+| `make test-coverage` | Testes + gate cobertura 82% |
+| `make test-e2e` | 53 testes Playwright no dashboard |
+| `make build-agri` | Pipeline INMET + treino ML risco |
+| `make train-yolo` | Retreino YOLO (`--recall-focus`) |
+| `make smoke-aws` | Smoke S3 → Lambda → DynamoDB |
+| `make nasa-capture` | Captura NASA Worldview (Playwright) |
 
 ---
 

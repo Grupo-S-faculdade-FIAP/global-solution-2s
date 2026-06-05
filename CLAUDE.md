@@ -40,24 +40,26 @@ Espelho equivalente (GitHub Copilot): `.github/copilot-instructions.md`
 | Demo / dados | `data/demo/` |
 | Specs | `.specs/` |
 
-**Core:** Python 3.11, FastAPI, Flask (dashboard UI), YOLOv5, scikit-learn, AWS (Lambda, S3, API Gateway, DynamoDB, SNS), HTML/JS dashboard (ES modules), ESP32.
+**Core:** Python 3.11, FastAPI, Flask (dashboard UI), YOLOv5, scikit-learn/DEAP (ML risco), AWS (Lambda, S3, API Gateway, DynamoDB, SNS), HTML/JS dashboard (ES modules), ESP32 (DHT22).
 
-Documentação de codebase (quando existir): `.specs/codebase/`
+Documentação: [docs/README.md](docs/README.md) · codebase: `.specs/codebase/`
 
 ---
 
 ## Comandos
 
 ```bash
-# Dependências
-make install
-
-# API + dashboard em http://127.0.0.1:8000 (requer best.pt em src/models/weights/)
-make demo
-
-# Testes
-make test-api
-make test-storms
+make install          # dependências
+make demo             # API + dashboard → http://127.0.0.1:8000
+make test             # 259 testes (excl. E2E)
+make test-coverage    # gate cobertura 82%
+make test-e2e         # 53 testes Playwright
+make test-api         # endpoints REST
+make test-storms      # storm alerts
+make build-agri       # pipeline INMET + treino ML
+make train-yolo       # retreino YOLO (--recall-focus)
+make smoke-aws        # smoke S3 → Lambda → DynamoDB
+make nasa-capture     # captura NASA (Playwright)
 ```
 
 Venv esperado: `.venv/` na raiz do repo.

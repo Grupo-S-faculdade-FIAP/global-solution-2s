@@ -21,7 +21,7 @@ make test
 # equivalente: cd src && PYTHONPATH=. ../.venv/bin/pytest ../tests/ tests/ -q
 ```
 
-**Resultado atual:** 89 passed (jun/2026)
+**Resultado atual:** 259 passed, 53 E2E (`make test-e2e`), cobertura **82,44%** (`make test-coverage`) — jun/2026
 
 ---
 
@@ -32,7 +32,9 @@ make test
 | **quick** | `make test-api` | Mudanças em endpoints de data integration |
 | **storms** | `make test-storms` | Mudanças em storm alerts / analytics |
 | **full** | `make test` | Mudanças em routers, services, IoT, lambdas |
-| **build** | `cd src && make lint && cd .. && make test` | Entregas finais de fase |
+| **coverage** | `make test-coverage` | Gate 82% (mesmo do CI) |
+| **e2e** | `make test-e2e` | Dashboard Playwright |
+| **build** | `cd src && make lint && cd .. && make test-coverage` | Entregas finais de fase |
 
 ---
 

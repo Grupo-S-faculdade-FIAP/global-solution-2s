@@ -41,7 +41,7 @@ global-solutions/
 │   ├── requirements*.txt
 │   ├── Dockerfile              # imagem Lambda
 │   └── yolo_training.py
-├── tests/                      # suite principal (89 testes)
+├── tests/                      # suite principal (259 testes + e2e/)
 ├── yolov5/                     # código-base YOLOv5
 ├── .env.example                # config canônica (copiar → .env)
 ├── Makefile                    # install, demo, test, build-agri, …
@@ -80,7 +80,7 @@ global-solutions/
 | Dashboard | `src/dashboard/` | UI HTML/JS + BFF handlers |
 | IoT | `src/iot/` | Firmware ESP32 |
 | Data / ML agrícola | `scripts/`, `docs/dados/` | INMET, FAOSTAT, treino |
-| Tests | `tests/`, `src/tests/` | 89 testes pytest |
+| Tests | `tests/`, `tests/e2e/`, `src/tests/` | 259 pytest + 53 E2E |
 | Ops docs | `docs/`, `.specs/` | Deploy, RPI, specs |
 
 ---

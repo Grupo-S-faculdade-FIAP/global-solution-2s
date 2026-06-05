@@ -32,7 +32,7 @@
 | HTTP client | httpx + requests | 0.28.0 / 2.32.3 | Integrações externas |
 | Frontend (dashboard) | Chart.js + Leaflet + Windy widget | CDN | Gráficos, mapas, radar |
 | Browser automation | Playwright | 1.49.0 | Captura NASA Worldview |
-| Testing | pytest + pytest-asyncio | 8.3.3 / 0.24.0 | 89 testes (`make test`) |
+| Testing | pytest + pytest-cov + playwright | 8.3.3+ | 259 testes (`make test`) + 53 E2E |
 | Lint | Ruff | n/a | `cd src && make lint` |
 
 ---
@@ -81,7 +81,9 @@
 # Raiz do repo — comandos principais
 make install          # pip install -r src/requirements.txt
 make demo             # API + dashboard em http://127.0.0.1:8000
-make test             # 89 testes (mesmo comando do CI)
+make test             # 259 testes (mesmo comando do CI)
+make test-coverage    # gate 82%
+make test-e2e         # Playwright dashboard
 make test-api
 make test-storms
 make build-agri       # pipeline INMET + FAOSTAT + ML
