@@ -40,7 +40,7 @@ Espelho equivalente (GitHub Copilot): `.github/copilot-instructions.md`
 | Demo / dados | `data/demo/` |
 | Specs | `.specs/` |
 
-**Core:** Python 3.11, FastAPI, YOLOv5, scikit-learn, AWS (Lambda, S3, API Gateway, DynamoDB), Streamlit/HTML dashboard, ESP32.
+**Core:** Python 3.11, FastAPI, Flask (dashboard UI), YOLOv5, scikit-learn, AWS (Lambda, S3, API Gateway, DynamoDB, SNS), HTML/JS dashboard (ES modules), ESP32.
 
 Documentação de codebase (quando existir): `.specs/codebase/`
 
@@ -67,7 +67,7 @@ Venv esperado: `.venv/` na raiz do repo.
 ## Regras duras
 
 - **Não commitar** sem pedido explícito do usuário
-- **Sem secrets** no código — usar `.env` (ver `.env.example`)
+- **Sem secrets** no código — usar `.env` na raiz (copiar de `.env.example`)
 - **Não assumir nem inventar** — verificar no código/docs antes de afirmar
 - **Escopo mínimo** — tocar só arquivos necessários à tarefa
 - Melhorias fora de escopo → registrar em `.specs/project/STATE.md` (deferred ideas)

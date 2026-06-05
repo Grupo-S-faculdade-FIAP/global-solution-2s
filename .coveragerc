@@ -1,0 +1,10 @@
+[run]
+source = app
+omit =
+    app/cron/*
+    app/interfaces/http/bff/backend.py
+
+[report]
+fail_under = 82
+show_missing = True
+skip_covered = False

@@ -15,6 +15,11 @@ demo:
 test:
 	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/ tests/ -q
 
+# Suite com cobertura mínima de 82% (meta +20% sobre baseline ~62%)
+test-coverage:
+	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/ tests/ -q \
+		--cov=app --cov-config=../.coveragerc --cov-report=term-missing --cov-fail-under=82
+
 test-api:
 	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/test_api_endpoints.py -q
 

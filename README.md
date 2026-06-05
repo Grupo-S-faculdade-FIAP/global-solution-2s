@@ -40,25 +40,15 @@ O projeto endereça a falta de sistemas acessíveis que integrem imagens de sat�
 - **Módulo Computer Vision (CV):** pipeline de análise de imagens de satélite (Windy.com) com modelo YOLOv5 treinado para detectar padrões de nuvens chuvosas. As imagens são enviadas manualmente ao S3, que aciona automaticamente o processamento via Lambda;
 - **Módulo Cloud/Backend:** API REST construída com FastAPI, hospedada na AWS (Lambda serverless para processamento + SNS para envio de alertas de chuva em tempo real). O fluxo é iniciado pelo upload manual de uma imagem ao bucket S3.
 - **Módulo IoT:** ESP32 com sensores de umidade do solo para monitoramento remoto de campo, com dados enviados para a nuvem via HTTP.
-- **Módulo Análise de Dados:** armazenamento dos alertas em banco SQL/NoSQL (dia e horário) com visualização em gráficos de barras para identificação de padrões recorrentes de chuva por dia da semana e faixa de horário.
+- **Módulo Análise de Dados:** armazenamento dos alertas em DynamoDB (NoSQL) com visualização em gráficos de barras e heatmap para identificação de padrões recorrentes de chuva por dia da semana e faixa de horário.
 
-- ## 💡 Módulo IoT – Desenvolvimento por Rodrigo Dias Figueiroa
+### Módulo IoT — Rodrigo Dias Figueiroa
 
-Este módulo foi desenvolvido para realizar a coleta de dados de temperatura e umidade utilizando o sensor DHT22 conectado ao ESP32.  
-Os dados são enviados para a nuvem via API Gateway (AWS Lambda + DynamoDB), integrando o monitoramento de campo ao sistema de alertas climáticos.
+Coleta de temperatura e umidade via sensor **DHT22** no ESP32, com envio para a API GS2 (`POST /iot/readings`) e persistência em DynamoDB (ou mock local).
 
-### 🔧 Funcionalidades implementadas
-- Conexão Wi-Fi automática com verificação de status.
-- Leitura de temperatura e umidade via sensor DHT22.
-- Consulta à API OpenWeather para obter o clima atual da cidade.
-- Envio dos dados para o banco DynamoDB através da API Gateway.
-- Exibição dos dados e status no monitor serial.
+**Funcionalidades:** Wi-Fi automático, leitura DHT22, envio HTTP para API Gateway/Lambda, exibição no dashboard (seção IoT).
 
-### 📂 Estrutura do código
-O código está localizado em:
-
-
-A solução foi desenvolvida como projeto Global Solution da Graduação ON em Inteligência Artificial da FIAP.
+**Código e documentação:** [`src/iot/firmware.cpp`](src/iot/firmware.cpp) · [`src/iot/README.md`](src/iot/README.md)
 
 ---
 
@@ -85,42 +75,30 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 - **Repositório GitHub:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s
 - **Vídeo de demonstração (5min):** *(link a ser adicionado após gravação)*
-- **Dashboard (Streamlit):** *(link a ser adicionado após deploy)* — **demo local:** http://127.0.0.1:8000 (`make demo`; tema claro/escuro na topbar)
+- **Dashboard (HTML/JS):** demo local em http://127.0.0.1:8000 (`make demo`; tema claro/escuro na topbar) · produção AWS abaixo
 - **Dashboard (AWS):** https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/ (`MOUNT_DASHBOARD=false` na Lambda)
 - **API Backend (AWS):** https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com
 
 **Decisões técnicas relevantes:**
 - YOLOv5 foi escolhido para detecção de padrões de nuvens chuvosas por ser estado da arte em detecção de objetos, com suporte a pipelines customizados de rotulagem e treino.
 - AWS Lambda processa as imagens de satélite de forma serverless (acionado por S3 trigger); AWS SNS dispara as notificações de alerta de chuva. O upload manual de screenshots do Windy.com para o S3 inicia todo o pipeline.
-- O banco de dados SQL/NoSQL armazena dia e horário de cada alerta, alimentando a análise de padrões de recorrência de chuva.
+- O banco de dados **DynamoDB** (NoSQL) armazena alertas e leituras IoT, alimentando gráficos e mapas no dashboard.
 - Config de segredos via `pydantic-settings` + `.env` — nenhum segredo hard-coded no código.
 
 **Observações gerais:**
 - Este projeto foi desenvolvido no contexto da Global Solution da FIAP (Graduação ON em IA)
 
-### Status de Execução (Caroline e Lucas) — 2026-06-04
+### Status do projeto — 2026-06-05
 
-Evidências objetivas aplicadas no projeto:
-
-- Caroline (Análise de dados):
-  - Gráficos de alertas por dia da semana e horário no dashboard agora consomem agregação real via API (`/alerts/weekly` e `/alerts/hourly`) com dados do DynamoDB, mantendo fallback local para demo sem nuvem.
-- Lucas (YOLO + pipeline de dados):
-  - Captura NASA incremental executada com sucesso (+3 imagens no dia).
-  - Conversão NASA -> YOLO executada em 36 imagens.
-  - Dataset de treino atualizado para 46 imagens e 46 labels.
-  - Retreino smoke (1 época) executado com sucesso e `best.pt` atualizado em `src/models/weights/best.pt`.
-
-Números atuais verificados:
-
-- `data/nasa_captures`: 36 imagens PNG
-- `data/model-dataset/images/train`: 46 imagens
-- `data/model-dataset/labels/train`: 46 labels
-
-Trilha YOLO NASA (concluída):
-
-1. `data/nasa_captures`: 90 imagens
-2. Dataset NASA pipeline v2 (`--limiar 185 --area 80`, letterbox 640 + UI mask): labels sem bbox fantasma; retreino pendente
-3. Endpoints: `GET /storms/recent`, `GET /map/overlay` (DynamoDB `storm_alerts`)
+| Área | Evidência |
+|------|-----------|
+| Testes | **89 passed** (`make test`) |
+| Capturas NASA | 93 PNG em `data/nasa_captures` |
+| Dataset YOLO train | 79 imagens + 79 labels (`data/model-dataset/`) |
+| Pipeline labels | v2 — letterbox 640, 0 bbox fantasma; mAP@0.5 ≈ 0,14 (abaixo meta G1 70%) |
+| IoT | API + firmware + dashboard + 11 testes |
+| CI/CD | GitHub Actions + OIDC — [docs/CI-CD.md](docs/CI-CD.md) |
+| Arquitetura | Clean Architecture — ver [docs/RPI.md](docs/RPI.md) |
 
 **Demo local (API + dashboard — uma porta):**
 
@@ -145,19 +123,19 @@ Checklist de entrega: `.specs/project/CHECKLIST_ENTREGA.md`
 - [uv](https://docs.astral.sh/uv/) ou `pip`
 - Pesos do modelo em `src/models/weights/best.pt`
 - Imagem de teste em `data/model-dataset/images/test/test-storm.png` (ou ajustar o caminho no script)
-- Para a API local: arquivo `.env` (copiar `src/.env.example`)
+- Para a API local: copiar `.env.example` → `.env` na **raiz** do repositório
 - Para o teste na AWS: [AWS CLI](https://docs.aws.amazon.com/cli/) configurado (`aws configure`) com credenciais que tenham acesso ao bucket `satellite-images-gs2` e leitura em CloudWatch/DynamoDB
 
 ### Instalação
 
 ```bash
 git clone git@github.com:Grupo-S-faculdade-FIAP/global-solution-2s.git
-cd global-solution-2s/src
+cd global-solution-2s
 
-pip install -r requirements.txt
-# ou: make install
+make install
+# ou: cd src && pip install -r requirements.txt
 
-cp .env.example .env   # apenas se for subir a API local
+cp .env.example .env   # raiz do repo — ajustar se necessário
 ```
 
 ---

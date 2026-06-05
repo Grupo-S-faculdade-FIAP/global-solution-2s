@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
-**Project:** —
-**Last updated:** 2026-06-05 (refatoração frontend dashboard)
+**Project:** GS2 — global-solution-2s
+**Last updated:** 2026-06-05 (testes + cobertura 82%)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -11,11 +11,11 @@
 
 ## Current Focus
 
-**Active feature:** boas práticas frontend + desacoplamento (concluído 2026-06-05)
-**Last task completed:** event bus (`core/events.js`), orchestrator, `api/endpoints.js`, `constants.js`/`selectors.js`; maps↔sections desacoplados; docs `.specs/codebase/CONVENTIONS.md` + `INTEGRATIONS.md`.
+**Active feature:** correção CI pytest (concluída 2026-06-05)
+**Last task completed:** 7 testes de weather corrigidos (mock Open-Meteo, sem 429 em CI); cobertura subiu de ~62% para 82,25% (164 testes); `pytest-cov` + gate no CI/Makefile.
 **Next task:** Merge `feature/ajustes` → `main` (deploy produção); smoke AWS; vídeo/PDF FIAP
 **Blockers:** nenhum
-**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.3 (2026-06-05): IoT MVP, Clean Architecture, YOLO v2, ES modules, 84 testes, CI/CD OIDC
+**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.4 (2026-06-05)
 
 ---
 
@@ -43,6 +43,7 @@
 | 2026-06-05 | D-018 | DetectStormUseCase em application/cv/ — routers/cv.py não importa boto3/torch | Separação clara HTTP vs pipeline; testável sem FastAPI | CV |
 | 2026-06-05 | D-019 | Pipeline labels YOLO v2: letterbox 640 + detecção na img de treino + UI mask + audit gate | 74/76 labels eram bbox fantasma (canto sup. esq.); precision alta / recall baixo era artefato posicional | CV / dataset |
 | 2026-06-05 | D-020 | Frontend dashboard: ES modules + partials Jinja + CSS tokens | Manutenibilidade; `app.js` entry; `core/` api/state/dom/ui; `maps/`; `sections/` | Dashboard |
+| 2026-06-05 | D-021 | `.env` canônico na raiz do repo | `config.py` carrega raiz primeiro; `src/.env.example` é legado | Config / docs |
 
 ---
 
@@ -68,8 +69,9 @@
 - 2026-06-04 — Dashboard: seção **Mapa da região** (Leaflet CDN) consome `/api/map/overlay` com bbox da localização; Windy permanece como **Radar meteorológico**.
 - 2026-06-04 — Dois servidores (5000+8000) confundiam usuários e `make demo` falhava se :8000 ocupada (só Flask, BFF quebrado). Solução: `WSGIMiddleware` monta Flask em `/` após rotas FastAPI; URL única `http://127.0.0.1:8000`. Causa KPIs "—": abrir :8000 sem UI ou JS abortado antes do `bootstrapDashboard` (listeners em sliders nulos).
 - 2026-06-05 — Location-bar: flex-wrap quebrava alinhamento do mapinha; migrado para CSS Grid + header com badge. Auto-apply no mapa (debounce), toast, nav por âncoras, três mapas renomeados. Refinamento: sticky dinâmico compacto, nav scroll horizontal mobile, Leaflet zoom bottom-right, badge clicável para expandir.
-- 2026-06-05 — Gaps técnicos resolvidos: IoT store + router implementados (DynamoDB/mock), confiança YOLO real salva nos alertas, firmware movido para `src/iot/firmware.cpp` apontando para API GS2, seção IoT no dashboard (card leituras + histórico), BFF `/api/iot/*`, 11 novos testes IoT (total 73), configs `.env.example` unificadas.
-- 2026-06-05 — Arquitetura limpa aplicada em 4 fases: Ports (StormAlertRepository, IoTReadingRepository), Adapters DynamoDB + JSON, DetectStormUseCase (extração de cv.py), S3TriggerHandler, container.py para DI, interfaces/http/bff/ como camada canônica de BFF. 79 testes passando. Decisão D-017: shims em interfaces/ re-exportam de dashboard/ (não o contrário) para preservar backward compat com monkeypatch de testes.
+- 2026-06-05 — Gaps técnicos resolvidos: IoT store + router implementados (DynamoDB/mock), confiança YOLO real salva nos alertas, firmware movido para `src/iot/firmware.cpp` apontando para API GS2, seção IoT no dashboard (card leituras + histórico), BFF `/api/iot/*`, 11 testes IoT em `tests/test_iot_readings.py`.
+- 2026-06-05 — Arquitetura limpa aplicada em 4 fases: Ports, Adapters, DetectStormUseCase, S3TriggerHandler, container.py, interfaces/http/bff/. Gate final: **89 testes** (`make test`).
+- 2026-06-05 — Documentação desatualizada (Streamlit, IoT stub, CI manual, 84 testes) corrigida em auditoria única; fonte canônica de env: `.env.example` na raiz.
 
 ---
 
@@ -78,24 +80,23 @@
 - Alertas em tempo real por push/email quando YOLO detectar tempestade
 - Cobertura de outros países da América do Sul
 - App mobile para visualização no campo
+- YOLO mAP ≥ 70% (G1) — requer mais dados rotulados ou augmentação
 
 ---
 
 ## Todos
 
 - [ ] Verificar prazo exato de entrega na plataforma FIAP
-- [x] Clonar template TIAO-2026: https://github.com/CaiqueFiap-2026/TEMPLATE-TIAO-2026
-- [x] Criar estrutura de pastas do repositório conforme template (README.md, docs/, data/, assets/, Ir Além/)
+- [x] Clonar template TIAO-2026
+- [x] Criar estrutura de pastas do repositório conforme template
 - [x] Criar scaffold FastAPI base (src/)
-- [ ] Instalar dependências e rodar testes base
-- [x] Especificar feature: Data Integration Dashboard (YOLO + Open-Meteo + Dashboard)
-- [ ] **NEXT:** Implementar T-01 a T-03 (Setup DynamoDB, S3, FastAPI)
-- [ ] **NEXT:** Implementar T-04 a T-05 (YOLO inference pipeline)
-- [ ] **NEXT:** Implementar T-06 a T-07 (Weather ingestion)
-- [ ] **NEXT:** Implementar T-08 (ML risk prediction)
-- [ ] **NEXT:** Implementar T-09 a T-10 (API endpoints)
-- [ ] **NEXT:** Implementar T-11 a T-12 (Dashboard + deployment)
-- [ ] Especificar feature: módulo IoT (ESP32 + sensores) — se tempo permitir
+- [x] Instalar dependências e rodar testes base (`make test` — 89 passed)
+- [x] Especificar feature: Data Integration Dashboard
+- [x] Implementar T-01 a T-12 (MVP integrado — ver ROADMAP)
+- [x] Especificar e implementar módulo IoT (ESP32 + sensores)
+- [x] Auditoria e atualização de documentação (specs, README, RPI, codebase docs)
+- [ ] Merge `feature/ajustes` → `main` + smoke AWS
+- [ ] PDF + vídeo FIAP (ação humana)
 
 ---
 
@@ -103,28 +104,8 @@
 
 - Idioma de trabalho: Português (BR)
 - Commits: Conventional Commits em inglês
-
-Good ideas captured during implementation that are out of current scope.
-
-- [YYYY-MM-DD] — [Idea: description] → Candidate for [v2 / backlog / investigate]
+- `.env` canônico: copiar `.env.example` na **raiz** do repo (não `src/.env.example`)
 
 ---
 
-## Todos
-
-Short-term tasks that don't belong to a specific feature spec.
-
-- [ ] [Todo item]
-- [ ] [Todo item]
-
----
-
-## Preferences
-
-Agent behavior preferences noted during sessions (to avoid repeating tips).
-
-- [YYYY-MM-DD] — [Preference noted]
-
----
-
-<!-- This file GROWS over time. Archive old resolved blockers to a HISTORY section at the bottom if it gets too long. -->
+<!-- Archive resolved blockers to HISTORY below if this file grows too long. -->

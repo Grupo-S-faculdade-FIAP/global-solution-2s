@@ -2,7 +2,7 @@
 
 **Projeto:** GS2 — Plataforma de inteligência ambiental e agrícola (`global-solutions`)  
 **Disciplina / entrega:** Global Solution (Graduação ON em IA) — FIAP 2026.1  
-**Versão do documento:** 1.3  
+**Versão do documento:** 1.4  
 **Data:** 05/06/2026  
 **Repositório:** [Grupo-S-faculdade-FIAP/global-solution-2s](https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s)
 
@@ -72,7 +72,7 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 | Artefato | Caminho / referência | Status |
 |----------|----------------------|--------|
 | Repositório + README | `README.md` | Parcial |
-| Checklist interno | `.specs/project/CHECKLIST_ENTREGA.md` | Atualizado (04/06) |
+| Checklist interno | `.specs/project/CHECKLIST_ENTREGA.md` | Atualizado (05/06) |
 | Guia de avaliação (cobertura de rubrica) | `docs/GUIA-DE-AVALIACAO.md` | Existe |
 | Deploy Lambda | `docs/DEPLOY-LAMBDA.md` | Existe |
 | CI/CD GitHub Actions | `docs/CI-CD.md` | Existe |
@@ -199,7 +199,7 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 | **Dashboard / UX produtor** | ~98% | Concluído | Tema claro/escuro, ES modules, event bus, location-bar com grid, três mapas (região, radar Windy, picker), seção IoT, skeleton KPIs, a11y básica. |
 | **IoT ESP32** | ~75% | Concluído (MVP) | Router `/iot/*`, store mock+DynamoDB, firmware `src/iot/firmware.cpp`, dashboard `sections/iot.js`, BFF `/api/iot/*`. Simulação Wokwi documentada. |
 | **AWS (Lambda, S3, DynamoDB, SNS)** | ~65% | Em progresso | API publicada (`/health`); pipeline S3→Lambda documentado; CI/CD OIDC; DynamoDB real requer `DYNAMODB_USE_MOCK=false`. EventBridge captura NASA pausado. |
-| **Testes automatizados** | ~85% | Concluído (MVP) | **84** testes coletados; **84 passed** (`PYTHONPATH=src`). Makefile: `make test`, `test-api`, `test-storms`. CI em `.github/workflows/ci.yml`. |
+| **Testes automatizados** | ~90% | Concluído (MVP) | **89** testes coletados; **89 passed** (`make test`). CI em `.github/workflows/ci.yml`. |
 | **CI/CD** | ~90% | Concluído | CI em todo push/PR; CD na `main` (build Docker → ECR → Lambda + smoke `/health`). Sem access keys (OIDC). |
 
 ### 4.1 Endpoints principais (evidência)
@@ -352,7 +352,7 @@ Pesos atuais: `src/models/weights/best.pt` (~14 MB).
 | `data/model-dataset/images/train` | 79 |
 | `data/model-dataset/labels/train` | 79 |
 | `src/models/weights/best.pt` | presente (~14 MB) |
-| `tests/` (pytest) | 84 coletados, 84 passed |
+| `tests/` (pytest) | 89 coletados, 89 passed (`make test`) |
 | `src/iot/firmware.cpp` | presente |
 | `data/demo/iot_readings.json` | presente (mock) |
 
@@ -409,7 +409,7 @@ curl https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health
 
 ## 9. Cronograma e marcos
 
-Fonte: `.specs/project/ROADMAP.md` (atualizado 04/06/2026)
+Fonte: `.specs/project/ROADMAP.md` (atualizado 05/06/2026)
 
 | Marco | Prazo | Status |
 |-------|-------|--------|
@@ -454,3 +454,4 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 04/06/2026)
 | 1.1 | 04/06/2026 | Agente / equipe GS2 | BFF FastAPI (`dashboard_bff`), handlers compartilhados, endpoints `/api/*`, testes 54/1 erro, `CLAUDE.md`, env `DEMO_MODE`/`BFF_INPROCESS` |
 | 1.2 | 04/06/2026 | Agente / equipe GS2 | Dashboard UI profissional: tema claro/escuro, tokens CSS, polish GitHub-like, a11y, checklist Fase D |
 | 1.3 | 05/06/2026 | Agente / equipe GS2 | IoT MVP (API + firmware + dashboard); Clean Architecture (Domain/Application/Infrastructure/Interfaces); pipeline YOLO v2 e métricas honestas; frontend ES modules + event bus; 84 testes passing; CI/CD OIDC (`docs/CI-CD.md`); G4 concluído MVP |
+| 1.4 | 05/06/2026 | Agente / equipe GS2 | Auditoria documentação: specs, codebase docs, README, CHECKLIST, ROADMAP alinhados ao código; 89 testes; removidas refs Streamlit/IoT stub/CI manual; `.env` canônico na raiz |

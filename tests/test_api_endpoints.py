@@ -1,22 +1,23 @@
 """Test suite for T-09: Data integration API endpoints."""
 
-import sys
 import pytest
-from pathlib import Path
-
-# Add src to path so imports work
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from app.main import app
+from weather_fixtures import SAMPLE_WEATHER
 
 client = TestClient(app)
 
 
 class TestWeatherEndpoint:
     """Test GET /weather/current endpoint."""
-    
-    def test_get_weather_success(self):
+
+    @patch(
+        "app.routers.data_integration.weather_service.get_current",
+        return_value=SAMPLE_WEATHER,
+    )
+    def test_get_weather_success(self, _mock_weather):
         """Test successful weather fetch with valid coordinates."""
         response = client.get("/weather/current?lat=-22.89&lon=-43.18")
         assert response.status_code == 200
@@ -50,7 +51,11 @@ class TestWeatherEndpoint:
         response = client.get("/weather/current?lat=-22.89")
         assert response.status_code == 422  # FastAPI validation error
         
-    def test_get_weather_response_structure(self):
+    @patch(
+        "app.routers.data_integration.weather_service.get_current",
+        return_value=SAMPLE_WEATHER,
+    )
+    def test_get_weather_response_structure(self, _mock_weather):
         """Test response has correct structure with proper types."""
         response = client.get("/weather/current?lat=-22.89&lon=-43.18")
         data = response.json()
