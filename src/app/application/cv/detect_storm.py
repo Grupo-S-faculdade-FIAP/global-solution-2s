@@ -12,6 +12,7 @@ Não importa fastapi, flask nem define rotas HTTP.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import pathlib
 from typing import TYPE_CHECKING, Any
@@ -28,6 +29,12 @@ _MODEL_LOCAL = _TMP / "storm_model.pt"
 _YOLOV5_SRC = pathlib.Path("/opt/yolov5_src")
 _PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[3]
 _LOCAL_WEIGHTS = _PROJECT_ROOT / "models" / "weights" / "best.pt"
+
+
+def _deterministic_alert_id(bucket: str, key: str) -> str:
+    """Idempotência: mesmo objeto S3 → mesmo alert_id em retries."""
+    digest = hashlib.sha256(f"{bucket}/{key}".encode()).hexdigest()[:16]
+    return f"storm_{digest}"
 
 
 def _yolov5_repo() -> tuple[str, str]:
@@ -145,11 +152,17 @@ class DetectStormUseCase:
 
         alert_sent = False
         message_id = None
+        duplicate = False
 
         if detections:
-            logger.info("%d storm detections found — sending alert", len(detections))
-            message_id = publish_storm_alert(bucket, key, detections)
-            self._persist(bucket, key, detections, message_id)
+            logger.info("%d storm detections found — persisting alert", len(detections))
+            alert_id = _deterministic_alert_id(bucket, key)
+            saved = self._persist(bucket, key, detections, alert_id)
+            duplicate = bool(saved.get("_duplicate"))
+            if duplicate:
+                logger.info("Alert already stored for s3://%s/%s — skipping SNS", bucket, key)
+            else:
+                message_id = publish_storm_alert(bucket, key, detections)
             alert_sent = True
         else:
             logger.info("No storm detected in %s", key)
@@ -159,6 +172,7 @@ class DetectStormUseCase:
             "key": key,
             "detections": detections,
             "alert_sent": alert_sent,
+            "duplicate": duplicate,
             "sns_message_id": message_id,
         }
 
@@ -167,19 +181,19 @@ class DetectStormUseCase:
         bucket: str,
         key: str,
         detections: list[dict[str, Any]],
-        message_id: str | None,
-    ) -> None:
+        alert_id: str,
+    ) -> dict[str, Any]:
         confs = [
             d["confidence"]
             for d in detections
             if isinstance(d.get("confidence"), (int, float))
         ]
         max_confidence = max(confs) if confs else None
-        self._repo.save(
+        return self._repo.save(
             s3_key=key,
             detection_count=len(detections),
             bucket=bucket,
-            alert_id=message_id,
+            alert_id=alert_id,
             simulated=False,
             classes=list({d["class"] for d in detections}),
             confidence=max_confidence,

@@ -68,24 +68,24 @@ class TestWeatherService:
         with pytest.raises(ValueError, match="longitude"):
             service.get_current(lat=0, lon=-200)
 
-    def test_get_current_weather_caching(self):
+    @patch("app.clients.openmeteo.requests.get")
+    def test_get_current_weather_caching(self, mock_get):
         """Test that consecutive calls use cache on the client."""
-        client = OpenMeteoClient()
-        mock_session = MagicMock()
-        mock_session.get.return_value = make_mock_response(OPENMETEO_HOURLY_JSON)
-        client.session = mock_session
+        mock_get.return_value = make_mock_response(OPENMETEO_HOURLY_JSON)
+        from app.clients.openmeteo import clear_openmeteo_cache
 
+        clear_openmeteo_cache()
+        client = OpenMeteoClient()
         weather1 = client.get_current(lat=-23.5505, lon=-46.6333)
         weather2 = client.get_current(lat=-23.5505, lon=-46.6333)
 
         assert weather1 == weather2
-        assert mock_session.get.call_count == 1
+        assert mock_get.call_count == 1
 
-    def test_get_current_weather_different_locations(self):
+    @patch("app.clients.openmeteo.requests.get")
+    def test_get_current_weather_different_locations(self, mock_get):
         """Test that different locations trigger separate API calls."""
-        client = OpenMeteoClient()
-        mock_session = MagicMock()
-        mock_session.get.side_effect = [
+        mock_get.side_effect = [
             make_mock_response(OPENMETEO_HOURLY_JSON),
             make_mock_response({
                 "hourly": {
@@ -95,13 +95,15 @@ class TestWeatherService:
                 }
             }),
         ]
-        client.session = mock_session
+        from app.clients.openmeteo import clear_openmeteo_cache
 
+        clear_openmeteo_cache()
+        client = OpenMeteoClient()
         weather_rio = client.get_current(lat=-22.9068, lon=-43.1729)
         weather_sp = client.get_current(lat=-23.5505, lon=-46.6333)
 
         assert weather_rio["temperature"] != weather_sp["temperature"]
-        assert mock_session.get.call_count == 2
+        assert mock_get.call_count == 2
 
     def test_get_current_weather_response_structure(self):
         """Test that response has correct structure."""

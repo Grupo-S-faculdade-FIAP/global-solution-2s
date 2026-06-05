@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import settings
+from app.infrastructure.persistence.json_io import atomic_write_json
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +44,16 @@ def _load_all() -> list[dict[str, Any]]:
 
 
 def _save_all(items: list[dict[str, Any]]) -> None:
-    path = _store_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(items, indent=2, ensure_ascii=False), encoding="utf-8")
+    atomic_write_json(_store_path(), items)
+
+
+def _find_by_object(
+    items: list[dict[str, Any]], bucket: str, s3_key: str
+) -> dict[str, Any] | None:
+    for item in items:
+        if item.get("bucket") == bucket and item.get("s3_key") == s3_key:
+            return item
+    return None
 
 
 def _build_item(
@@ -135,6 +143,10 @@ class JsonStormAlertRepository:
         confidence: float | None = None,
     ) -> dict[str, Any]:
         self.ensure_seeded()
+        items = _load_all()
+        existing = _find_by_object(items, bucket, s3_key)
+        if existing is not None:
+            return {**existing, "_duplicate": True}
         item = _build_item(
             s3_key=s3_key,
             detection_count=detection_count,
@@ -144,7 +156,6 @@ class JsonStormAlertRepository:
             classes=classes,
             confidence=confidence,
         )
-        items = _load_all()
         items.append(item)
         _save_all(items)
         return item
