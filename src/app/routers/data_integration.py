@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.services.weather_service import WeatherService
 from app.services.alerts_analytics import AlertAnalyticsService
 from app.services.storm_alerts_query import StormAlertsQueryService
-from app.services.storm_alerts_store import add_alert_from_coords, use_mock_store
+from app.services.storm_alerts_store import add_alert_from_coords
 from app.services.risk_assessment import RiskAssessmentService
 from app.models.schemas import (
     WeatherResponse,
@@ -126,7 +126,7 @@ def get_storms_recent(
       - confidence (0-1)
       - timestamp
     
-    **Note:** This endpoint queries DynamoDB `alerts` table (ou mock JSON em data/demo/).
+    **Note:** Persiste na tabela DynamoDB `alerts`.
     Retorna lista vazia se não houver detecções no intervalo solicitado.
     """
     if hours < 1 or hours > 720:
@@ -240,14 +240,13 @@ class SimulateAlertRequest(BaseModel):
 @router.post(
     "/alerts/simulate",
     tags=["Analytics"],
-    summary="Simulate storm alert (local store)",
-    description="Grava alerta simulado em data/demo/storm_alerts.json quando DynamoDB mock está ativo",
+    summary="Simulate storm alert",
+    description="Grava alerta simulado na tabela DynamoDB alerts",
 )
 def post_simulate_alert(body: SimulateAlertRequest = Body(...)) -> dict:
     item = add_alert_from_coords(body.lat, body.lon, body.confidence)
     return {
         "success": True,
-        "mock_mode": use_mock_store(),
         "alert": item,
         "message": "Alerta simulado registrado",
     }
@@ -256,13 +255,12 @@ def post_simulate_alert(body: SimulateAlertRequest = Body(...)) -> dict:
 @router.get(
     "/alerts/status",
     tags=["Analytics"],
-    summary="Alert storage mode",
+    summary="Alert storage status",
 )
 def get_alerts_storage_status() -> dict:
     return {
-        "mock_mode": use_mock_store(),
-        "store": "local_json" if use_mock_store() else "dynamodb",
-        "table": settings.DYNAMODB_TABLE_ALERTS if not use_mock_store() else "data/demo/storm_alerts.json",
+        "store": "dynamodb",
+        "table": settings.DYNAMODB_TABLE_ALERTS,
     }
 
 

@@ -74,8 +74,13 @@ class Settings(BaseSettings):
 
     # ─── DynamoDB — Alertas (CV pipeline) ─────────────────────────────────
     DYNAMODB_TABLE_ALERTS: str = "alerts"
+    # Apenas CI/testes locais sem AWS (não expor em produção/UI).
     DYNAMODB_USE_MOCK: bool = False
     DYNAMODB_MOCK_STORE_PATH: str = ""
+
+    # ─── IoT (ESP32) ───────────────────────────────────────────────────────
+    # true = leituras simuladas (sem ESP32/DynamoDB iot_readings); false = AWS real
+    IOT_USE_MOCK: bool = True
 
     # ─── Machine Learning (Risk Prediction) ────────────────────────────────
     ML_MODEL_PATH: str = "models/risk_predictor.pkl"

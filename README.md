@@ -131,7 +131,7 @@ make demo
 
 **Dashboard produtor:** painel HTML em `/` com tema **claro/escuro** (botão na topbar; preferência salva em `localStorage`). Gráficos, heatmap e mapas Leaflet acompanham o tema. Detalhes e checklist de validação: [docs/RPI.md](docs/RPI.md) §7.2.
 
-**Alertas / DynamoDB (enquanto AWS não estiver pronta):** por padrão `DYNAMODB_USE_MOCK=true` — dados em `data/demo/storm_alerts.json` (seed automático + `POST /alerts/simulate`). Quando a AWS estiver ok: `DYNAMODB_USE_MOCK=false` no `.env`.
+**Alertas / DynamoDB:** alertas persistem na tabela AWS `alerts`. **IoT ESP32:** simulado por padrão (`IOT_USE_MOCK=true` no `.env`); defina `IOT_USE_MOCK=false` quando o hardware estiver enviando para DynamoDB `iot_readings`.
 
 Checklist de entrega: `.specs/project/CHECKLIST_ENTREGA.md`
 

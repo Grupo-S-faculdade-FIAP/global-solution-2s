@@ -1,9 +1,4 @@
-"""Armazenamento de leituras IoT — DynamoDB (produção) ou JSON local (mock).
-
-Mirrors the pattern of storm_alerts_store.py.
-Tabela DynamoDB: settings.DYNAMODB_IOT_TABLE (default: iot_readings)
-Mock local   : data/demo/iot_readings.json
-"""
+"""Armazenamento de leituras IoT — DynamoDB (produção) ou JSON local (demo ESP32)."""
 
 from __future__ import annotations
 
@@ -26,7 +21,7 @@ DEFAULT_STORE_PATH = PROJECT_ROOT / "data" / "demo" / "iot_readings.json"
 
 
 def use_mock_store() -> bool:
-    return bool(settings.DYNAMODB_USE_MOCK)
+    return bool(settings.IOT_USE_MOCK)
 
 
 def _store_path() -> Path:

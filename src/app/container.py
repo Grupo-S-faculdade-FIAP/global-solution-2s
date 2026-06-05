@@ -1,9 +1,8 @@
 """Container de Dependency Injection.
 
 Factory functions usadas via FastAPI Depends().
-A escolha entre adapter mock (JSON) e produção (DynamoDB)
-ocorre aqui, com base em settings.DYNAMODB_USE_MOCK.
-Nunca coloque lógica de negócio aqui — apenas wiring.
+Alertas sempre via DynamoDB (ou JSON local só em CI com DYNAMODB_USE_MOCK).
+IoT usa IOT_USE_MOCK para simular ESP32 sem hardware.
 """
 
 from __future__ import annotations
@@ -27,7 +26,7 @@ def get_storm_repo() -> StormAlertRepository:
 
 def get_iot_repo() -> IoTReadingRepository:
     """Retorna o adapter correto para IoTReadingRepository."""
-    if settings.DYNAMODB_USE_MOCK:
+    if settings.IOT_USE_MOCK:
         from app.infrastructure.persistence.json_iot_store import (
             JsonIoTReadingRepository,
         )

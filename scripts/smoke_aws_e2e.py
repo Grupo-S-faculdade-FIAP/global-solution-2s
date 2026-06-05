@@ -19,15 +19,14 @@ def main() -> int:
     from app.services.storm_alerts_store import (  # noqa: PLC0415
         add_alert,
         list_alerts_since_hours,
-        use_mock_store,
     )
 
     base_url = os.environ.get("AWS_API_URL", "http://127.0.0.1:8000")
     failed = 0
 
     print("\n=== Smoke AWS E2E ===\n")
-    mode = "mock" if settings.DYNAMODB_USE_MOCK else "dynamodb"
-    print(f"  [PASS] storage_mode: DYNAMODB_USE_MOCK={settings.DYNAMODB_USE_MOCK} ({mode})")
+    print(f"  [PASS] alerts_store: dynamodb ({settings.DYNAMODB_TABLE_ALERTS})")
+    print(f"  [PASS] iot_mode: IOT_USE_MOCK={settings.IOT_USE_MOCK}")
 
     sns = sns_status()
     if sns["configured"]:
@@ -37,7 +36,9 @@ def main() -> int:
     else:
         print("  [WARN] sns: SNS_TOPIC_ARN not set — alerts skip SNS publish")
 
-    if not settings.DYNAMODB_USE_MOCK:
+    if settings.DYNAMODB_USE_MOCK:
+        print("  [WARN] dynamodb_table: CI/local JSON (DYNAMODB_USE_MOCK) — skipped")
+    else:
         import boto3  # noqa: PLC0415
         from botocore.exceptions import BotoCoreError, ClientError  # noqa: PLC0415
         try:
@@ -47,8 +48,6 @@ def main() -> int:
         except (ClientError, BotoCoreError) as exc:
             print(f"  [FAIL] dynamodb_table: {exc}")
             failed += 1
-    else:
-        print("  [PASS] dynamodb_table: mock mode — skipped")
 
     test_id = "smoke_e2e_test"
     add_alert(
@@ -60,7 +59,7 @@ def main() -> int:
     )
     recent = list_alerts_since_hours(1)
     if any(str(a.get("alert_id")) == test_id for a in recent):
-        print(f"  [PASS] alert_roundtrip: write/read OK ({mode})")
+        print("  [PASS] alert_roundtrip: write/read OK")
     else:
         print(f"  [FAIL] alert_roundtrip: {test_id} not found")
         failed += 1
