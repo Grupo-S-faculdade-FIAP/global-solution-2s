@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 def main() -> int:
     from app.core.config import settings  # noqa: PLC0415
+    from app.services.sns_alerts import sns_status  # noqa: PLC0415
     from app.services.storm_alerts_store import (  # noqa: PLC0415
         add_alert,
         list_alerts_since_hours,
@@ -27,6 +28,14 @@ def main() -> int:
     print("\n=== Smoke AWS E2E ===\n")
     mode = "mock" if settings.DYNAMODB_USE_MOCK else "dynamodb"
     print(f"  [PASS] storage_mode: DYNAMODB_USE_MOCK={settings.DYNAMODB_USE_MOCK} ({mode})")
+
+    sns = sns_status()
+    if sns["configured"]:
+        print(f"  [PASS] sns: configured ({sns['topic_arn']})")
+    elif not settings.SNS_ENABLED:
+        print("  [WARN] sns: SNS_ENABLED=false — publish disabled")
+    else:
+        print("  [WARN] sns: SNS_TOPIC_ARN not set — alerts skip SNS publish")
 
     if not settings.DYNAMODB_USE_MOCK:
         import boto3  # noqa: PLC0415

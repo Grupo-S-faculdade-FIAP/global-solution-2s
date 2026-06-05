@@ -1,15 +1,13 @@
-"""IoT router — recebe leituras do ESP32 e persiste no DynamoDB (ou mock JSON)."""
+"""IoT router — recebe leituras do ESP32 e persiste via repositório injetado."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.services.iot_readings_store import (
-    add_reading,
-    list_readings_since_hours,
-    use_mock_store,
-)
+from app.container import get_iot_repo
+from app.core.config import settings
+from app.domain.iot.ports import IoTReadingRepository
 
 router = APIRouter()
 
@@ -26,16 +24,19 @@ def iot_status() -> dict:
     return {
         "module": "iot",
         "status": "ready",
-        "storage": "mock_json" if use_mock_store() else "dynamodb",
-        "table": "iot_readings",
+        "storage": "mock_json" if settings.DYNAMODB_USE_MOCK else "dynamodb",
+        "table": settings.DYNAMODB_IOT_TABLE,
     }
 
 
 @router.post("/readings", status_code=201)
-def receive_sensor_reading(body: SensorReading) -> dict:
-    """Recebe leitura de sensor do ESP32 e persiste no DynamoDB (ou mock JSON)."""
+def receive_sensor_reading(
+    body: SensorReading,
+    repo: IoTReadingRepository = Depends(get_iot_repo),
+) -> dict:
+    """Recebe leitura de sensor do ESP32 e persiste via repositório."""
     try:
-        item = add_reading(
+        item = repo.save(
             device_id=body.device_id,
             cidade=body.cidade,
             temperatura=body.temperatura,
@@ -45,26 +46,30 @@ def receive_sensor_reading(body: SensorReading) -> dict:
             "stored": True,
             "reading_id": item["reading_id"],
             "timestamp": item["timestamp"],
-            "storage": "mock_json" if use_mock_store() else "dynamodb",
+            "storage": "mock_json" if settings.DYNAMODB_USE_MOCK else "dynamodb",
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Erro ao salvar leitura: {exc}") from exc
 
 
 @router.get("/readings/latest")
-def get_latest_readings(hours: int = 24, limit: int = 20) -> dict:
+def get_latest_readings(
+    hours: int = 24,
+    limit: int = 20,
+    repo: IoTReadingRepository = Depends(get_iot_repo),
+) -> dict:
     """Retorna as leituras mais recentes dos sensores (últimas N horas)."""
     if hours < 1 or hours > 720:
         raise HTTPException(status_code=400, detail="hours deve ser entre 1 e 720")
     if limit < 1 or limit > 100:
         raise HTTPException(status_code=400, detail="limit deve ser entre 1 e 100")
     try:
-        readings = list_readings_since_hours(hours)[:limit]
+        readings = repo.list_since_hours(hours)[:limit]
         return {
             "readings": readings,
             "count": len(readings),
             "hours": hours,
-            "storage": "mock_json" if use_mock_store() else "dynamodb",
+            "storage": "mock_json" if settings.DYNAMODB_USE_MOCK else "dynamodb",
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar leituras: {exc}") from exc

@@ -1,0 +1,96 @@
+<p class="section-title" id="sec-satelite">Detecção de tempestades no satélite</p>
+<div class="dash-card">
+  <div class="card-head">
+    <div>
+      <div class="card-head-title"><i class="bi bi-radar"></i> Alertas por imagem de satélite</div>
+      <div class="card-head-sub">Modelo treinado com imagens NASA — confiança mínima 40%</div>
+    </div>
+  </div>
+  <div class="yolo-stats">
+    <div>
+      <div class="yolo-stat-label">Status do modelo</div>
+      <div class="yolo-stat-value" id="yolo-status">Verificando...</div>
+    </div>
+    <div>
+      <div class="yolo-stat-label">Última detecção</div>
+      <div class="yolo-stat-value" id="yolo-last-detection">—</div>
+    </div>
+    <div>
+      <div class="yolo-stat-label">Confiança média</div>
+      <div class="yolo-stat-value" id="yolo-avg-confidence">—</div>
+    </div>
+  </div>
+  <div id="storms-recent-list" class="storms-recent-list">Carregando alertas recentes…</div>
+  {% if demo_mode %}
+  <div class="dev-actions" id="yolo-dev-actions">
+    <span class="dev-actions-label">Ferramentas de demonstração</span>
+    <button type="button" id="btn-detect-sample" class="btn-action btn-success">Testar imagem NASA (amostra)</button>
+    <button type="button" id="btn-test-detection" class="btn-action btn-primary">Simular alerta</button>
+    <span class="test-status" id="test-status"></span>
+  </div>
+  {% endif %}
+</div>
+
+<p class="section-title">Imagens de satélite — NASA Worldview (GOES-East IR C13)</p>
+<div class="dash-card">
+  <div class="card-head">
+    <div>
+      <div class="card-head-title"><i class="bi bi-globe-americas"></i> Capturas recentes</div>
+      <div class="card-head-sub">Canal infravermelho 10.3µm · mesmo canal do Windy · dataset de treino do YOLO</div>
+    </div>
+    <span id="nasa-total" class="nasa-total-meta">—</span>
+  </div>
+  <div id="nasa-gallery" class="nasa-gallery">
+    <div class="section-error section-empty" style="grid-column:1/-1;" id="nasa-empty">
+      <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+      Carregando imagens...
+    </div>
+  </div>
+</div>
+
+<p class="section-title" id="sec-historico">Histórico de alertas</p>
+<div class="chart-grid-2">
+  <div class="dash-card">
+    <div class="card-head">
+      <div>
+        <div class="card-head-title">Tendência — Últimos 30 dias</div>
+        <div class="card-head-sub">Alertas emitidos por dia</div>
+      </div>
+    </div>
+    <canvas id="trendChart"></canvas>
+  </div>
+  <div class="dash-card">
+    <div class="card-head">
+      <div>
+        <div class="card-head-title">Por Dia da Semana</div>
+        <div class="card-head-sub">Distribuição acumulada</div>
+      </div>
+    </div>
+    <canvas id="weeklyChart"></canvas>
+  </div>
+</div>
+<div class="chart-grid-2b">
+  <div class="dash-card">
+    <div class="card-head">
+      <div>
+        <div class="card-head-title">Por Hora do Dia</div>
+        <div class="card-head-sub">Pico convectivo à tarde</div>
+      </div>
+    </div>
+    <canvas id="hourlyChart"></canvas>
+  </div>
+  <div class="dash-card">
+    <div class="card-head">
+      <div>
+        <div class="card-head-title">Heatmap — Dia × Hora</div>
+        <div class="card-head-sub">Intensidade de alertas</div>
+      </div>
+    </div>
+    <div class="heatmap-wrap">
+      <table class="heatmap-table" id="heatmap-table">
+        <thead><tr><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -27,6 +27,7 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:5000",
         "http://localhost:8000",
+        "https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com",
     ]
 
     # ─── AWS ──────────────────────────────────────────────────────────────
@@ -34,6 +35,8 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     SNS_TOPIC_ARN: str = ""
+    SNS_ENABLED: bool = True
+    SNS_ALERT_SUBJECT: str = "Rain Alert — Storm Detected"
 
     # ─── DynamoDB ─────────────────────────────────────────────────────────
     DYNAMODB_WEATHER_TABLE: str = "weather_metrics"

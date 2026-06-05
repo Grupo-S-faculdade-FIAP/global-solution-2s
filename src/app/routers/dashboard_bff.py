@@ -7,7 +7,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Body, Query
 from fastapi.responses import JSONResponse
 
-from dashboard import bff_handlers as bff
+from app.interfaces.http.bff import handlers as bff
 
 router = APIRouter(prefix="/api", tags=["Dashboard BFF"])
 
@@ -25,7 +25,11 @@ def _bff_response(payload: tuple[Any, str, int]) -> JSONResponse:
 @router.get("/dashboard/config")
 def api_dashboard_config() -> JSONResponse:
     data, source, status = bff.dashboard_config()
-    return JSONResponse(content=data, status_code=status)
+    return JSONResponse(
+        content=data,
+        status_code=status,
+        headers={"X-Data-Source": source},
+    )
 
 
 @router.get("/alerts/weekly")
@@ -86,8 +90,8 @@ def api_map_overlay(bbox: str = Query("-25,-50,-20,-40")) -> JSONResponse:
 
 @router.get("/storms/detector-status")
 def api_detector_status() -> JSONResponse:
-    data, _, status = bff.detector_status()
-    return JSONResponse(content=data, status_code=status)
+    data, source, status = bff.detector_status()
+    return JSONResponse(content=data, status_code=status, headers={"X-Data-Source": source})
 
 
 @router.get("/ml/agricultural-risk")
@@ -105,8 +109,8 @@ def api_ml_agricultural_risk(
 
 @router.get("/nasa/capturas")
 def api_nasa_capturas(limite: int = Query(12, ge=1, le=100)) -> JSONResponse:
-    data, _, status = bff.nasa_capturas(limite)
-    return JSONResponse(content=data, status_code=status)
+    data, source, status = bff.nasa_capturas(limite)
+    return JSONResponse(content=data, status_code=status, headers={"X-Data-Source": source})
 
 
 @router.get("/cv/status")

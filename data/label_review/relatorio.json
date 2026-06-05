@@ -1,49 +1,394 @@
 {
-  "limiar_ref": 210,
-  "area_ref_px": 400,
-  "total_flags": 7,
+  "pipeline_version": "v2",
+  "limiar_ref": 175,
+  "area_ref_px": 50,
+  "audit_passed": true,
+  "audit_failures": [],
+  "total_flags": 54,
   "flags": [
     {
-      "arquivo": "nasa_brasil_sudeste_20260604_1342.png",
+      "arquivo": "nasa_americas_20260604_1343.png",
       "split": "train",
-      "n_bboxes": 8,
-      "bright_ratio": 0.0126,
+      "n_bboxes": 4,
+      "bright_ratio": 0.0398,
       "motivos": [
-        "muitas_bboxes"
+        "bboxes_muito_pequenas"
       ]
     },
     {
-      "arquivo": "nasa_brasil_sudeste_20260604_1350.png",
+      "arquivo": "nasa_americas_20260604_1349.png",
       "split": "train",
-      "n_bboxes": 11,
-      "bright_ratio": 0.0096,
+      "n_bboxes": 5,
+      "bright_ratio": 0.0419,
       "motivos": [
-        "muitas_bboxes"
+        "bboxes_muito_pequenas"
       ]
     },
     {
-      "arquivo": "nasa_brasil_sudeste_20260604_1521.png",
+      "arquivo": "nasa_americas_20260604_1350.png",
       "split": "train",
-      "n_bboxes": 8,
-      "bright_ratio": 0.0126,
+      "n_bboxes": 5,
+      "bright_ratio": 0.0407,
       "motivos": [
-        "muitas_bboxes"
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_americas_20260604_1516.png",
+      "split": "train",
+      "n_bboxes": 4,
+      "bright_ratio": 0.0439,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_americas_20260604_1522.png",
+      "split": "train",
+      "n_bboxes": 4,
+      "bright_ratio": 0.0398,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_americas_20260604_1529.png",
+      "split": "train",
+      "n_bboxes": 5,
+      "bright_ratio": 0.0407,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_americas_20260604_1535.png",
+      "split": "train",
+      "n_bboxes": 4,
+      "bright_ratio": 0.0388,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_americas_20260604_1536.png",
+      "split": "train",
+      "n_bboxes": 5,
+      "bright_ratio": 0.0423,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_americas_20260604_1539.png",
+      "split": "train",
+      "n_bboxes": 3,
+      "bright_ratio": 0.0398,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_americas_20260604_2230.png",
+      "split": "train",
+      "n_bboxes": 5,
+      "bright_ratio": 0.0484,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1338.png",
+      "split": "train",
+      "n_bboxes": 2,
+      "bright_ratio": 0.0403,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1339.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0405,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1340.png",
+      "split": "train",
+      "n_bboxes": 0,
+      "bright_ratio": 0.0405,
+      "motivos": [
+        "possivel_fn_sem_bbox"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1342.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0354,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1343.png",
+      "split": "train",
+      "n_bboxes": 0,
+      "bright_ratio": 0.0303,
+      "motivos": [
+        "possivel_fn_sem_bbox"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1345.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0266,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1348.png",
+      "split": "train",
+      "n_bboxes": 2,
+      "bright_ratio": 0.0292,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1349.png",
+      "split": "train",
+      "n_bboxes": 0,
+      "bright_ratio": 0.0333,
+      "motivos": [
+        "possivel_fn_sem_bbox"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1351.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0361,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1517.png",
+      "split": "train",
+      "n_bboxes": 2,
+      "bright_ratio": 0.0403,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1518.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0405,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1520.png",
+      "split": "train",
+      "n_bboxes": 0,
+      "bright_ratio": 0.0405,
+      "motivos": [
+        "possivel_fn_sem_bbox"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1521.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0354,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1522.png",
+      "split": "train",
+      "n_bboxes": 0,
+      "bright_ratio": 0.0303,
+      "motivos": [
+        "possivel_fn_sem_bbox"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1524.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0266,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1529.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0361,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1531.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0363,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1532.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0305,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1534.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0346,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1535.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0354,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1536.png",
+      "split": "train",
+      "n_bboxes": 3,
+      "bright_ratio": 0.0392,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1538.png",
+      "split": "train",
+      "n_bboxes": 1,
+      "bright_ratio": 0.0381,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_2231.png",
+      "split": "train",
+      "n_bboxes": 0,
+      "bright_ratio": 0.03,
+      "motivos": [
+        "possivel_fn_sem_bbox"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1338.png",
+      "split": "train",
+      "n_bboxes": 3,
+      "bright_ratio": 0.0231,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1341.png",
+      "split": "train",
+      "n_bboxes": 6,
+      "bright_ratio": 0.0457,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1348.png",
+      "split": "train",
+      "n_bboxes": 4,
+      "bright_ratio": 0.0356,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1517.png",
+      "split": "train",
+      "n_bboxes": 3,
+      "bright_ratio": 0.0231,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1520.png",
+      "split": "train",
+      "n_bboxes": 6,
+      "bright_ratio": 0.0457,
+      "motivos": [
+        "bboxes_muito_pequenas"
       ]
     },
     {
       "arquivo": "nasa_brasil_sudeste_20260604_1528.png",
       "split": "train",
-      "n_bboxes": 11,
-      "bright_ratio": 0.0096,
+      "n_bboxes": 14,
+      "bright_ratio": 0.0681,
       "motivos": [
         "muitas_bboxes"
       ]
     },
     {
+      "arquivo": "nasa_brasil_sudeste_20260604_1534.png",
+      "split": "train",
+      "n_bboxes": 2,
+      "bright_ratio": 0.0196,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
       "arquivo": "nasa_brasil_sudeste_20260604_1536.png",
       "split": "train",
-      "n_bboxes": 27,
-      "bright_ratio": 0.0315,
+      "n_bboxes": 16,
+      "bright_ratio": 0.1135,
+      "motivos": [
+        "muitas_bboxes"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1537.png",
+      "split": "train",
+      "n_bboxes": 18,
+      "bright_ratio": 0.1022,
+      "motivos": [
+        "muitas_bboxes"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1538.png",
+      "split": "train",
+      "n_bboxes": 20,
+      "bright_ratio": 0.096,
       "motivos": [
         "muitas_bboxes"
       ]
@@ -51,22 +396,103 @@
     {
       "arquivo": "nasa_brasil_sudeste_20260604_1540.png",
       "split": "train",
-      "n_bboxes": 11,
-      "bright_ratio": 0.0154,
+      "n_bboxes": 12,
+      "bright_ratio": 0.0897,
       "motivos": [
         "muitas_bboxes"
       ]
     },
     {
-      "arquivo": "nasa_brasil_sudeste_20260604_1531.png",
+      "arquivo": "nasa_brasil_sudeste_20260604_2231.png",
+      "split": "train",
+      "n_bboxes": 2,
+      "bright_ratio": 0.0224,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_americas_20260604_1337.png",
       "split": "val",
-      "n_bboxes": 9,
-      "bright_ratio": 0.0072,
+      "n_bboxes": 4,
+      "bright_ratio": 0.0439,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_americas_20260604_1528.png",
+      "split": "val",
+      "n_bboxes": 5,
+      "bright_ratio": 0.0419,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1527.png",
+      "split": "val",
+      "n_bboxes": 2,
+      "bright_ratio": 0.0292,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1528.png",
+      "split": "val",
+      "n_bboxes": 0,
+      "bright_ratio": 0.0333,
+      "motivos": [
+        "possivel_fn_sem_bbox"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_20260604_1539.png",
+      "split": "val",
+      "n_bboxes": 3,
+      "bright_ratio": 0.0432,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1350.png",
+      "split": "val",
+      "n_bboxes": 14,
+      "bright_ratio": 0.0681,
       "motivos": [
         "muitas_bboxes"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1527.png",
+      "split": "val",
+      "n_bboxes": 4,
+      "bright_ratio": 0.0356,
+      "motivos": [
+        "bboxes_muito_pequenas"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1531.png",
+      "split": "val",
+      "n_bboxes": 20,
+      "bright_ratio": 0.0955,
+      "motivos": [
+        "muitas_bboxes"
+      ]
+    },
+    {
+      "arquivo": "nasa_brasil_sudeste_20260604_1533.png",
+      "split": "val",
+      "n_bboxes": 1,
+      "bright_ratio": 0.02,
+      "motivos": [
+        "bboxes_muito_pequenas"
       ]
     }
   ],
   "overlays_em": "/Users/caroline/Desktop/FIAP/global-solutions/data/label_review",
-  "recomendacao": "Considerar --area 600 ou --limiar 215 (ruído / bboxes em excesso)."
+  "recomendacao": "Considerar --area 800 ou --limiar 205 (ruído / bboxes em excesso)."
 }
