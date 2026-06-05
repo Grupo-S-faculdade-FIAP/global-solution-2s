@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from dashboard.bff_backend import backend_get, backend_post
+from dashboard.bff_backend import backend_get, backend_post, use_inprocess_backend
 
 _BFF_TIMEOUT = 5
 _BFF_TIMEOUT_SLOW = 30
@@ -133,6 +133,54 @@ try:
 except Exception:
     STORM_DETECTOR = None
 
+_weather_service = None
+_risk_service = None
+_storm_query_service = None
+_agri_risk_model = None
+
+
+def _get_weather_service():
+    global _weather_service
+    if _weather_service is None:
+        from app.services.weather_service import WeatherService
+
+        _weather_service = WeatherService()
+    return _weather_service
+
+
+def _get_risk_service():
+    global _risk_service
+    if _risk_service is None:
+        from app.services.risk_assessment import RiskAssessmentService
+
+        _risk_service = RiskAssessmentService()
+    return _risk_service
+
+
+def _get_storm_query_service():
+    global _storm_query_service
+    if _storm_query_service is None:
+        from app.services.storm_alerts_query import StormAlertsQueryService
+
+        _storm_query_service = StormAlertsQueryService()
+    return _storm_query_service
+
+
+def _get_agri_risk_model():
+    global _agri_risk_model
+    if _agri_risk_model is None:
+        from app.services.agri_risk_model import AgriRiskModel
+
+        _agri_risk_model = AgriRiskModel()
+    return _agri_risk_model
+
+
+def _parse_bbox(bbox: str) -> tuple[float, float, float, float]:
+    parts = [float(x) for x in bbox.split(",")]
+    if len(parts) != 4:
+        raise ValueError("bbox must have 4 values")
+    return parts[0], parts[1], parts[2], parts[3]
+
 
 def _ok(data: Any, source: str = "live") -> tuple[Any, str, int]:
     return data, source, 200
@@ -230,17 +278,46 @@ def dashboard_summary(days: int = 30) -> tuple[Any, str, int]:
 
 
 def weather_current(lat: float, lon: float) -> tuple[Any, str, int]:
+    if use_inprocess_backend():
+        try:
+            data = _get_weather_service().get_current(lat, lon)
+            return _ok(
+                {
+                    "temperature": data["temperature"],
+                    "humidity": data["humidity"],
+                    "pressure": data["pressure"],
+                    "wind_speed": data["wind_speed"],
+                    "wind_direction": data["wind_direction"],
+                    "precipitation": data["precipitation"],
+                    "timestamp": data["timestamp"],
+                },
+                "live",
+            )
+        except Exception:
+            pass
     status, body = backend_get(
         "/weather/current", params={"lat": lat, "lon": lon}, timeout=_BFF_TIMEOUT
     )
     if status == 200 and isinstance(body, dict):
         return _ok(body, "live")
-    if DEMO_MODE:
-        return _ok(_demo_weather(lat, lon), "demo")
-    return _err("Failed to fetch weather data", status if status != 200 else 503)
+    return _ok(_demo_weather(lat, lon), "fallback")
 
 
 def risk_forecast(lat: float, lon: float) -> tuple[Any, str, int]:
+    if use_inprocess_backend():
+        try:
+            result = _get_risk_service().calculate_risk(lat, lon)
+            return _ok(
+                {
+                    "risk_score": result.score,
+                    "risk_category": result.category,
+                    "recommendation": result.recommendation,
+                    "timestamp": result.timestamp,
+                },
+                "live",
+            )
+        except Exception:
+            pass
     status, body = backend_get(
         "/risk/forecast",
         params={"lat": lat, "lon": lon},
@@ -248,9 +325,24 @@ def risk_forecast(lat: float, lon: float) -> tuple[Any, str, int]:
     )
     if status == 200 and isinstance(body, dict):
         return _ok(body, "live")
-    if DEMO_MODE:
-        return _ok(_demo_risk(lat, lon), "demo")
-    return _err("Failed to fetch risk forecast", status if status != 200 else 503)
+    return _ok(_demo_risk(lat, lon), "fallback")
+
+
+def map_overlay(bbox: str) -> tuple[Any, str, int]:
+    if use_inprocess_backend():
+        try:
+            south, west, north, east = _parse_bbox(bbox)
+            if south <= north and west <= east:
+                features = _get_storm_query_service().map_overlay_features(
+                    south, west, north, east, hours=24 * 7
+                )
+                return _ok({"type": "FeatureCollection", "features": features}, "live")
+        except Exception:
+            pass
+    status, body = backend_get("/map/overlay", params={"bbox": bbox})
+    if status == 200 and isinstance(body, dict):
+        return _ok(body, "live")
+    return _ok({"type": "FeatureCollection", "features": []}, "fallback")
 
 
 def storms_recent(hours: int = 24) -> tuple[Any, str, int]:
@@ -260,15 +352,6 @@ def storms_recent(hours: int = 24) -> tuple[Any, str, int]:
     if DEMO_MODE:
         return _ok(_demo_storms_recent(hours), "demo")
     return _err("Failed to fetch storm data", status if status != 200 else 503)
-
-
-def map_overlay(bbox: str) -> tuple[Any, str, int]:
-    status, body = backend_get("/map/overlay", params={"bbox": bbox})
-    if status == 200 and isinstance(body, dict):
-        return _ok(body, "live")
-    if DEMO_MODE:
-        return _ok({"type": "FeatureCollection", "features": []}, "demo")
-    return _err("Failed to fetch map overlay", status if status != 200 else 503)
 
 
 def detector_status() -> tuple[Any, str, int]:
@@ -287,6 +370,20 @@ def ml_agricultural_risk(
     precipitacao: float,
     vento_kmh: float,
 ) -> tuple[Any, str, int]:
+    if use_inprocess_backend():
+        try:
+            from app.services.risk_assessment import RECOMENDACOES
+
+            result = _get_agri_risk_model().predict_detalhado(
+                temperatura=temperatura,
+                umidade=umidade,
+                precipitacao=precipitacao,
+                vento_kmh=vento_kmh,
+            )
+            result["recomendacao"] = RECOMENDACOES[result["classe"]]
+            return _ok(result, "live")
+        except Exception:
+            pass
     status, body = backend_get(
         "/ml/predict/agricultural-risk",
         params={
