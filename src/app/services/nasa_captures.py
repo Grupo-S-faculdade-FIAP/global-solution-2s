@@ -175,7 +175,7 @@ def download_nasa_to_temp(nome_arquivo: str) -> Path | None:
 def find_latest_s3_by_region(region_key: str) -> str | None:
     """Retorna o nome do arquivo NASA mais recente no S3 para um prefixo de região."""
     matches = [
-        item for item in _list_s3_nasa_objects(limite=500)
+        item for item in _list_s3_nasa_objects(max_items=500)
         if region_key in item["arquivo"]
     ]
     return matches[0]["arquivo"] if matches else None

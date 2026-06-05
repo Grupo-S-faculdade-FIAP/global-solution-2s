@@ -378,7 +378,11 @@ def _score_cv(detector, lat: float, lon: float, storm_query=None) -> tuple[float
 
     # 2. Inferência em captura NASA da região mais próxima (requer YOLO)
     skip_infer = os.environ.get("RISK_SKIP_YOLO", "").strip().lower() in ("1", "true", "yes")
-    imagem, img_dist = _nearest_region_image(lat, lon)
+    imagem, img_dist = None, float("inf")
+    try:
+        imagem, img_dist = _nearest_region_image(lat, lon)
+    except Exception as e:
+        logger.debug("Captura regional indisponível: %s", e)
     if detector and not skip_infer and imagem and imagem.exists():
         try:
             resultado = detector.predict(str(imagem))
