@@ -86,11 +86,55 @@ function updateChartDefaults() {
   Chart.defaults.borderColor = colors.border;
 }
 
+const WEATHER_GRID_HTML = `
+  <div><span class="stat-label">Temperatura</span><br><span class="stat-value is-loading" id="weather-temp">—</span></div>
+  <div><span class="stat-label">Umidade</span><br><span class="stat-value is-loading" id="weather-humidity">—</span></div>
+  <div><span class="stat-label">Pressão</span><br><span class="stat-value is-loading" id="weather-pressure">—</span></div>
+  <div><span class="stat-label">Vento</span><br><span class="stat-value is-loading" id="weather-wind">—</span></div>`;
+
+const RISK_PANEL_HTML = `
+  <div class="risk-score-wrap">
+    <div class="risk-score is-loading" id="risk-badge" aria-busy="true">—</div>
+    <div class="risk-category" id="risk-category">—</div>
+  </div>
+  <div class="risk-recommendation" id="risk-recommendation">—</div>`;
+
+function ensureWeatherLayout() {
+  const el = document.getElementById("weather-container");
+  if (!el) return;
+  if (!document.getElementById("weather-temp")) {
+    el.innerHTML = WEATHER_GRID_HTML;
+  }
+}
+
+function ensureRiskLayout() {
+  const el = document.getElementById("risk-container");
+  if (!el) return;
+  if (!document.getElementById("risk-badge")) {
+    el.innerHTML = RISK_PANEL_HTML;
+  }
+}
+
+function clearSectionError(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.classList.remove("has-error");
+  el.querySelector(":scope > .section-error")?.remove();
+}
+
 function showSectionError(containerId, message) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  el.innerHTML =
-    `<div class="section-error"><i class="bi bi-exclamation-circle"></i>${message}</div>`;
+  if (containerId === "weather-container") ensureWeatherLayout();
+  if (containerId === "risk-container") ensureRiskLayout();
+  el.classList.add("has-error");
+  let err = el.querySelector(":scope > .section-error");
+  if (!err) {
+    err = document.createElement("div");
+    err.className = "section-error";
+    el.prepend(err);
+  }
+  err.innerHTML = `<i class="bi bi-exclamation-circle"></i>${message}`;
 }
 
 function showChartError(canvasId, message) {
@@ -370,7 +414,7 @@ function updateLocationPickerRadius(lat, lon) {
 function scheduleMapAutoApply(lat, lon) {
   if (mapApplyTimer) clearTimeout(mapApplyTimer);
   mapApplyTimer = setTimeout(() => {
-    applyLocationAndReload(lat, lon, { silent: false, collapseMobile: true });
+    applyLocationAndReload(lat, lon, { silent: false, collapseMobile: true, force: true });
   }, MAP_APPLY_DEBOUNCE_MS);
 }
 
@@ -485,13 +529,16 @@ function updateLocationLabel() {
 }
 
 async function applyLocationAndReload(lat, lon, opts = {}) {
-  const { silent = false, collapseMobile = false } = opts;
-  if (locationReloading) return;
+  const { silent = false, collapseMobile = false, force = false } = opts;
+  if (locationReloading) {
+    if (!silent) showToast("Aguarde — atualizando região…", "info");
+    return;
+  }
   const same =
     Math.abs(userLocation.lat - lat) < 0.0001 &&
     Math.abs(userLocation.lon - lon) < 0.0001;
   saveLocation(lat, lon);
-  if (same && hasAppliedLocationOnce) return;
+  if (same && hasAppliedLocationOnce && !force) return;
   setLocationLoading(true);
   try {
     await reloadLocationDependentData();
@@ -521,7 +568,7 @@ function collapseLocationBar(collapsed) {
 function resetToSaoPaulo() {
   const sp = BRAZIL_CITIES.find((c) => c.id === "sp");
   if (!sp) return;
-  applyLocationAndReload(sp.lat, sp.lon, { silent: false });
+  applyLocationAndReload(sp.lat, sp.lon, { silent: false, force: true });
 }
 
 function windyEmbedUrl(lat, lon) {
@@ -773,7 +820,7 @@ function applyLocationFromInputs() {
     showToast("Coordenadas inválidas — verifique latitude e longitude", "error");
     return;
   }
-  applyLocationAndReload(lat, lon, { collapseMobile: true });
+  applyLocationAndReload(lat, lon, { collapseMobile: true, force: true });
 }
 
 function onCitySelectChange() {
@@ -785,7 +832,7 @@ function onCitySelectChange() {
     return;
   }
   if (city.lat == null) return;
-  applyLocationAndReload(city.lat, city.lon, { collapseMobile: true });
+  applyLocationAndReload(city.lat, city.lon, { collapseMobile: true, force: true });
 }
 
 function requestGeolocation() {
@@ -796,7 +843,10 @@ function requestGeolocation() {
   showToast("Obtendo sua posição…", "info");
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      applyLocationAndReload(pos.coords.latitude, pos.coords.longitude, { collapseMobile: true });
+      applyLocationAndReload(pos.coords.latitude, pos.coords.longitude, {
+        collapseMobile: true,
+        force: true,
+      });
     },
     (err) => {
       const msgs = {
@@ -907,12 +957,17 @@ function syncSlidersFromWeather(data) {
 }
 
 async function reloadLocationDependentData() {
+  ensureWeatherLayout();
+  ensureRiskLayout();
+  clearSectionError("weather-container");
+  clearSectionError("risk-container");
   const badge = document.getElementById("risk-badge");
   if (badge) {
     badge.classList.add("is-loading");
     badge.textContent = "—";
   }
   await Promise.all([loadWeatherData(), loadRiskData(), loadRegionMap()]);
+  refreshWindyMap();
 }
 
 // ── Defaults ─────────────────────────────────────────────────────────────
@@ -952,6 +1007,8 @@ async function loadKPIs() {
 
 // ── Real-Time Weather Data ─────────────────────────────────────────────────
 async function loadWeatherData() {
+  ensureWeatherLayout();
+  clearSectionError("weather-container");
   try {
     const q = `lat=${userLocation.lat}&lon=${userLocation.lon}`;
     const r = await fetchApi(`/api/weather/current?${q}`);
@@ -980,6 +1037,8 @@ async function loadWeatherData() {
 
 // ── Real-Time Risk Assessment ──────────────────────────────────────────────
 async function loadRiskData() {
+  ensureRiskLayout();
+  clearSectionError("risk-container");
   try {
     const q = `lat=${userLocation.lat}&lon=${userLocation.lon}`;
     const r = await fetchApi(`/api/risk/forecast?${q}`);
@@ -1362,21 +1421,36 @@ async function bootstrapDashboard() {
   hasAppliedLocationOnce = true;
 }
 
+function bindLocationControls() {
+  document.getElementById("btn-apply-location")?.addEventListener("click", applyLocationFromInputs);
+  document.getElementById("btn-geo")?.addEventListener("click", requestGeolocation);
+  document.getElementById("btn-reset-sp")?.addEventListener("click", resetToSaoPaulo);
+  document.getElementById("select-city")?.addEventListener("change", onCitySelectChange);
+  ["input-lat", "input-lon"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        applyLocationFromInputs();
+      }
+    });
+  });
+}
+
+async function initDashboard() {
+  initTheme();
+  loadStoredLocation();
+  ensureLocationPickerMap();
+  initLocationBarUX();
+  bindLocationControls();
+  await bootstrapDashboard();
+  lazyLoadWindy();
+  lazyInitRegionMap();
+
+  const btnTest = document.getElementById("btn-test-detection");
+  const btnSample = document.getElementById("btn-detect-sample");
+  if (btnTest) btnTest.addEventListener("click", testStormDetection);
+  if (btnSample) btnSample.addEventListener("click", detectSampleImage);
+}
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────
-initTheme();
-bootstrapDashboard();
-
-loadStoredLocation();
-ensureLocationPickerMap();
-initLocationBarUX();
-document.getElementById("btn-apply-location")?.addEventListener("click", applyLocationFromInputs);
-document.getElementById("btn-geo")?.addEventListener("click", requestGeolocation);
-document.getElementById("btn-reset-sp")?.addEventListener("click", resetToSaoPaulo);
-document.getElementById("select-city")?.addEventListener("change", onCitySelectChange);
-lazyLoadWindy();
-lazyInitRegionMap();
-
-const btnTest = document.getElementById("btn-test-detection");
-const btnSample = document.getElementById("btn-detect-sample");
-if (btnTest) btnTest.addEventListener("click", testStormDetection);
-if (btnSample) btnSample.addEventListener("click", detectSampleImage);
+initDashboard();
