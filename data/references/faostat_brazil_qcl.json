@@ -1,0 +1,254 @@
+[
+  {
+    "source": "owid_faostat",
+    "crop_code": 236,
+    "crop": "Soja",
+    "year": 2018,
+    "production_t": 117912450,
+    "area_ha": 34778328,
+    "yield_kg_ha": 3390.4
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 236,
+    "crop": "Soja",
+    "year": 2019,
+    "production_t": 114316830,
+    "area_ha": 35895635,
+    "yield_kg_ha": 3184.7
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 236,
+    "crop": "Soja",
+    "year": 2020,
+    "production_t": 121820950,
+    "area_ha": 37191559,
+    "yield_kg_ha": 3275.5
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 236,
+    "crop": "Soja",
+    "year": 2021,
+    "production_t": 134799180,
+    "area_ha": 39126661,
+    "yield_kg_ha": 3445.2
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 236,
+    "crop": "Soja",
+    "year": 2022,
+    "production_t": 121290104,
+    "area_ha": 41051273,
+    "yield_kg_ha": 2954.6
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 236,
+    "crop": "Soja",
+    "year": 2023,
+    "production_t": 152144240,
+    "area_ha": 44417784,
+    "yield_kg_ha": 3425.3
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 236,
+    "crop": "Soja",
+    "year": 2024,
+    "production_t": 144473760,
+    "area_ha": 45906946,
+    "yield_kg_ha": 3147.1
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 56,
+    "crop": "Milho",
+    "year": 2018,
+    "production_t": 82366530,
+    "area_ha": 16126269,
+    "yield_kg_ha": 5107.6
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 56,
+    "crop": "Milho",
+    "year": 2019,
+    "production_t": 101126410,
+    "area_ha": 17515919,
+    "yield_kg_ha": 5773.4
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 56,
+    "crop": "Milho",
+    "year": 2020,
+    "production_t": 103990936,
+    "area_ha": 18259080,
+    "yield_kg_ha": 5695.3
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 56,
+    "crop": "Milho",
+    "year": 2021,
+    "production_t": 88272110,
+    "area_ha": 18984472,
+    "yield_kg_ha": 4649.7
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 56,
+    "crop": "Milho",
+    "year": 2022,
+    "production_t": 109741960,
+    "area_ha": 21066546,
+    "yield_kg_ha": 5209.3
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 56,
+    "crop": "Milho",
+    "year": 2023,
+    "production_t": 131949710,
+    "area_ha": 22315189,
+    "yield_kg_ha": 5913.0
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 56,
+    "crop": "Milho",
+    "year": 2024,
+    "production_t": 114953304,
+    "area_ha": 21186813,
+    "yield_kg_ha": 5425.7
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 656,
+    "crop": "Café verde",
+    "year": 2018,
+    "production_t": 3552729,
+    "area_ha": null,
+    "yield_kg_ha": null
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 656,
+    "crop": "Café verde",
+    "year": 2019,
+    "production_t": 3011745,
+    "area_ha": null,
+    "yield_kg_ha": null
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 656,
+    "crop": "Café verde",
+    "year": 2020,
+    "production_t": 3705719,
+    "area_ha": null,
+    "yield_kg_ha": null
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 656,
+    "crop": "Café verde",
+    "year": 2021,
+    "production_t": 2985581,
+    "area_ha": null,
+    "yield_kg_ha": null
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 656,
+    "crop": "Café verde",
+    "year": 2022,
+    "production_t": 3179341,
+    "area_ha": null,
+    "yield_kg_ha": null
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 656,
+    "crop": "Café verde",
+    "year": 2023,
+    "production_t": 3348510,
+    "area_ha": null,
+    "yield_kg_ha": null
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 656,
+    "crop": "Café verde",
+    "year": 2024,
+    "production_t": 3387724,
+    "area_ha": null,
+    "yield_kg_ha": null
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 15,
+    "crop": "Trigo",
+    "year": 2018,
+    "production_t": 5469236,
+    "area_ha": 2080190,
+    "yield_kg_ha": 2629.2
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 15,
+    "crop": "Trigo",
+    "year": 2019,
+    "production_t": 5590815,
+    "area_ha": 2103550,
+    "yield_kg_ha": 2657.8
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 15,
+    "crop": "Trigo",
+    "year": 2020,
+    "production_t": 6344079,
+    "area_ha": 2432639,
+    "yield_kg_ha": 2607.9
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 15,
+    "crop": "Trigo",
+    "year": 2021,
+    "production_t": 7878413,
+    "area_ha": 2752669,
+    "yield_kg_ha": 2862.1
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 15,
+    "crop": "Trigo",
+    "year": 2022,
+    "production_t": 10343182,
+    "area_ha": 3167120,
+    "yield_kg_ha": 3265.8
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 15,
+    "crop": "Trigo",
+    "year": 2023,
+    "production_t": 7730188,
+    "area_ha": 3330255,
+    "yield_kg_ha": 2321.2
+  },
+  {
+    "source": "owid_faostat",
+    "crop_code": 15,
+    "crop": "Trigo",
+    "year": 2024,
+    "production_t": 7633178,
+    "area_ha": 2921567,
+    "yield_kg_ha": 2612.7
+  }
+]
