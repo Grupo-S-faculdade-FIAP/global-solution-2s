@@ -1,4 +1,4 @@
-.PHONY: install demo test test-api test-storms nasa-capture upload-s3 smoke-aws train-ml train-yolo
+.PHONY: install demo test test-api test-storms nasa-capture upload-s3 smoke-aws train-ml fetch-inmet train-ml-inmet export-faostat train-yolo
 
 VENV_PYTHON := .venv/bin/python
 
@@ -34,6 +34,15 @@ smoke-aws:
 
 train-ml:
 	$(VENV_PYTHON) scripts/train_agri_risk_openmeteo.py
+
+fetch-inmet:
+	$(VENV_PYTHON) scripts/fetch_inmet_bdmep.py --years 2024
+
+train-ml-inmet: fetch-inmet
+	$(VENV_PYTHON) scripts/train_agri_risk_openmeteo.py
+
+export-faostat:
+	$(VENV_PYTHON) scripts/export_faostat_brazil.py
 
 train-yolo:
 	$(VENV_PYTHON) src/yolo_training.py --epochs 40 --batch 8 --recall-focus --validate

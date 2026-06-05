@@ -1253,6 +1253,20 @@ async function updateMLPredictor() {
       document.getElementById("ml-classe").className = cls;
       document.getElementById("ml-rec").textContent = d.recomendacao || "—";
 
+      const chip = document.getElementById("ml-source-chip");
+      if (chip) {
+        const src = d.dataset_source || "";
+        const label = src.includes("inmet")
+          ? "INMET BDMEP"
+          : src.includes("openmeteo")
+            ? "Open-Meteo"
+            : src.includes("synthetic")
+              ? "Sintético"
+              : src || "—";
+        chip.textContent = `Modelo: ${label}`;
+        chip.hidden = !src;
+      }
+
       const p = d.probabilidades || {};
       document.getElementById("ml-probas").innerHTML =
         `<span class="risk-low">Baixo</span> ${Math.round((p.LOW||0)*100)}%<br>` +

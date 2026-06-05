@@ -102,7 +102,9 @@ def model_info():
             "features": ["temperatura_c", "umidade_pct", "precipitacao_mm", "vento_kmh"],
             "dataset": DATASET_SOURCE,
             "dataset_label": (
-                "Open-Meteo Archive — 5 cidades BR (90 dias)"
+                "INMET BDMEP — 5 estações automáticas (capitais BR)"
+                if "inmet" in DATASET_SOURCE
+                else "Open-Meteo Archive — 5 cidades BR (90 dias)"
                 if "openmeteo" in DATASET_SOURCE
                 else "Sintético — limiares EMBRAPA/INMET Brasil"
             ),

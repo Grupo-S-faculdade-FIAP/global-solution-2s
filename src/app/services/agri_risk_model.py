@@ -1,8 +1,8 @@
 """
 AgriRiskModel — Modelo de risco agrícola por condições meteorológicas.
 
-Classificador Random Forest treinado preferencialmente com histórico Open-Meteo
-(dados reais) e fallback para dataset sintético (limiares EMBRAPA/INMET).
+Classificador Random Forest treinado preferencialmente com histórico INMET BDMEP
+(dados oficiais), depois Open-Meteo Archive e fallback sintético.
 
 Classes: 0=LOW, 1=MEDIUM, 2=HIGH
 """
@@ -25,6 +25,9 @@ _DEFAULT_MODEL = Path(__file__).resolve().parents[3] / "models" / "agri_risk_mod
 _DEFAULT_SCALER = Path(__file__).resolve().parents[3] / "models" / "agri_risk_scaler.pkl"
 
 DATASET_SOURCE: str = "unknown"
+
+_INMET_CACHE = Path(__file__).resolve().parents[3] / "data" / "weather" / "inmet" / "training_cache.csv"
+_INMET_SAMPLE = Path(__file__).resolve().parents[3] / "data" / "weather" / "inmet" / "sample_inmet_bdmep.csv"
 
 _BRAZIL_LOCATIONS: list[tuple[float, float, str]] = [
     (-23.5505, -46.6333, "São Paulo"),
@@ -98,6 +101,32 @@ def _gerar_dados_sinteticos(n: int = 5000) -> tuple[np.ndarray, np.ndarray]:
     return np.column_stack([temp, umid, precip, vento]), labels
 
 
+def _records_to_xy(records) -> tuple[np.ndarray, np.ndarray]:
+    rows: list[list[float]] = []
+    labels: list[int] = []
+    for rec in records:
+        rows.append(rec.as_features())
+        labels.append(_classificar_risco(
+            rec.temperatura, rec.umidade, rec.precipitacao, rec.vento_kmh,
+        ))
+    if len(rows) < 100:
+        raise ValueError(f"Poucos registros INMET: {len(rows)}")
+    return np.array(rows, dtype=float), np.array(labels, dtype=int)
+
+
+def _carregar_dados_inmet() -> tuple[np.ndarray, np.ndarray]:
+    from app.clients.inmet import InmetClient  # noqa: PLC0415
+
+    for path in (_INMET_CACHE, _INMET_SAMPLE):
+        if path.exists():
+            records = InmetClient.load_cache_csv(path)
+            logger.info("INMET cache: %s (%d registros)", path.name, len(records))
+            return _records_to_xy(records)
+    raise FileNotFoundError(
+        "Cache INMET ausente. Execute: make fetch-inmet"
+    )
+
+
 def _carregar_dados_openmeteo(days: int = 90) -> tuple[np.ndarray, np.ndarray]:
     from app.clients.openmeteo import OpenMeteoClient  # noqa: PLC0415
 
@@ -140,12 +169,16 @@ def _save_meta() -> None:
 def _build_training_data(prefer_real: bool = True) -> tuple[np.ndarray, np.ndarray, str]:
     global DATASET_SOURCE  # noqa: PLW0603
     if prefer_real:
-        try:
-            X, y = _carregar_dados_openmeteo()
-            DATASET_SOURCE = "openmeteo_archive_brazil_5cities"
-            return X, y, DATASET_SOURCE
-        except Exception as exc:
-            logger.warning("Open-Meteo indisponível, usando sintético: %s", exc)
+        for loader, source in (
+            (_carregar_dados_inmet, "inmet_bdmep_brazil_5stations"),
+            (_carregar_dados_openmeteo, "openmeteo_archive_brazil_5cities"),
+        ):
+            try:
+                X, y = loader()
+                DATASET_SOURCE = source
+                return X, y, DATASET_SOURCE
+            except Exception as exc:
+                logger.warning("%s indisponível: %s", source, exc)
     X, y = _gerar_dados_sinteticos(n=8000)
     DATASET_SOURCE = "synthetic_embrapa_inmet"
     return X, y, DATASET_SOURCE

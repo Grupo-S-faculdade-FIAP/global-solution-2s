@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     S3_BUCKET_IMAGES: str = "satellite-images-gs2"
     S3_BUCKET_OUTPUTS: str = "output-detections"
 
+    # ─── INMET (BDMEP / estações automáticas) ─────────────────────────────
+    INMET_CACHE_PATH: str = "data/weather/inmet/training_cache.csv"
+    INMET_TRAINING_YEARS: str = "2024"
+
     # ─── Open-Meteo API ───────────────────────────────────────────────────
     OPENMETEO_API_URL: str = "https://api.open-meteo.com/v1/forecast"
     OPENMETEO_TIMEZONE: str = "auto"

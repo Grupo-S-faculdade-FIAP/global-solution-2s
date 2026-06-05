@@ -33,7 +33,7 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 | ID | Objetivo | Critério (PROJECT.md) | Status | Evidência / observação |
 |----|----------|----------------------|--------|-------------------------|
 | **G1** | Detectar tempestades / nuvens chuvosas em imagens de satélite com YOLO | Precisão ≥ **70%** no conjunto de validação | **Parcial** | mAP@0.5 ≈ **0,55** (época 46, limiar 200 / área 600) — atende meta interna MVP (≥ 0,50) em ROADMAP, **abaixo** do 70% do PROJECT.md. Pesos: `src/models/weights/best.pt` (~14 MB). |
-| **G2** | Prever risco agrícola com ML + clima | Modelo + API | **Concluído (MVP)** | `AgriRiskModel` (Random Forest, dados **sintéticos**), `RiskAssessmentService`, `GET /risk/forecast`, `GET /ml/predict/agricultural-risk`. |
+| **G2** | Prever risco agrícola com ML + clima | Modelo + API | **Concluído (MVP+)** | `AgriRiskModel` treinado com **INMET BDMEP** (43,8k registros horários, 5 estações); contexto FAOSTAT em `docs/dados/FAOSTAT_BR_contexto.md`; `RiskAssessmentService`, `/risk/forecast`, `/ml/predict/agricultural-risk`. |
 | **G3** | Visualizar clima em tempo real no dashboard | Windy API no frontend | **Parcial / concluído para demo** | Widget **Windy** (radar) + **Open-Meteo** via API; mapa regional **Leaflet** com `/map/overlay`. REST Windy não usada (plano free). |
 | **G4** | ESP32 → pipeline cloud AWS | Leituras persistidas | **Pendente** | Router `/iot/*` com stubs (`stored: false`). Fora do checklist de entrega atual. |
 | **G5** | MVP documentado + vídeo ≤ 5 min | Entrega FIAP | **Parcial** | Código MVP ~92% (CHECKLIST); **PDF** e **vídeo** pendentes (ação humana). |
