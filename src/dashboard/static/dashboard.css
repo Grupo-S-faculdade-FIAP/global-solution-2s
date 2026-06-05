@@ -999,32 +999,8 @@ html[data-theme="light"] .map-empty-state {
 .risk-low { color: var(--green) !important; }
 .risk-moderate { color: var(--yellow) !important; }
 .risk-high { color: var(--red) !important; }
-.ml-sliders {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+.ml-weather-inputs {
   margin-bottom: 1.25rem;
-}
-.ml-slider label {
-  font-size: 10px;
-  color: var(--text-sec);
-  font-weight: 500;
-  display: block;
-  margin-bottom: 4px;
-}
-.ml-slider-range {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--text-sec);
-  margin-top: 2px;
-}
-.ml-slider-range .val { font-weight: 600; color: var(--text-prim); }
-input[type="range"] {
-  width: 100%;
-  height: 6px;
-  accent-color: var(--blue);
-  cursor: pointer;
 }
 .ml-result {
   display: grid;

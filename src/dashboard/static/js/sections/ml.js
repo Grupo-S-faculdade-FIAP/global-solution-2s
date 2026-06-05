@@ -1,40 +1,35 @@
 import { state } from "../core/state.js";
 import { ml } from "../core/api/endpoints.js";
 
-export function syncSlidersFromWeather(data) {
-  const slTemp = document.getElementById("sl-temp");
-  const slUmid = document.getElementById("sl-umid");
-  const slPrec = document.getElementById("sl-prec");
-  const slVento = document.getElementById("sl-vento");
-  if (data.temperature != null && slTemp) slTemp.value = Math.min(45, Math.max(5, data.temperature));
-  if (data.humidity != null && slUmid) slUmid.value = Math.round(data.humidity);
-  if (data.precipitation != null && slPrec) slPrec.value = Math.min(50, Math.max(0, data.precipitation));
-  if (data.wind_speed != null && slVento) {
-    slVento.value = Math.round(Math.min(120, Math.max(0, data.wind_speed * 3.6)));
-  }
-  updateMLPredictor();
+function setLabel(id, text, loading = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle("is-loading", loading);
 }
 
-export async function updateMLPredictor() {
-  const temp = parseFloat(document.getElementById("sl-temp").value);
-  const umid = parseFloat(document.getElementById("sl-umid").value);
-  const prec = parseFloat(document.getElementById("sl-prec").value);
-  const vento = parseFloat(document.getElementById("sl-vento").value);
+export function syncWeatherToML(data) {
+  const temp = data.temperature ?? null;
+  const umid = data.humidity ?? null;
+  const prec = data.precipitation ?? null;
+  const ventoKmh =
+    data.wind_speed != null ? Math.round(data.wind_speed * 3.6) : null;
 
-  document.getElementById("lbl-temp").textContent = `${temp}°C`;
-  document.getElementById("lbl-umid").textContent = `${umid}%`;
-  document.getElementById("lbl-prec").textContent = `${prec} mm/h`;
-  document.getElementById("lbl-vento").textContent = `${vento} km/h`;
+  if (temp != null) setLabel("lbl-temp", `${temp}°C`);
+  if (umid != null) setLabel("lbl-umid", `${Math.round(umid)}%`);
+  if (prec != null) setLabel("lbl-prec", `${prec} mm/h`);
+  if (ventoKmh != null) setLabel("lbl-vento", `${ventoKmh} km/h`);
 
+  if (temp == null || umid == null || prec == null || ventoKmh == null) return;
+
+  updateMLPredictor({ temperatura: temp, umidade: umid, precipitacao: prec, vento_kmh: ventoKmh });
+}
+
+export async function updateMLPredictor(inputs) {
   clearTimeout(state.mlDebounce);
   state.mlDebounce = setTimeout(async () => {
     try {
-      const r = await ml.agriculturalRisk({
-        temperatura: temp,
-        umidade: umid,
-        precipitacao: prec,
-        vento_kmh: vento,
-      });
+      const r = await ml.agriculturalRisk(inputs);
       if (!r.ok) throw new Error();
       const d = await r.json();
 
@@ -75,10 +70,4 @@ export async function updateMLPredictor() {
       document.getElementById("ml-rec").textContent = "Backend indisponível";
     }
   }, 400);
-}
-
-export function bindMLSliders() {
-  ["sl-temp", "sl-umid", "sl-prec", "sl-vento"].forEach((id) => {
-    document.getElementById(id)?.addEventListener("input", updateMLPredictor);
-  });
 }

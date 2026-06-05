@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from app.application.cv.detect_storm import DetectStormUseCase
 from app.container import get_storm_repo
 from app.domain.cv.ports import StormAlertRepository
+from app.services.nasa_captures import list_nasa_captures
 from app.services.sns_alerts import sns_status
 from app.core.config import settings
 
@@ -41,6 +42,12 @@ def cv_status() -> dict:
         "s3_bucket_images": settings.S3_BUCKET_IMAGES,
         "yolo_model_s3_key": settings.YOLO_MODEL_S3_KEY,
     }
+
+
+@router.get("/nasa/capturas")
+def nasa_capturas(limite: int = 12) -> dict:
+    """Lista capturas NASA Worldview salvas localmente (data/nasa_captures/)."""
+    return list_nasa_captures(limite=max(1, min(limite, 100)))
 
 
 @router.post("/detect/storm")

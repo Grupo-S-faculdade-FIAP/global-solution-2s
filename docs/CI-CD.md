@@ -13,6 +13,7 @@ Pipeline automatizada para testes (CI) e deploy da Lambda `gs2-api` (CD).
 |----------|---------|---------|-----------|
 | **CI** | `.github/workflows/ci.yml` | Push e PR em qualquer branch | `pytest` com mock DynamoDB |
 | **CD** | `.github/workflows/deploy-lambda.yml` | Push na `main` (paths filtrados) | Build Docker → ECR → Lambda + smoke `/health` |
+| **NASA Capture** | `.github/workflows/nasa-capture.yml` | Cron 6 h (UTC) + manual | Playwright → 3 regiões GOES-East → S3 → Lambda YOLO |
 
 ```mermaid
 flowchart LR
@@ -170,6 +171,34 @@ Localmente, reproduza com:
 ```bash
 make test
 ```
+
+### NASA Capture — satélite agendado
+
+Workflow: `.github/workflows/nasa-capture.yml`
+
+| Trigger | Comportamento |
+|---------|----------------|
+| **Cron** `0 */6 * * *` (UTC) | Captura 3 regiões + upload PNG + JPG em `screenshots/` (dispara Lambda) |
+| **Manual** (`workflow_dispatch`) | Mesmo fluxo; opção de desligar JPG ou fixar data `YYYY-MM-DD` |
+
+**Pré-requisitos AWS (uma vez):**
+
+1. Secret `AWS_ROLE_ARN` já usado no deploy
+2. Policy IAM com `s3:PutObject` em `nasa-satellite/*` e `screenshots/*` — ver `docs/iam/github-actions-gs2-deploy-policy.json`
+3. Variable opcional `S3_BUCKET_IMAGES` (default `satellite-images-gs2`)
+
+**Fluxo:**
+
+```
+GitHub Actions (ubuntu + Playwright)
+  → capture_nasa_data.py (Américas, Brasil, Sudeste)
+  → s3://…/nasa-satellite/…/*.png
+  → s3://…/screenshots/*.jpg  →  S3 trigger  →  Lambda gs2-api (YOLO)
+```
+
+O dataset histórico (`build_dataset_nasa.command`) continua **manual** — não roda neste workflow.
+
+Disparo manual: GitHub → **Actions** → **NASA Capture** → **Run workflow**.
 
 ### CD — deploy Lambda
 

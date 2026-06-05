@@ -1,0 +1,96 @@
+name: NASA Capture
+
+# Captura GOES-East IR C13 (NASA Worldview) → S3 → Lambda YOLO (via screenshots/*.jpg)
+on:
+  schedule:
+    # A cada 6 h (UTC). Ajuste conforme necessidade operacional.
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      upload_cv_jpg:
+        description: "Enviar JPG em screenshots/ (dispara pipeline CV na Lambda)"
+        type: boolean
+        default: true
+      data:
+        description: "Data específica YYYY-MM-DD (vazio = hoje UTC)"
+        required: false
+        default: ""
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: nasa-capture
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  S3_BUCKET_IMAGES: ${{ vars.S3_BUCKET_IMAGES || 'satellite-images-gs2' }}
+  NASA_S3_PREFIX: nasa-satellite
+  NASA_CV_S3_PREFIX: screenshots
+
+jobs:
+  capture:
+    name: NASA Worldview → S3
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: src/requirements.txt
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r src/requirements.txt
+
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Capture NASA Worldview (3 regiões)
+        id: capture
+        run: |
+          set -euo pipefail
+          UPLOAD_CV="${{ github.event_name == 'schedule' && 'true' || github.event.inputs.upload_cv_jpg }}"
+          DATA="${{ github.event.inputs.data }}"
+          ARGS=""
+          if [ "$UPLOAD_CV" = "true" ]; then
+            ARGS="$ARGS --upload-cv-jpg"
+          fi
+          if [ -n "$DATA" ]; then
+            ARGS="$ARGS --data $DATA"
+          fi
+          echo "Executando: python -m app.cron.capture_nasa_data $ARGS"
+          cd src && python -m app.cron.capture_nasa_data $ARGS | tee ../nasa-capture.log
+          COUNT=$(find ../data/nasa_captures -name '*.png' -mmin -120 -size +100k 2>/dev/null | wc -l | tr -d ' ')
+          echo "recent_png_count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## NASA Capture" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Bucket: \`${{ env.S3_BUCKET_IMAGES }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- PNG prefix: \`${{ env.NASA_S3_PREFIX }}/\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- CV trigger: \`${{ env.NASA_CV_S3_PREFIX }}/*.jpg\` → Lambda \`gs2-api\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- PNGs recentes (>100 KB, últimas 2 h): **${{ steps.capture.outputs.recent_png_count }}**" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f nasa-capture.log ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -n 30 nasa-capture.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi

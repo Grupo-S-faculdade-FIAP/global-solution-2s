@@ -289,7 +289,7 @@ Detalhes completos: `.specs/project/STATE.md`.
 - [ ] Smoke end-to-end: S3 → Lambda → DynamoDB → SNS (README §3 / `make smoke-aws`)  
 - [ ] Republicar `best.pt` na Lambda (`docs/DEPLOY-LAMBDA.md`)  
 - [ ] Retreino YOLO com dataset v2.1 completo (285 bboxes) e validar mAP  
-- [ ] (Opcional) EventBridge + `capture_nasa_data.py` periódico  
+- [ ] (Opcional) EventBridge + `capture_nasa_data.py` periódico — **substituído por** `.github/workflows/nasa-capture.yml` (cron 6 h)
 
 ### 7.2 Fase D — dashboard-producer-ready
 

@@ -42,12 +42,17 @@ def _data_from_filename(name: str) -> str:
     return datetime.utcnow().strftime("%Y-%m-%d")
 
 
-def upload_file(path: Path, *, trigger_cv: bool = False) -> dict:
+def upload_file(
+    path: Path,
+    *,
+    upload_jpg: bool = False,
+    trigger_cv_local: bool = False,
+) -> dict:
     data = _data_from_filename(path.name)
     s3_key = upload_s3(path, data)
-    cv_key = upload_s3_cv_jpg(path) if trigger_cv else None
+    cv_key = upload_s3_cv_jpg(path) if upload_jpg else None
     cv_result = None
-    if cv_key and settings.S3_BUCKET_IMAGES:
+    if trigger_cv_local and cv_key and settings.S3_BUCKET_IMAGES:
         cv_result = trigger_cv_pipeline(settings.S3_BUCKET_IMAGES, cv_key)
     return {
         "file": str(path),
@@ -62,7 +67,16 @@ def main() -> int:
     parser.add_argument("--file", type=Path, help="Arquivo PNG específico")
     parser.add_argument("--dir", type=Path, default=CAPTURES_DIR, help="Diretório de capturas")
     parser.add_argument("--limit", type=int, default=0, help="Máximo de arquivos (0 = todos)")
-    parser.add_argument("--cv", action="store_true", help="Também envia JPG em screenshots/ e roda CV")
+    parser.add_argument(
+        "--upload-jpg",
+        action="store_true",
+        help="Envia JPG em screenshots/ (dispara Lambda S3; sem YOLO local)",
+    )
+    parser.add_argument(
+        "--cv",
+        action="store_true",
+        help="Dev: JPG em screenshots/ + pipeline YOLO local",
+    )
     args = parser.parse_args()
 
     bucket = (settings.S3_BUCKET_IMAGES or "").strip()
@@ -87,7 +101,11 @@ def main() -> int:
         if not path.is_file():
             logger.warning("Ignorando (não existe): %s", path)
             continue
-        result = upload_file(path, trigger_cv=args.cv)
+        result = upload_file(
+            path,
+            upload_jpg=args.upload_jpg or args.cv,
+            trigger_cv_local=args.cv,
+        )
         if result["s3_key"]:
             ok += 1
             logger.info("OK %s → %s", path.name, result["s3_key"])

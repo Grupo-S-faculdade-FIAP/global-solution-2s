@@ -40,39 +40,23 @@
   </div>
 </div>
 
-<p class="section-title" id="sec-lavoura">Risco na lavoura (simulação)</p>
+<p class="section-title" id="sec-lavoura">Risco na lavoura</p>
 <div class="dash-card">
   <div class="card-head">
     <div>
       <div class="card-head-title"><i class="bi bi-flower1"></i> Calculadora de risco agrícola</div>
-      <div class="card-head-sub">Valores iniciais do clima da sua região — ajuste para simular cenários</div>
+      <div class="card-head-sub">Com base no clima atual da sua região — atualiza ao mudar a localização</div>
       <span class="data-source-chip live" id="ml-source-chip" hidden>Modelo: —</span>
       <p class="setup-hint" id="ml-setup-hint" hidden style="font-size:11px;margin-top:6px;color:var(--text-muted,#888)">
         Execute <code>build_dataset_agri.command</code> para baixar INMET e retreinar o modelo.
       </p>
     </div>
   </div>
-  <div class="ml-sliders">
-    <div class="ml-slider">
-      <label for="sl-temp">TEMPERATURA (°C)</label>
-      <input type="range" id="sl-temp" min="5" max="45" value="28" step="0.5">
-      <div class="ml-slider-range"><span>5°C</span><span class="val" id="lbl-temp">28°C</span><span>45°C</span></div>
-    </div>
-    <div class="ml-slider">
-      <label for="sl-umid">UMIDADE (%)</label>
-      <input type="range" id="sl-umid" min="20" max="100" value="65" step="1">
-      <div class="ml-slider-range"><span>20%</span><span class="val" id="lbl-umid">65%</span><span>100%</span></div>
-    </div>
-    <div class="ml-slider">
-      <label for="sl-prec">PRECIPITAÇÃO (mm/h)</label>
-      <input type="range" id="sl-prec" min="0" max="50" value="0" step="0.5">
-      <div class="ml-slider-range"><span>0</span><span class="val" id="lbl-prec">0 mm/h</span><span>50</span></div>
-    </div>
-    <div class="ml-slider">
-      <label for="sl-vento">VENTO (km/h)</label>
-      <input type="range" id="sl-vento" min="0" max="120" value="10" step="1">
-      <div class="ml-slider-range"><span>0</span><span class="val" id="lbl-vento">10 km/h</span><span>120</span></div>
-    </div>
+  <div class="weather-grid ml-weather-inputs">
+    <div><span class="stat-label">Temperatura</span><br><span class="stat-value is-loading" id="lbl-temp">—</span></div>
+    <div><span class="stat-label">Umidade</span><br><span class="stat-value is-loading" id="lbl-umid">—</span></div>
+    <div><span class="stat-label">Precipitação</span><br><span class="stat-value is-loading" id="lbl-prec">—</span></div>
+    <div><span class="stat-label">Vento</span><br><span class="stat-value is-loading" id="lbl-vento">—</span></div>
   </div>
   <div class="ml-result">
     <div>

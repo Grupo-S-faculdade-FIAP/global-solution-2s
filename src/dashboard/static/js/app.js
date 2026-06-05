@@ -16,7 +16,6 @@ import { lazyInitRegionMap, refreshRegionMapTiles, refreshLocationPickerTiles } 
 import { refreshWindyMap } from "./maps/windy.js";
 import { bootstrapDashboard } from "./bootstrap.js";
 import { finalizeDashboardLoad, setDataSourceChip } from "./core/ui.js";
-import { bindMLSliders } from "./sections/ml.js";
 import { bindYoloActions } from "./sections/yolo.js";
 import { updateChartDefaults, refreshAllCharts, refreshHeatmapColors } from "./charts.js";
 
@@ -43,7 +42,6 @@ async function initDashboard() {
     ensureLocationPickerMap();
     initLocationBarUX();
     bindLocationControls();
-    bindMLSliders();
     bindYoloActions();
     await bootstrapDashboard();
   } catch (err) {

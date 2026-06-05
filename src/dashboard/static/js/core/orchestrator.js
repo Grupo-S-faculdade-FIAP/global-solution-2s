@@ -3,7 +3,7 @@ import { $, clearSectionError } from "./dom.js";
 import { SEL } from "./selectors.js";
 import { loadWeatherData, loadRiskData } from "../sections/climate.js";
 import { loadAlertsBundle } from "../sections/alerts.js";
-import { syncSlidersFromWeather } from "../sections/ml.js";
+import { syncWeatherToML } from "../sections/ml.js";
 import { loadRegionMap } from "../maps/region.js";
 import { refreshWindyMap } from "../maps/windy.js";
 
@@ -25,7 +25,7 @@ async function reloadAfterStormSimulate() {
 
 export function initOrchestrator() {
   on("location:changed", reloadLocationDependentData);
-  on("weather:loaded", (data) => syncSlidersFromWeather(data));
+  on("weather:loaded", (data) => syncWeatherToML(data));
   on("dashboard:reload", async (detail) => {
     if (detail?.scope === "post-storm-simulate") {
       await reloadAfterStormSimulate();
