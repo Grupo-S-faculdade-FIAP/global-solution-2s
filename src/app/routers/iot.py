@@ -23,8 +23,8 @@ class SensorReading(BaseModel):
 def iot_status() -> dict:
     return {
         "module": "iot",
-        "status": "ready",
-        "storage": "mock_json" if settings.DYNAMODB_USE_MOCK else "dynamodb",
+        "status": "demo" if settings.IOT_USE_MOCK else "ready",
+        "storage": "demo" if settings.IOT_USE_MOCK else "dynamodb",
         "table": settings.DYNAMODB_IOT_TABLE,
     }
 
@@ -46,7 +46,7 @@ def receive_sensor_reading(
             "stored": True,
             "reading_id": item["reading_id"],
             "timestamp": item["timestamp"],
-            "storage": "mock_json" if settings.DYNAMODB_USE_MOCK else "dynamodb",
+            "storage": "demo" if settings.IOT_USE_MOCK else "dynamodb",
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Erro ao salvar leitura: {exc}") from exc
@@ -69,7 +69,7 @@ def get_latest_readings(
             "readings": readings,
             "count": len(readings),
             "hours": hours,
-            "storage": "mock_json" if settings.DYNAMODB_USE_MOCK else "dynamodb",
+            "storage": "demo" if settings.IOT_USE_MOCK else "dynamodb",
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar leituras: {exc}") from exc

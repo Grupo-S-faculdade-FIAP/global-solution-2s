@@ -29,7 +29,7 @@ export function setDataSourceChip(source) {
 
   const labels = {
     pending: ["Carregando…", "demo"],
-    demo: ["Demonstração", "demo"],
+    demo: ["Fallback local", "demo"],
     live: ["Dados reais", "live"],
     offline: ["Offline", "offline"],
   };
@@ -44,8 +44,8 @@ export function setDataSourceChip(source) {
   const footerHint = document.getElementById(SEL.footerStorageHint);
   if (footerHint) {
     footerHint.textContent =
-      mode === "live" ? "dados via AWS DynamoDB" :
-      mode === "demo" ? "dados de demonstração (JSON local)" :
+      mode === "live" ? "alertas via AWS DynamoDB · IoT ESP32 simulado" :
+      mode === "demo" ? "fallback local (API offline)" :
       "sem conexão com o servidor";
   }
 }

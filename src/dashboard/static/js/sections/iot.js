@@ -14,10 +14,10 @@ export async function loadIoTReadings() {
     const badge = document.getElementById("iot-status-badge");
     const storageLabel = document.getElementById("iot-storage-label");
 
-    if (chip) { chip.hidden = false; chip.textContent = resp.ok ? "API" : "Demonstração"; }
+    if (chip) { chip.hidden = false; chip.textContent = data?.storage === "demo" ? "ESP32 simulado" : "Live"; }
     if (badge) {
-      badge.textContent = resp.ok ? "Online" : "Demo";
-      badge.className = "iot-status-badge " + (resp.ok ? "badge-ok" : "badge-demo");
+      badge.textContent = data?.storage === "demo" ? "Simulado" : "Online";
+      badge.className = "iot-status-badge " + (data?.storage === "demo" ? "badge-demo" : "badge-ok");
     }
     if (storageLabel) storageLabel.textContent = data?.storage ?? "—";
 

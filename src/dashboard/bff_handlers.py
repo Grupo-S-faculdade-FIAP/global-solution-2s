@@ -190,16 +190,9 @@ def _demo_storms_recent(hours: int = 24) -> list[dict[str, Any]]:
 
 
 def dashboard_config() -> tuple[Any, str, int]:
-    storage = "mock_json"
-    try:
-        from app.services.storm_alerts_store import use_mock_store
-        storage = "mock_json" if use_mock_store() else "dynamodb"
-    except ImportError:
-        pass
-    # demo_mode no frontend = permite fallback local; chip usa X-Data-Source da resposta real
     return _ok({
         "demo_mode": DEMO_MODE,
-        "storage": storage,
+        "storage": "dynamodb",
         "default_lat": DEFAULT_WEATHER_LAT,
         "default_lon": DEFAULT_WEATHER_LON,
     }, "live")
@@ -416,9 +409,8 @@ def simulate_storm_detection(body: dict) -> tuple[Any, str, int]:
                 "timestamp": stored.get("timestamp"),
                 "message": payload.get("message", "Alerta simulado"),
                 "simulated": True,
-                "mock_mode": payload.get("mock_mode", True),
             },
-            "message": "Alerta registrado (armazenamento simulado/local)",
+            "message": payload.get("message", "Alerta simulado registrado"),
         }, "live")
 
     alert = {
@@ -464,8 +456,14 @@ def _demo_iot_readings() -> list[dict[str, Any]]:
 
 
 def iot_latest(hours: int = 24) -> tuple[Any, str, int]:
-    """Leituras IoT — fallback demo enquanto ESP32/DynamoDB iot_readings não estiver pronto."""
-    if not _env_bool("IOT_USE_MOCK", default=True):
+    """Leituras IoT — demo ESP32 enquanto hardware não estiver conectado."""
+    try:
+        from app.core.config import settings as app_settings
+        iot_mock = bool(app_settings.IOT_USE_MOCK)
+    except ImportError:
+        iot_mock = _env_bool("IOT_USE_MOCK", default=True)
+
+    if not iot_mock:
         status, body = backend_get("/iot/readings/latest", params={"hours": hours})
         if status == 200 and isinstance(body, dict):
             return _ok(body, "live")
@@ -474,12 +472,18 @@ def iot_latest(hours: int = 24) -> tuple[Any, str, int]:
 
 
 def iot_status() -> tuple[Any, str, int]:
-    if not _env_bool("IOT_USE_MOCK", default=True):
+    try:
+        from app.core.config import settings as app_settings
+        iot_mock = bool(app_settings.IOT_USE_MOCK)
+    except ImportError:
+        iot_mock = _env_bool("IOT_USE_MOCK", default=True)
+
+    if not iot_mock:
         status, body = backend_get("/iot/status")
         if status == 200 and isinstance(body, dict):
             return _ok(body, "live")
     return _ok(
-        {"module": "iot", "status": "demo", "storage": "mock_json", "note": "ESP32 mockado (MVP)"},
+        {"module": "iot", "status": "demo", "storage": "demo", "note": "ESP32 simulado (MVP)"},
         "demo",
     )
 

@@ -17,7 +17,7 @@ from app.services import iot_readings_store as store
 def isolated_store(tmp_path, monkeypatch):
     path = tmp_path / "iot_readings.json"
     monkeypatch.setattr(store, "DEFAULT_STORE_PATH", path)
-    monkeypatch.setattr(store.settings, "DYNAMODB_USE_MOCK", True)
+    monkeypatch.setattr(store.settings, "IOT_USE_MOCK", True)
     path.write_text("[]", encoding="utf-8")
     return path
 
@@ -25,9 +25,9 @@ def isolated_store(tmp_path, monkeypatch):
 # ── Unit: store ──────────────────────────────────────────────────────────────
 
 def test_use_mock_store_flag(monkeypatch):
-    monkeypatch.setattr(store.settings, "DYNAMODB_USE_MOCK", True)
+    monkeypatch.setattr(store.settings, "IOT_USE_MOCK", True)
     assert store.use_mock_store() is True
-    monkeypatch.setattr(store.settings, "DYNAMODB_USE_MOCK", False)
+    monkeypatch.setattr(store.settings, "IOT_USE_MOCK", False)
     assert store.use_mock_store() is False
 
 
@@ -103,7 +103,7 @@ def test_list_respects_time_window(isolated_store):
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "DEFAULT_STORE_PATH", tmp_path / "iot.json")
-    monkeypatch.setattr(store.settings, "DYNAMODB_USE_MOCK", True)
+    monkeypatch.setattr(store.settings, "IOT_USE_MOCK", True)
     (tmp_path / "iot.json").write_text("[]", encoding="utf-8")
 
     from app.main import app
@@ -115,8 +115,8 @@ def test_iot_status_endpoint(client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["module"] == "iot"
-    assert data["status"] == "ready"
-    assert "storage" in data
+    assert data["status"] == "demo"
+    assert data["storage"] == "demo"
 
 
 def test_post_reading_returns_201(client):
@@ -173,7 +173,7 @@ def test_bff_iot_routes(tmp_path, monkeypatch):
     import os
     path = tmp_path / "iot_bff.json"
     monkeypatch.setattr(store, "DEFAULT_STORE_PATH", path)
-    monkeypatch.setattr(store.settings, "DYNAMODB_USE_MOCK", True)
+    monkeypatch.setattr(store.settings, "IOT_USE_MOCK", True)
     path.write_text("[]", encoding="utf-8")
     monkeypatch.setenv("BFF_INPROCESS", "true")
     monkeypatch.setenv("IOT_USE_MOCK", "false")
