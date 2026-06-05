@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** —
-**Last updated:** 2026-06-05 (pipeline YOLO labels v2)
+**Last updated:** 2026-06-05 (refatoração frontend dashboard)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -11,9 +11,9 @@
 
 ## Current Focus
 
-**Active feature:** yolo-label-quality v2.1 (concluído 2026-06-05)
-**Last task completed:** Retreino `storm-detector-v2` com 285 bboxes (limiar 175 / area 50). Val: P≈0,27, R≈0,17, mAP@0.5≈0,14 (vs 0,078 na v2.0).
-**Next task:** Smoke AWS; vídeo/PDF FIAP; opcional mais capturas NASA p/ G1 (70%)
+**Active feature:** refatoração frontend dashboard (concluído 2026-06-05)
+**Last task completed:** `dashboard.js` monolítico dividido em 21 módulos ES6; `index.html` em partials Jinja; tokens em `css/tokens.css`.
+**Next task:** Merge `feature/ajustes` → `main` (deploy produção); smoke AWS; vídeo/PDF FIAP
 **Blockers:** nenhum
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.2 (2026-06-04); atualizar p/ v1.3 com IoT + arquitetura
 
@@ -42,6 +42,7 @@
 | 2026-06-05 | D-017 | BFF shim strategy invertida: dashboard/ é canonical, interfaces/http/bff/ re-exporta | Preserva backward compat com testes que patcham dashboard.bff_backend._fastapi_test_client | BFF |
 | 2026-06-05 | D-018 | DetectStormUseCase em application/cv/ — routers/cv.py não importa boto3/torch | Separação clara HTTP vs pipeline; testável sem FastAPI | CV |
 | 2026-06-05 | D-019 | Pipeline labels YOLO v2: letterbox 640 + detecção na img de treino + UI mask + audit gate | 74/76 labels eram bbox fantasma (canto sup. esq.); precision alta / recall baixo era artefato posicional | CV / dataset |
+| 2026-06-05 | D-020 | Frontend dashboard: ES modules + partials Jinja + CSS tokens | Manutenibilidade; `app.js` entry; `core/` api/state/dom/ui; `maps/`; `sections/` | Dashboard |
 
 ---
 

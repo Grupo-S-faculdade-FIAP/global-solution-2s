@@ -1,0 +1,61 @@
+/* Design tokens — tema claro/escuro */
+
+html {
+  color-scheme: light dark;
+}
+
+html[data-theme="dark"],
+html.theme-dark {
+  color-scheme: dark;
+  --bg-base:    #0d1117;
+  --bg-card:    #161b22;
+  --bg-card-2:  #1c2330;
+  --border:     #30363d;
+  --text-prim:  #e6edf3;
+  --text-sec:   #8b949e;
+  --blue:       #58a6ff;
+  --green:      #3fb950;
+  --yellow:     #d29922;
+  --red:        #f85149;
+  --purple:     #bc8cff;
+  --accent-muted: rgba(88, 166, 255, 0.12);
+  --badge-bg:     rgba(88, 166, 255, 0.15);
+  --badge-border: rgba(88, 166, 255, 0.3);
+  --overlay:      rgba(13, 17, 23, 0.55);
+  --shadow:       rgba(0, 0, 0, 0.25);
+  --heatmap-empty: #1c2330;
+  --heatmap-low:   #1f6feb;
+  --heatmap-high:  #3fb950;
+  --chart-grid:    #21262d;
+  --nasa-grad-a:   #0d1b2a;
+  --nasa-grad-b:   #1a3a5c;
+  --focus-ring:    rgba(88, 166, 255, 0.45);
+}
+
+html[data-theme="light"],
+html.theme-light {
+  color-scheme: light;
+  --bg-base:    #ffffff;
+  --bg-card:    #f6f8fb;
+  --bg-card-2:  #eaeef2;
+  --border:     #d0d7de;
+  --text-prim:  #24292f;
+  --text-sec:   #57606a;
+  --blue:       #0969da;
+  --green:      #1a7f37;
+  --yellow:     #9e6a03;
+  --red:        #cf222e;
+  --purple:     #8250df;
+  --accent-muted: rgba(9, 105, 218, 0.08);
+  --badge-bg:     rgba(9, 105, 218, 0.1);
+  --badge-border: rgba(9, 105, 218, 0.25);
+  --overlay:      rgba(255, 255, 255, 0.75);
+  --shadow:       rgba(31, 35, 40, 0.08);
+  --heatmap-empty: #eaeef2;
+  --heatmap-low:   #54aeff;
+  --heatmap-high:  #1a7f37;
+  --chart-grid:    #d0d7de;
+  --nasa-grad-a:   #dbeafe;
+  --nasa-grad-b:   #bfdbfe;
+  --focus-ring:    rgba(9, 105, 218, 0.35);
+}

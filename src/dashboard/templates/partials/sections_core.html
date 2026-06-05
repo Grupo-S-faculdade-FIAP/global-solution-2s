@@ -1,0 +1,120 @@
+<p class="section-title" id="sec-resumo">Resumo do período</p>
+<div class="kpi-grid" id="kpi-grid">
+  <div class="kpi-card"><div class="kpi-label text-blue"><i class="bi bi-bell-fill"></i>Total (30 dias)</div><div class="kpi-value text-blue is-loading" id="kpi-total">—</div><div class="kpi-sub">alertas emitidos</div></div>
+  <div class="kpi-card"><div class="kpi-label text-green"><i class="bi bi-bar-chart-line-fill"></i>Média diária</div><div class="kpi-value text-green is-loading" id="kpi-avg">—</div><div class="kpi-sub">alertas / dia</div></div>
+  <div class="kpi-card"><div class="kpi-label text-yellow"><i class="bi bi-calendar-week-fill"></i>Dia pico</div><div class="kpi-value text-yellow kpi-text is-loading" id="kpi-day">—</div><div class="kpi-sub">maior incidência semanal</div></div>
+  <div class="kpi-card"><div class="kpi-label text-purple"><i class="bi bi-clock-fill"></i>Hora pico</div><div class="kpi-value text-purple kpi-text is-loading" id="kpi-hour">—</div><div class="kpi-sub">faixa horária crítica</div></div>
+</div>
+
+<p class="section-title" id="sec-clima">Situação agora na sua região</p>
+<div class="chart-grid-2">
+  <div class="dash-card">
+    <div class="card-head">
+      <div>
+        <div class="card-head-title"><i class="bi bi-thermometer-half"></i> Clima agora</div>
+        <div class="card-head-sub" id="weather-location-sub">Temperatura, umidade, pressão e vento</div>
+      </div>
+    </div>
+    <div id="weather-container" class="weather-grid">
+      <div><span class="stat-label">Temperatura</span><br><span class="stat-value is-loading" id="weather-temp">—</span></div>
+      <div><span class="stat-label">Umidade</span><br><span class="stat-value is-loading" id="weather-humidity">—</span></div>
+      <div><span class="stat-label">Pressão</span><br><span class="stat-value is-loading" id="weather-pressure">—</span></div>
+      <div><span class="stat-label">Vento</span><br><span class="stat-value is-loading" id="weather-wind">—</span></div>
+    </div>
+    <div class="weather-meta"><span id="weather-timestamp">—</span></div>
+  </div>
+  <div class="dash-card">
+    <div class="card-head">
+      <div>
+        <div class="card-head-title"><i class="bi bi-exclamation-triangle"></i> Avaliação de risco</div>
+        <div class="card-head-sub">Nível previsto para a região</div>
+      </div>
+    </div>
+    <div id="risk-container" class="risk-panel">
+      <div class="risk-score-wrap">
+        <div class="risk-score is-loading" id="risk-badge" aria-busy="true">—</div>
+        <div class="risk-category" id="risk-category">—</div>
+      </div>
+      <div class="risk-recommendation" id="risk-recommendation">—</div>
+    </div>
+  </div>
+</div>
+
+<p class="section-title" id="sec-lavoura">Risco na lavoura (simulação)</p>
+<div class="dash-card">
+  <div class="card-head">
+    <div>
+      <div class="card-head-title"><i class="bi bi-flower1"></i> Calculadora de risco agrícola</div>
+      <div class="card-head-sub">Valores iniciais do clima da sua região — ajuste para simular cenários</div>
+      <span class="data-source-chip live" id="ml-source-chip" hidden>Modelo: —</span>
+      <p class="setup-hint" id="ml-setup-hint" hidden style="font-size:11px;margin-top:6px;color:var(--text-muted,#888)">
+        Execute <code>build_dataset_agri.command</code> para baixar INMET e retreinar o modelo.
+      </p>
+    </div>
+  </div>
+  <div class="ml-sliders">
+    <div class="ml-slider">
+      <label for="sl-temp">TEMPERATURA (°C)</label>
+      <input type="range" id="sl-temp" min="5" max="45" value="28" step="0.5">
+      <div class="ml-slider-range"><span>5°C</span><span class="val" id="lbl-temp">28°C</span><span>45°C</span></div>
+    </div>
+    <div class="ml-slider">
+      <label for="sl-umid">UMIDADE (%)</label>
+      <input type="range" id="sl-umid" min="20" max="100" value="65" step="1">
+      <div class="ml-slider-range"><span>20%</span><span class="val" id="lbl-umid">65%</span><span>100%</span></div>
+    </div>
+    <div class="ml-slider">
+      <label for="sl-prec">PRECIPITAÇÃO (mm/h)</label>
+      <input type="range" id="sl-prec" min="0" max="50" value="0" step="0.5">
+      <div class="ml-slider-range"><span>0</span><span class="val" id="lbl-prec">0 mm/h</span><span>50</span></div>
+    </div>
+    <div class="ml-slider">
+      <label for="sl-vento">VENTO (km/h)</label>
+      <input type="range" id="sl-vento" min="0" max="120" value="10" step="1">
+      <div class="ml-slider-range"><span>0</span><span class="val" id="lbl-vento">10 km/h</span><span>120</span></div>
+    </div>
+  </div>
+  <div class="ml-result">
+    <div>
+      <div class="ml-result-label">RISCO CALCULADO</div>
+      <div class="ml-result-score-row">
+        <span class="ml-result-score" id="ml-score">—</span>
+        <span class="ml-result-class" id="ml-classe">—</span>
+      </div>
+      <div class="ml-result-rec" id="ml-rec">—</div>
+    </div>
+    <div class="ml-result-probas-wrap">
+      <div class="ml-result-label">PROBABILIDADES</div>
+      <div style="font-size:11px;line-height:1.8;" id="ml-probas">—</div>
+    </div>
+  </div>
+</div>
+
+<p class="section-title" id="sec-iot">Sensores de campo — ESP32</p>
+<div class="dash-card">
+  <div class="card-head">
+    <div>
+      <div class="card-head-title"><i class="bi bi-cpu-fill"></i> Leituras IoT (ESP32 + DHT22)</div>
+      <div class="card-head-sub">Temperatura e umidade enviadas pelo sensor de campo</div>
+      <span class="data-source-chip demo" id="iot-source-chip" hidden>Demonstração</span>
+    </div>
+    <span id="iot-status-badge" class="iot-status-badge">—</span>
+  </div>
+  <div class="iot-readings-grid" id="iot-readings-grid">
+    <div class="iot-kpi"><div class="iot-kpi-label"><i class="bi bi-thermometer-half"></i> Temperatura</div><div class="iot-kpi-value is-loading" id="iot-temp">—</div></div>
+    <div class="iot-kpi"><div class="iot-kpi-label"><i class="bi bi-droplet-half"></i> Umidade</div><div class="iot-kpi-value is-loading" id="iot-umid">—</div></div>
+    <div class="iot-kpi"><div class="iot-kpi-label"><i class="bi bi-geo-alt"></i> Cidade</div><div class="iot-kpi-value is-loading" id="iot-cidade">—</div></div>
+    <div class="iot-kpi"><div class="iot-kpi-label"><i class="bi bi-clock"></i> Última leitura</div><div class="iot-kpi-value is-loading" id="iot-ts">—</div></div>
+  </div>
+  <div class="iot-history" id="iot-history-wrap" hidden>
+    <p class="iot-history-title">Histórico recente</p>
+    <table class="iot-history-table" id="iot-history-table">
+      <thead><tr><th>Timestamp</th><th>Device</th><th>Temp (°C)</th><th>Umidade (%)</th><th>Cidade</th></tr></thead>
+      <tbody id="iot-history-body"></tbody>
+    </table>
+  </div>
+  <div class="iot-info">
+    <i class="bi bi-info-circle"></i>
+    Firmware: <code>src/iot/firmware.cpp</code> · endpoint: <code>POST /iot/readings</code> · armazenamento: <span id="iot-storage-label">—</span>
+  </div>
+</div>

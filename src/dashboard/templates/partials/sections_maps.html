@@ -1,0 +1,43 @@
+<p class="section-title" id="sec-alertas-mapa">Alertas na sua área</p>
+<div class="region-map-card">
+  <div class="windy-head">
+    <i class="bi bi-map-fill text-blue" aria-hidden="true"></i>
+    <span>Alertas de tempestade na sua área</span>
+    <small class="card-head-sub" id="region-map-sub">Marcadores YOLO no raio monitorado</small>
+    <small id="region-map-coords">—</small>
+  </div>
+  <div class="region-map-wrap">
+    <div id="region-map" role="application" aria-label="Mapa de alertas na região"></div>
+    <div id="region-map-empty" class="map-empty-state" hidden>
+      <i class="bi bi-cloud-slash" aria-hidden="true"></i>
+      Nenhum alerta na sua região ainda
+    </div>
+  </div>
+  <div class="map-legend" aria-hidden="false">
+    <span><span class="map-legend-dot" aria-hidden="true"></span> Alerta de tempestade</span>
+    <span>Toque no marcador para ver confiança e horário</span>
+  </div>
+</div>
+
+<p class="section-title" id="sec-radar">Chuva em tempo real</p>
+<div class="windy-card">
+  <div class="windy-head">
+    <i class="bi bi-globe2 text-blue" aria-hidden="true"></i>
+    <span id="windy-map-title">Chuva em tempo real (Windy)</span>
+    <small id="windy-map-meta">via Windy.com &nbsp;·&nbsp; overlay: chuva</small>
+  </div>
+  <div class="windy-frame-wrap">
+    <div class="windy-loading" id="windy-loading">
+      <i class="bi bi-arrow-repeat windy-loading-icon" aria-hidden="true"></i>
+      <span id="windy-loading-text">Carregando radar…</span>
+    </div>
+    <iframe
+      class="windy-frame"
+      id="windy-iframe"
+      data-src-template="https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&detailLat={lat}&detailLon={lon}&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1"
+      allowfullscreen
+      loading="lazy"
+      title="Radar meteorológico Windy"
+    ></iframe>
+  </div>
+</div>
