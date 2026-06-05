@@ -45,7 +45,7 @@
   <div class="card-head">
     <div>
       <div class="card-head-title"><i class="bi bi-flower1"></i> Calculadora de risco agrícola</div>
-      <div class="card-head-sub">Com base no clima atual da sua região — atualiza ao mudar a localização</div>
+      <div class="card-head-sub">Ensemble clima + satélite (YOLO) + ML — atualiza ao mudar a localização</div>
       <span class="data-source-chip live" id="ml-source-chip" hidden>Modelo: —</span>
       <p class="setup-hint" id="ml-setup-hint" hidden style="font-size:11px;margin-top:6px;color:var(--text-muted,#888)">
         Execute <code>build_dataset_agri.command</code> para baixar INMET e retreinar o modelo.
@@ -66,9 +66,10 @@
         <span class="ml-result-class" id="ml-classe">—</span>
       </div>
       <div class="ml-result-rec" id="ml-rec">—</div>
+      <div class="ml-breakdown" id="ml-breakdown" style="font-size:11px;line-height:1.7;margin-top:8px;color:var(--text-muted,#888);"></div>
     </div>
     <div class="ml-result-probas-wrap">
-      <div class="ml-result-label">PROBABILIDADES</div>
+      <div class="ml-result-label">COMPONENTES</div>
       <div style="font-size:11px;line-height:1.8;" id="ml-probas">—</div>
     </div>
   </div>

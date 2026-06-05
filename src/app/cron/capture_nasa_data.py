@@ -14,10 +14,9 @@ Uso:
     # Captura uma data específica
     python src/app/cron/capture_nasa_data.py --data 2024-03-15
 
-Saída:
-    - Local:  data/nasa_captures/{regiao}_{YYYYMMDD_HHMM}.png
+Saída (canônica):
     - S3:     s3://{S3_BUCKET_IMAGES}/nasa-satellite/{ano}/{mes}/{dia}/{arquivo}
-              (apenas se S3_BUCKET_IMAGES estiver configurado no .env)
+    - Local:  data/nasa_captures/ apenas se NASA_KEEP_LOCAL=true (treino offline)
 """
 
 import argparse
@@ -35,6 +34,7 @@ if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from app.core.config import settings
+from app.services.nasa_captures import s3_has_capture
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -148,8 +148,22 @@ def capturar_regiao(regiao: dict, data: str) -> Path:
         finally:
             browser.close()
 
-    logger.info("✓ Salvo local: %s (%d KB)", destino.name, destino.stat().st_size // 1024)
+    logger.info("✓ Captura temporária: %s (%d KB)", destino.name, destino.stat().st_size // 1024)
     return destino
+
+
+def _finalize_capture(caminho: Path, data: str) -> str | None:
+    """Envia para S3 e remove do disco local quando NASA_KEEP_LOCAL=false."""
+    s3_key = upload_s3(caminho, data)
+    if s3_key and not settings.NASA_KEEP_LOCAL:
+        caminho.unlink(missing_ok=True)
+        logger.info("✓ Removido do disco local: %s", caminho.name)
+    elif not s3_key and not settings.NASA_KEEP_LOCAL:
+        logger.warning(
+            "Upload S3 falhou — %s mantido localmente até novo upload",
+            caminho.name,
+        )
+    return s3_key
 
 
 def upload_s3(caminho: Path, data: str) -> str | None:
@@ -245,7 +259,7 @@ def capturar_todas(
     for regiao in REGIOES:
         try:
             caminho  = capturar_regiao(regiao, data)
-            s3_key   = upload_s3(caminho, data)
+            s3_key   = _finalize_capture(caminho, data)
             cv_key   = upload_s3_cv_jpg(caminho) if (upload_cv_jpg or trigger_cv_local) else None
             cv_result = None
             if trigger_cv_local and cv_key and settings.S3_BUCKET_IMAGES:
@@ -288,14 +302,17 @@ def capturar_historico(dias: int = 30) -> list[dict]:
         data = (hoje - timedelta(days=d + 1)).strftime("%Y-%m-%d")
         print(f"  [{d+1}/{dias}] {data}")
         for regiao in REGIOES:
-            # Pula se já existe localmente
-            existente = list(CAPTURES_DIR.glob(f"{regiao['nome']}_*.png"))
-            if any(data.replace("-", "") in f.name for f in existente):
-                print(f"    [SKIP] {regiao['nome']}")
+            if s3_has_capture(regiao["nome"], data):
+                print(f"    [SKIP] {regiao['nome']} (já no S3)")
                 continue
+            if settings.NASA_KEEP_LOCAL:
+                existente = list(CAPTURES_DIR.glob(f"{regiao['nome']}_*.png"))
+                if any(data.replace("-", "") in f.name for f in existente):
+                    print(f"    [SKIP] {regiao['nome']} (local)")
+                    continue
             try:
                 caminho = capturar_regiao(regiao, data)
-                upload_s3(caminho, data)
+                _finalize_capture(caminho, data)
                 todos.append({"data": data, "regiao": regiao["nome"], "status": "ok"})
                 print(f"    ✓ {regiao['nome']}")
             except Exception as e:

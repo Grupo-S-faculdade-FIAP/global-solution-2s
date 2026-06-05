@@ -9,13 +9,19 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel
 
 from app.application.cv.detect_storm import DetectStormUseCase
 from app.container import get_storm_repo
 from app.domain.cv.ports import StormAlertRepository
-from app.services.nasa_captures import list_nasa_captures, resolve_nasa_image
+from app.services.nasa_captures import (
+    list_nasa_captures,
+    presigned_nasa_url,
+    resolve_nasa_image,
+    resolve_nasa_s3_key,
+    stream_nasa_from_s3,
+)
 from app.services.sns_alerts import sns_status
 from app.core.config import settings
 
@@ -47,16 +53,26 @@ def cv_status() -> dict:
 
 @router.get("/nasa/capturas")
 def nasa_capturas(limite: int = 12) -> dict:
-    """Lista capturas NASA Worldview salvas localmente (data/nasa_captures/)."""
+    """Lista capturas NASA (S3 prioritário; fallback local/dataset)."""
     return list_nasa_captures(limite=max(1, min(limite, 100)))
 
 
 @router.get("/nasa/imagem/{nome_arquivo}")
 def nasa_imagem(
     nome_arquivo: str,
-    fonte: str = Query("captures", pattern="^(captures|dataset)$"),
-) -> FileResponse:
-    """Serve PNG de captura NASA ou do dataset YOLO (demo local)."""
+    fonte: str = Query("captures", pattern="^(captures|dataset|s3)$"),
+):
+    """Serve PNG de captura NASA (S3, disco local ou dataset YOLO)."""
+    if fonte == "s3":
+        s3_key = resolve_nasa_s3_key(nome_arquivo)
+        if s3_key is None:
+            raise HTTPException(status_code=404, detail="Imagem não encontrada no S3")
+        presigned = presigned_nasa_url(s3_key)
+        if presigned:
+            return RedirectResponse(presigned, status_code=302)
+        body, _ = stream_nasa_from_s3(s3_key)
+        return StreamingResponse(body, media_type="image/png")
+
     path = resolve_nasa_image(nome_arquivo, fonte=fonte)
     if path is None:
         raise HTTPException(status_code=404, detail="Imagem não encontrada")

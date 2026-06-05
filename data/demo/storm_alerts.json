@@ -88,5 +88,155 @@
       "storm"
     ],
     "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-05T21:40:55.974234Z",
+    "alert_id": "alert_8e42632e23ef",
+    "date": "2026-06-05",
+    "hour": 21,
+    "weekday": "Friday",
+    "bucket": "satellite-images-gs2",
+    "s3_key": "nasa_americas_simulated.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-05T21:41:39.216403Z",
+    "alert_id": "alert_57bde361f1b0",
+    "date": "2026-06-05",
+    "hour": 21,
+    "weekday": "Friday",
+    "bucket": "satellite-images-gs2",
+    "s3_key": "nasa_americas_simulated.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-05T21:42:25.822745Z",
+    "alert_id": "alert_3039bdf51f53",
+    "date": "2026-06-05",
+    "hour": 21,
+    "weekday": "Friday",
+    "bucket": "satellite-images-gs2",
+    "s3_key": "nasa_americas_simulated.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-05T21:43:18.098198Z",
+    "alert_id": "alert_0754d610463e",
+    "date": "2026-06-05",
+    "hour": 21,
+    "weekday": "Friday",
+    "bucket": "satellite-images-gs2",
+    "s3_key": "nasa_americas_simulated.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-05T21:46:08.764551Z",
+    "alert_id": "alert_0b66c7d42cfa",
+    "date": "2026-06-05",
+    "hour": 21,
+    "weekday": "Friday",
+    "bucket": "satellite-images-gs2",
+    "s3_key": "nasa_americas_simulated.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-05T21:46:28.426642Z",
+    "alert_id": "alert_e4e774f8ba7f",
+    "date": "2026-06-05",
+    "hour": 21,
+    "weekday": "Friday",
+    "bucket": "satellite-images-gs2",
+    "s3_key": "nasa_americas_simulated.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-05T21:47:29.472341Z",
+    "alert_id": "alert_be06daad72c1",
+    "date": "2026-06-05",
+    "hour": 21,
+    "weekday": "Friday",
+    "bucket": "satellite-images-gs2",
+    "s3_key": "nasa_americas_simulated.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-05T21:47:50.270053Z",
+    "alert_id": "alert_f78b09e39ba3",
+    "date": "2026-06-05",
+    "hour": 21,
+    "weekday": "Friday",
+    "bucket": "satellite-images-gs2",
+    "s3_key": "nasa_americas_simulated.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-05T21:49:06.547138Z",
+    "alert_id": "alert_f55746139e4e",
+    "date": "2026-06-05",
+    "hour": 21,
+    "weekday": "Friday",
+    "bucket": "satellite-images-gs2",
+    "s3_key": "nasa_americas_simulated.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
+  },
+  {
+    "alert_type": "storm_detection",
+    "timestamp": "2026-06-05T21:49:27.359653Z",
+    "alert_id": "alert_5696e372a3ab",
+    "date": "2026-06-05",
+    "hour": 21,
+    "weekday": "Friday",
+    "bucket": "satellite-images-gs2",
+    "s3_key": "nasa_americas_simulated.png",
+    "detection_count": 4,
+    "classes": [
+      "storm"
+    ],
+    "simulated": true
   }
 ]

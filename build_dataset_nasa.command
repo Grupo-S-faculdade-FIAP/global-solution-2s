@@ -11,7 +11,8 @@ echo ""
 echo "Vai baixar imagens do NASA Worldview (GOES-East IR C13)"
 echo "Regiões: Américas, Brasil, Sudeste BR"
 echo "Período: últimos 60 dias (~180 imagens)"
-echo "Destino: data/nasa_captures/"
+echo "Destino S3: s3://\$S3_BUCKET_IMAGES/nasa-satellite/ (canônico)"
+echo "Cache local: data/nasa_captures/ (NASA_KEEP_LOCAL=true durante treino)"
 echo ""
 
 # shellcheck source=scripts/activate_venv.sh
@@ -31,6 +32,8 @@ echo ""
 echo "🚀 Iniciando download histórico (pode levar 30-60 min)..."
 echo ""
 
+# Mantém cópias locais só para o pipeline YOLO abaixo
+export NASA_KEEP_LOCAL=true
 python3 src/app/cron/capture_nasa_data.py --historico --dias 60
 
 echo ""

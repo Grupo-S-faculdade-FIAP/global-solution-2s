@@ -1,10 +1,8 @@
 """
 AgriRiskModel — Modelo de risco agrícola por condições meteorológicas.
 
-Classificador Random Forest treinado preferencialmente com histórico INMET BDMEP
-(dados oficiais), depois Open-Meteo Archive e fallback sintético.
-
-Classes: 0=LOW, 1=MEDIUM, 2=HIGH
+Regressor LightGBM treinado com histórico INMET BDMEP; limiares otimizados por AG.
+Score contínuo 0–1 derivado de regras agrometeorológicas parametrizadas.
 """
 
 from __future__ import annotations
@@ -13,11 +11,36 @@ import logging
 import pickle
 from datetime import date, timedelta
 from pathlib import Path
+from typing import Any
+
+import os
 
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
+
+_REGRESSOR_BACKEND = "sklearn_hgb"
+
+
+def _resolve_regressor_backend() -> str:
+    """LightGBM só quando explicitamente pedido — evita segfault com torch/YOLO no macOS."""
+    if os.environ.get("AGRI_USE_LIGHTGBM", "").strip().lower() in ("1", "true", "yes"):
+        try:
+            from lightgbm import LGBMRegressor  # noqa: PLC0415
+            return "lightgbm"
+        except (OSError, ImportError):
+            pass
+    return "sklearn_hgb"
+
+from app.services.agri_threshold_ga import (
+    AgriThresholds,
+    classificar_com_thresholds,
+    classe_from_score,
+    estimate_probas,
+    load_thresholds,
+    score_continuo_normalizado,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +48,7 @@ _DEFAULT_MODEL = Path(__file__).resolve().parents[3] / "models" / "agri_risk_mod
 _DEFAULT_SCALER = Path(__file__).resolve().parents[3] / "models" / "agri_risk_scaler.pkl"
 
 DATASET_SOURCE: str = "unknown"
+MODEL_TYPE: str = "regressor"
 
 _INMET_CACHE = Path(__file__).resolve().parents[3] / "data" / "weather" / "inmet" / "training_cache.csv"
 _INMET_SAMPLE = Path(__file__).resolve().parents[3] / "data" / "weather" / "inmet" / "sample_inmet_bdmep.csv"
@@ -51,7 +75,9 @@ def _resolve_model_paths() -> tuple[Path, Path]:
 MODEL_PATH, SCALER_PATH = _resolve_model_paths()
 MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-LABEL_MAP = {0: 0.15, 1: 0.55, 2: 0.85}
+
+def get_thresholds() -> AgriThresholds:
+    return load_thresholds()
 
 
 def _classificar_risco(
@@ -59,69 +85,52 @@ def _classificar_risco(
     umidade: float,
     precipitacao: float,
     vento_kmh: float,
+    th: AgriThresholds | None = None,
 ) -> int:
-    score = 0.0
-    if precipitacao >= 20:
-        score += 3.0
-    elif precipitacao >= 10:
-        score += 2.0
-    elif precipitacao >= 5:
-        score += 1.0
-    elif precipitacao >= 1:
-        score += 0.4
-    if vento_kmh >= 80:
-        score += 2.5
-    elif vento_kmh >= 60:
-        score += 1.5
-    elif vento_kmh >= 40:
-        score += 0.8
-    if umidade > 85 and temperatura > 28:
-        score += 1.5
-    elif umidade > 75 and temperatura > 26:
-        score += 0.8
-    if temperatura >= 38 or temperatura <= 8:
-        score += 1.0
-    if score >= 4.0:
-        return 2
-    if score >= 1.5:
-        return 1
-    return 0
+    return classificar_com_thresholds(
+        temperatura, umidade, precipitacao, vento_kmh, th or get_thresholds(),
+    )
 
 
 def _gerar_dados_sinteticos(n: int = 5000) -> tuple[np.ndarray, np.ndarray]:
     rng = np.random.default_rng(42)
+    th = get_thresholds()
     temp = rng.uniform(10, 42, n)
     umid = rng.uniform(20, 100, n)
     precip = rng.exponential(3, n)
     vento = rng.exponential(15, n)
-    labels = np.array([
-        _classificar_risco(temp[i], umid[i], precip[i], vento[i])
+    y = np.array([
+        score_continuo_normalizado(temp[i], umid[i], precip[i], vento[i], th)
         for i in range(n)
-    ], dtype=int)
-    return np.column_stack([temp, umid, precip, vento]), labels
+    ], dtype=float)
+    return np.column_stack([temp, umid, precip, vento]), y
 
 
-def _records_to_xy(records) -> tuple[np.ndarray, np.ndarray]:
+def _records_to_xy(records, th: AgriThresholds | None = None) -> tuple[np.ndarray, np.ndarray]:
+    t = th or get_thresholds()
     rows: list[list[float]] = []
-    labels: list[int] = []
+    targets: list[float] = []
     for rec in records:
         rows.append(rec.as_features())
-        labels.append(_classificar_risco(
-            rec.temperatura, rec.umidade, rec.precipitacao, rec.vento_kmh,
-        ))
+        targets.append(
+            score_continuo_normalizado(
+                rec.temperatura, rec.umidade, rec.precipitacao, rec.vento_kmh, t,
+            )
+        )
     if len(rows) < 100:
         raise ValueError(f"Poucos registros INMET: {len(rows)}")
-    return np.array(rows, dtype=float), np.array(labels, dtype=int)
+    return np.array(rows, dtype=float), np.array(targets, dtype=float)
 
 
 def _carregar_dados_inmet() -> tuple[np.ndarray, np.ndarray]:
     from app.clients.inmet import InmetClient  # noqa: PLC0415
 
+    th = get_thresholds()
     for path in (_INMET_CACHE, _INMET_SAMPLE):
         if path.exists():
             records = InmetClient.load_cache_csv(path)
             logger.info("INMET cache: %s (%d registros)", path.name, len(records))
-            return _records_to_xy(records)
+            return _records_to_xy(records, th)
     raise FileNotFoundError(
         "Cache INMET ausente. Execute: make build-agri ou build_dataset_agri.command"
     )
@@ -130,11 +139,12 @@ def _carregar_dados_inmet() -> tuple[np.ndarray, np.ndarray]:
 def _carregar_dados_openmeteo(days: int = 90) -> tuple[np.ndarray, np.ndarray]:
     from app.clients.openmeteo import OpenMeteoClient  # noqa: PLC0415
 
+    th = get_thresholds()
     end = date.today() - timedelta(days=1)
     start = end - timedelta(days=days)
     client = OpenMeteoClient()
     rows: list[list[float]] = []
-    labels: list[int] = []
+    targets: list[float] = []
 
     for lat, lon, city in _BRAZIL_LOCATIONS:
         logger.info("Open-Meteo archive: %s (%.2f, %.2f)", city, lat, lon)
@@ -150,20 +160,29 @@ def _carregar_dados_openmeteo(days: int = 90) -> tuple[np.ndarray, np.ndarray]:
                 rec["precipitation"],
                 rec["wind_speed_kmh"],
             ])
-            labels.append(_classificar_risco(
-                rec["temperature"], rec["humidity"],
-                rec["precipitation"], rec["wind_speed_kmh"],
-            ))
+            targets.append(
+                score_continuo_normalizado(
+                    rec["temperature"], rec["humidity"],
+                    rec["precipitation"], rec["wind_speed_kmh"], th,
+                )
+            )
 
     if len(rows) < 100:
         raise ValueError(f"Open-Meteo retornou poucos registros: {len(rows)}")
-    return np.array(rows, dtype=float), np.array(labels, dtype=int)
+    return np.array(rows, dtype=float), np.array(targets, dtype=float)
 
 
-def _save_meta() -> None:
+def _save_meta(extra: dict[str, Any] | None = None) -> None:
     meta_path = MODEL_PATH.parent / "agri_risk_meta.pkl"
+    payload = {
+        "dataset_source": DATASET_SOURCE,
+        "model_type": MODEL_TYPE,
+        "thresholds_source": str(MODEL_PATH.parent / "agri_risk_thresholds.json"),
+    }
+    if extra:
+        payload.update(extra)
     with open(meta_path, "wb") as f:
-        pickle.dump({"dataset_source": DATASET_SOURCE}, f)
+        pickle.dump(payload, f)
 
 
 def _build_training_data(prefer_real: bool = True) -> tuple[np.ndarray, np.ndarray, str]:
@@ -184,22 +203,41 @@ def _build_training_data(prefer_real: bool = True) -> tuple[np.ndarray, np.ndarr
     return X, y, DATASET_SOURCE
 
 
-def treinar_e_salvar(prefer_real: bool = True) -> tuple[RandomForestClassifier, StandardScaler]:
+def _build_regressor():
+    global MODEL_TYPE, _REGRESSOR_BACKEND  # noqa: PLW0603
+    backend = _resolve_regressor_backend()
+    _REGRESSOR_BACKEND = backend
+    if backend == "lightgbm":
+        from lightgbm import LGBMRegressor  # noqa: PLC0415
+        MODEL_TYPE = "lgbm_regressor"
+        return LGBMRegressor(
+            n_estimators=200,
+            max_depth=8,
+            learning_rate=0.05,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=42,
+            verbose=-1,
+        )
+    MODEL_TYPE = "sklearn_hgb_regressor"
+    return HistGradientBoostingRegressor(
+        max_iter=200,
+        max_depth=8,
+        learning_rate=0.05,
+        random_state=42,
+    )
+
+
+def treinar_e_salvar(prefer_real: bool = True) -> tuple[Any, StandardScaler]:
     global DATASET_SOURCE  # noqa: PLW0603
-    logger.info("Treinando AgriRiskModel...")
+    backend = _resolve_regressor_backend()
+    logger.info("Treinando AgriRiskModel (%s)...", backend)
     X, y, source = _build_training_data(prefer_real=prefer_real)
     DATASET_SOURCE = source
 
     scaler = StandardScaler()
     X_sc = scaler.fit_transform(X)
-    model = RandomForestClassifier(
-        n_estimators=200,
-        max_depth=12,
-        min_samples_leaf=5,
-        class_weight="balanced",
-        n_jobs=-1,
-        random_state=42,
-    )
+    model = _build_regressor()
     model.fit(X_sc, y)
 
     with open(MODEL_PATH, "wb") as f:
@@ -207,18 +245,19 @@ def treinar_e_salvar(prefer_real: bool = True) -> tuple[RandomForestClassifier, 
     with open(SCALER_PATH, "wb") as f:
         pickle.dump(scaler, f)
 
-    scores = cross_val_score(model, X_sc, y, cv=5, scoring="accuracy")
+    scores = cross_val_score(model, X_sc, y, cv=5, scoring="r2")
     logger.info(
-        "AgriRiskModel treinado — fonte=%s, acurácia CV: %.3f ± %.3f",
+        "AgriRiskModel treinado — fonte=%s, R2 CV: %.3f ± %.3f",
         DATASET_SOURCE, scores.mean(), scores.std(),
     )
-    _save_meta()
+    _save_meta({"cv_r2_mean": float(scores.mean())})
     return model, scaler
 
 
 class AgriRiskModel:
     def __init__(self):
-        global DATASET_SOURCE  # noqa: PLW0603
+        global DATASET_SOURCE, MODEL_TYPE  # noqa: PLW0603
+        self._thresholds = get_thresholds()
         meta_path = MODEL_PATH.parent / "agri_risk_meta.pkl"
         if MODEL_PATH.exists() and SCALER_PATH.exists():
             with open(MODEL_PATH, "rb") as f:
@@ -227,7 +266,9 @@ class AgriRiskModel:
                 self._scaler = pickle.load(f)
             if meta_path.exists():
                 with open(meta_path, "rb") as f:
-                    DATASET_SOURCE = pickle.load(f).get("dataset_source", "loaded_from_disk")
+                    meta = pickle.load(f)
+                    DATASET_SOURCE = meta.get("dataset_source", "loaded_from_disk")
+                    MODEL_TYPE = meta.get("model_type", "unknown")
             else:
                 DATASET_SOURCE = "loaded_from_disk"
             logger.info("AgriRiskModel carregado de %s", MODEL_PATH)
@@ -243,18 +284,18 @@ class AgriRiskModel:
     ) -> float:
         X = np.array([[temperatura, umidade, precipitacao, vento_kmh]])
         X_sc = self._scaler.transform(X)
-        classe = int(self._model.predict(X_sc)[0])
-        proba = self._model.predict_proba(X_sc)[0]
-
-        # Índice local do predict_proba pode diferir do rótulo original se o modelo
-        # não viu todas as classes no treino (classes_ pode ser [0, 1] sem o 2)
-        known_classes = list(getattr(self._model, "classes_", [0, 1, 2]))
-        local_idx = known_classes.index(classe) if classe in known_classes else 0
-        local_idx = min(local_idx, len(proba) - 1)
-
-        score_base = LABEL_MAP.get(classe, 0.55)
-        confianca = float(proba[local_idx])
-        return float(np.clip(score_base * confianca + score_base * (1 - confianca) * 0.8, 0.0, 1.0))
+        if hasattr(self._model, "predict_proba"):
+            # Legado RandomForestClassifier
+            classe = int(self._model.predict(X_sc)[0])
+            proba = self._model.predict_proba(X_sc)[0]
+            known = list(getattr(self._model, "classes_", [0, 1, 2]))
+            idx = known.index(classe) if classe in known else 0
+            idx = min(idx, len(proba) - 1)
+            base = {0: 0.15, 1: 0.55, 2: 0.85}.get(classe, 0.55)
+            conf = float(proba[idx])
+            return float(np.clip(base * conf + base * (1 - conf) * 0.8, 0.0, 1.0))
+        raw = float(self._model.predict(X_sc)[0])
+        return float(np.clip(raw, 0.0, 1.0))
 
     def predict_detalhado(
         self,
@@ -263,25 +304,11 @@ class AgriRiskModel:
         precipitacao: float,
         vento_kmh: float,
     ) -> dict:
-        X = np.array([[temperatura, umidade, precipitacao, vento_kmh]])
-        X_sc = self._scaler.transform(X)
-        classe = int(self._model.predict(X_sc)[0])
-        proba = self._model.predict_proba(X_sc)[0]
-
-        # classes_ indica quais classes o modelo conhece (pode ter < 3 se dados de treino
-        # não cobriram todas as classes — ex.: apenas [0, 1] sem nenhum HIGH no histórico)
-        known_classes = list(getattr(self._model, "classes_", [0, 1, 2]))
-        class_names = ["LOW", "MEDIUM", "HIGH"]
-        probas: dict[str, float] = {name: 0.0 for name in class_names}
-        for i, cls_idx in enumerate(known_classes):
-            if cls_idx < len(class_names):
-                probas[class_names[cls_idx]] = round(float(proba[i]), 3)
-
-        # Garante que classe está dentro dos limites
-        classe_name = class_names[classe] if classe < len(class_names) else "MEDIUM"
-
+        score = round(self.predict(temperatura, umidade, precipitacao, vento_kmh), 3)
+        classe_name = classe_from_score(score)
+        probas = estimate_probas(score, self._thresholds)
         return {
-            "score": round(self.predict(temperatura, umidade, precipitacao, vento_kmh), 3),
+            "score": score,
             "classe": classe_name,
             "probabilidades": probas,
             "features": {
@@ -291,4 +318,5 @@ class AgriRiskModel:
                 "vento_kmh": vento_kmh,
             },
             "dataset_source": DATASET_SOURCE,
+            "model_type": MODEL_TYPE,
         }

@@ -20,7 +20,14 @@ router = APIRouter()
 weather_service = WeatherService()
 alert_analytics_service = AlertAnalyticsService()
 storm_alerts_service = StormAlertsQueryService()
-_risk_service = RiskAssessmentService()  # singleton — evita reload do modelo a cada request
+_risk_service: RiskAssessmentService | None = None
+
+
+def _get_risk_service() -> RiskAssessmentService:
+    global _risk_service
+    if _risk_service is None:
+        _risk_service = RiskAssessmentService()
+    return _risk_service
 
 
 # ─── Helper Functions ────────────────────────────────────────────────────
@@ -170,12 +177,13 @@ def get_risk_forecast(
     validate_coordinates(lat, lon)
 
     try:
-        resultado = _risk_service.calculate_risk(lat, lon)
+        resultado = _get_risk_service().calculate_risk(lat, lon)
         return RiskForecast(
             risk_score=resultado.score,
             risk_category=resultado.category,
             recommendation=resultado.recommendation,
             timestamp=resultado.timestamp,
+            detalhes=resultado.detalhes,
         )
     except Exception as e:
         raise HTTPException(

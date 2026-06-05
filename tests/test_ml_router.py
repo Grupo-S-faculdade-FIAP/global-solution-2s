@@ -43,6 +43,6 @@ def test_model_info():
     response = client.get("/ml/model/info")
     assert response.status_code == 200
     data = response.json()
-    assert data["modelo"] == "RandomForestClassifier"
+    assert data["modelo"] in ("lgbm_regressor", "sklearn_hgb_regressor", "regressor")
     assert "dataset" in data
     assert "features" in data

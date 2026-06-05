@@ -1,4 +1,4 @@
-.PHONY: install demo test test-api test-storms nasa-capture nasa-capture-aws upload-s3 smoke-aws train-ml fetch-inmet train-ml-inmet export-faostat export-faostat-offline train-yolo build-agri build-agri-ci verify-agri-models
+.PHONY: install demo test test-coverage test-e2e test-frontend test-api test-storms nasa-capture nasa-capture-aws upload-s3 smoke-aws train-ml fetch-inmet train-ml-inmet export-faostat export-faostat-offline train-yolo build-agri build-agri-ci verify-agri-models
 
 VENV_PYTHON := .venv/bin/python
 
@@ -11,14 +11,24 @@ demo:
 	@echo "Iniciando API + dashboard em http://127.0.0.1:8000"
 	cd src && ../$(VENV_PYTHON) -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
-# Suite completa (mesmo comando do CI)
+# Suite completa (mesmo comando do CI; exclui E2E Playwright)
 test:
-	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/ tests/ -q
+	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/ tests/ -q -m "not e2e"
 
 # Suite com cobertura mínima de 82% (meta +20% sobre baseline ~62%)
 test-coverage:
-	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/ tests/ -q \
+	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/ tests/ -q -m "not e2e" \
 		--cov=app --cov-config=../.coveragerc --cov-report=term-missing --cov-fail-under=82
+
+# E2E Playwright — dashboard no browser (requer: python -m playwright install chromium)
+test-e2e:
+	@test -x $(VENV_PYTHON) || (echo "Crie o venv: python3 -m venv .venv && $(VENV_PYTHON) -m pip install -r src/requirements.txt" && exit 1)
+	$(VENV_PYTHON) -m playwright install chromium
+	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/e2e/ -q -m e2e
+
+# Frontend: HTML estático (pytest) + E2E Playwright
+test-frontend: test-e2e
+	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/test_dashboard_html.py -q
 
 test-api:
 	cd src && PYTHONPATH=. ../$(VENV_PYTHON) -m pytest ../tests/test_api_endpoints.py -q
@@ -64,7 +74,7 @@ build-agri:
 	$(VENV_PYTHON) scripts/build_agri_pipeline.py
 
 build-agri-ci:
-	$(VENV_PYTHON) scripts/build_agri_pipeline.py --ci --skip-faostat
+	$(VENV_PYTHON) scripts/build_agri_pipeline.py --ci --skip-faostat --skip-ga
 
 verify-agri-models:
 	$(VENV_PYTHON) scripts/build_agri_pipeline.py --verify-only

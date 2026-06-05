@@ -37,9 +37,46 @@ jobs:
       - name: Run tests with coverage
         working-directory: src
         run: |
-          pytest ../tests/ tests/ -q \
+          pytest ../tests/ tests/ -q -m "not e2e" \
             --cov=app --cov-config=../.coveragerc \
             --cov-report=term-missing --cov-fail-under=82
 
       - name: Verify agri pipeline (CI mode)
         run: python scripts/build_agri_pipeline.py --ci --skip-faostat
+
+  e2e-dashboard:
+    name: playwright dashboard
+    runs-on: ubuntu-latest
+
+    env:
+      DYNAMODB_USE_MOCK: "true"
+      IOT_USE_MOCK: "true"
+      DEMO_MODE: "true"
+      PYTHONPATH: .
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: src/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r src/requirements.txt
+
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run dashboard HTML tests
+        working-directory: src
+        run: pytest ../tests/test_dashboard_html.py -q
+
+      - name: Run Playwright E2E tests
+        working-directory: src
+        run: pytest ../tests/e2e/ -q -m e2e

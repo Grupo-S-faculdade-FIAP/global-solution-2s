@@ -52,6 +52,8 @@ make test
 | INMET client | `tests/test_inmet_client.py` | 2 | Coberto |
 | FAOSTAT export | `tests/test_export_faostat.py` | 7 | Coberto |
 | App health | `src/tests/test_main.py` | 5 | Cobertura básica |
+| Dashboard HTML + Flask BFF | `tests/test_dashboard_html.py` | 13 | Template, static, `/api/*` demo |
+| Dashboard E2E (Playwright) | `tests/e2e/` | 53 | UI, interações, gráficos/mapas, BFF `/api/*` |
 
 ---
 
@@ -62,7 +64,7 @@ make test
 | Sem teste E2E real S3 → Lambda → DynamoDB | Alta | Fluxo crítico depende de AWS; `make smoke-aws` é manual |
 | Sem testes dedicados para `routers/cv.py` com YOLO real | Média | Inferência mockada; regressão de pesos não detectada |
 | `tests/test_weather_service.py` depende de internet | Média | Suite pode falhar offline |
-| Sem testes frontend dashboard (JS) | Baixa | UI validada manualmente; sem Jest/Playwright e2e |
+| Testes E2E Playwright dependem de rede (CDN Chart.js/Leaflet) | Baixa | Job `e2e-dashboard` no CI; `make test-e2e` local |
 | G1 YOLO sem teste de métricas mAP no CI | Média | Meta 70% não enforced automaticamente |
 
 ---
@@ -115,7 +117,9 @@ def test_lambda_handler_success(mock_service):
 ## Running Tests
 
 ```bash
-make test                    # suite completa (89)
+make test                    # suite completa (exclui E2E)
+make test-e2e                # Playwright — dashboard no browser
+make test-frontend           # HTML estático + E2E
 make test-api                # endpoints API
 make test-storms             # storm alerts
 

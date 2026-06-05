@@ -117,26 +117,39 @@ def _demo_risk(lat: float, lon: float) -> dict[str, Any]:
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _DEMO_STORMS_PATH = _PROJECT_ROOT / "data" / "demo" / "storm_alerts.json"
 
-STORM_DETECTOR = None
-try:
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from app.services.storm_detector import StormDetector
-
-    _SRC_ROOT = Path(__file__).resolve().parent.parent
-    YOLO_MODEL_PATH = _SRC_ROOT / "models" / "weights" / "best.pt"
-    if YOLO_MODEL_PATH.exists():
-        STORM_DETECTOR = StormDetector(
-            model_path=YOLO_MODEL_PATH,
-            confidence_threshold=0.4,
-            device="cpu",
-        )
-except Exception:
-    STORM_DETECTOR = None
+# Lazy — evita carregar torch/YOLO na importação do módulo (conflito com LightGBM em testes)
+_storm_detector = None
+_storm_detector_loaded = False
+STORM_DETECTOR = None  # legado; use _get_storm_detector()
 
 _weather_service = None
 _risk_service = None
 _storm_query_service = None
 _agri_risk_model = None
+
+
+def _get_storm_detector():
+    """Carrega StormDetector sob demanda (singleton)."""
+    global _storm_detector, _storm_detector_loaded, STORM_DETECTOR
+    if _storm_detector_loaded:
+        return _storm_detector
+    _storm_detector_loaded = True
+    try:
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from app.services.storm_detector import StormDetector
+
+        _src_root = Path(__file__).resolve().parent.parent
+        yolo_path = _src_root / "models" / "weights" / "best.pt"
+        if yolo_path.exists():
+            _storm_detector = StormDetector(
+                model_path=yolo_path,
+                confidence_threshold=0.4,
+                device="cpu",
+            )
+            STORM_DETECTOR = _storm_detector
+    except Exception:
+        _storm_detector = None
+    return _storm_detector
 
 
 def _get_weather_service():
@@ -313,6 +326,7 @@ def risk_forecast(lat: float, lon: float) -> tuple[Any, str, int]:
                     "risk_category": result.category,
                     "recommendation": result.recommendation,
                     "timestamp": result.timestamp,
+                    "detalhes": result.detalhes,
                 },
                 "live",
             )
@@ -357,7 +371,7 @@ def storms_recent(hours: int = 24) -> tuple[Any, str, int]:
 def detector_status() -> tuple[Any, str, int]:
     model_path = Path(__file__).resolve().parent.parent / "models" / "weights" / "best.pt"
     return _ok({
-        "available": STORM_DETECTOR is not None,
+        "available": _get_storm_detector() is not None,
         "model_exists": model_path.exists(),
         "confidence_threshold": 0.4,
         "model_path": str(model_path),
@@ -414,7 +428,8 @@ def cv_status() -> tuple[Any, str, int]:
 
 
 def detect_storm(body: dict) -> tuple[Any, str, int]:
-    if not STORM_DETECTOR:
+    detector = _get_storm_detector()
+    if not detector:
         return {
             "success": False,
             "error": "Storm Detector não está disponível. Treine o modelo primeiro.",
@@ -426,7 +441,7 @@ def detect_storm(body: dict) -> tuple[Any, str, int]:
         return {"success": False, "error": "Campo obrigatório 'image_url' não fornecido"}, "live", 400
 
     try:
-        result = STORM_DETECTOR.predict(image_url)
+        result = detector.predict(image_url)
         return _ok({
             "success": True,
             "num_detections": result.num_detections,
@@ -455,7 +470,8 @@ def detect_storm(body: dict) -> tuple[Any, str, int]:
 
 
 def batch_detect_storms(body: dict) -> tuple[Any, str, int]:
-    if not STORM_DETECTOR:
+    detector = _get_storm_detector()
+    if not detector:
         return {"success": False, "error": "Storm Detector não disponível"}, "live", 503
 
     image_urls = body.get("image_urls", [])
@@ -463,7 +479,7 @@ def batch_detect_storms(body: dict) -> tuple[Any, str, int]:
         return {"success": False, "error": "Campo obrigatório 'image_urls' não fornecido"}, "live", 400
 
     try:
-        results = STORM_DETECTOR.predict_batch(image_urls)
+        results = detector.predict_batch(image_urls)
         return _ok({
             "success": True,
             "total_images": len(results),
@@ -596,7 +612,8 @@ def _default_nasa_sample_path() -> Path | None:
 
 
 def detect_storm_sample() -> tuple[Any, str, int]:
-    if not STORM_DETECTOR:
+    detector = _get_storm_detector()
+    if not detector:
         return {"success": False, "error": "Storm Detector não disponível"}, "live", 503
 
     sample = _default_nasa_sample_path()
@@ -607,7 +624,7 @@ def detect_storm_sample() -> tuple[Any, str, int]:
         }, "live", 404
 
     try:
-        result = STORM_DETECTOR.predict(str(sample.resolve()))
+        result = detector.predict(str(sample.resolve()))
         return _ok({
             "success": True,
             "sample_image": str(sample.name),

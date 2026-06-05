@@ -2,7 +2,7 @@
 
 **Projeto:** GS2 — Plataforma de inteligência ambiental e agrícola (`global-solutions`)  
 **Disciplina / entrega:** Global Solution (Graduação ON em IA) — FIAP 2026.1  
-**Versão do documento:** 1.4  
+**Versão do documento:** 1.5  
 **Data:** 05/06/2026  
 **Repositório:** [Grupo-S-faculdade-FIAP/global-solution-2s](https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s)
 
@@ -33,7 +33,7 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 | ID | Objetivo | Critério (PROJECT.md) | Status | Evidência / observação |
 |----|----------|----------------------|--------|-------------------------|
 | **G1** | Detectar tempestades / nuvens chuvosas em imagens de satélite com YOLO | Precisão ≥ **70%** no conjunto de validação | **Parcial** | Pipeline v1 (limiar 200 / área 600) gerou **bboxes fantasma** — mAP@0.5 ≈ 0,55 era artefato de UI, não nuvens. Pipeline v2 (letterbox 640 + máscara UI, audit gate): **0 ghost**; retreino `storm-detector-v2` (dataset v2.1): P≈0,27, R≈0,17, mAP@0.5≈0,14 — labels honestos, **abaixo** do 70% do PROJECT.md. Pesos: `src/models/weights/best.pt` (~14 MB). |
-| **G2** | Prever risco agrícola com ML + clima | Modelo + API | **Concluído (MVP+)** | `AgriRiskModel` treinado com **INMET BDMEP** (43,8k registros horários, 5 estações); contexto FAOSTAT em `docs/dados/FAOSTAT_BR_contexto.md`; `RiskAssessmentService`, `/risk/forecast`, `/ml/predict/agricultural-risk`. |
+| **G2** | Prever risco agrícola com ML + clima | Modelo + API | **Concluído (MVP+)** | `AgriRiskModel` (LightGBM + fallback sklearn) treinado com **INMET BDMEP** (43,8k registros horários, 5 estações); limiares otimizados por **AG (DEAP)** → `models/agri_risk_thresholds.json`; contexto FAOSTAT em `docs/dados/FAOSTAT_BR_contexto.md`; `RiskAssessmentService` (ensemble clima + CV + ML), `/risk/forecast`, `/ml/predict/agricultural-risk`; pipeline `make build-agri` / `make verify-agri-models`. |
 | **G3** | Visualizar clima em tempo real no dashboard | Windy API no frontend | **Concluído (demo)** | Widget **Windy** (radar) + **Open-Meteo** via API; mapa regional **Leaflet** com `/map/overlay`. REST Windy não usada (plano free). |
 | **G4** | ESP32 → pipeline cloud AWS | Leituras persistidas | **Concluído (MVP)** | `POST /iot/readings`, `GET /iot/readings/latest`, store mock JSON + DynamoDB via DI; firmware `src/iot/firmware.cpp`; seção IoT no dashboard; BFF `/api/iot/*`; **11** testes em `tests/test_iot_readings.py`. |
 | **G5** | MVP documentado + vídeo ≤ 5 min | Entrega FIAP | **Parcial** | Código MVP ~95% (CHECKLIST); **PDF** e **vídeo** pendentes (ação humana). |
@@ -54,7 +54,7 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 | Mock DynamoDB local (`DYNAMODB_USE_MOCK=true` no `.env`) + seed de alertas e leituras IoT | Concluído |
 | Módulo IoT ESP32 (firmware + API + UI) | Concluído (MVP) |
 | Arquitetura limpa enxuta (Domain → Application → Infrastructure → Interfaces) | Concluído |
-| CI/CD GitHub Actions + OIDC (sem access keys) | Concluído |
+| CI/CD GitHub Actions + OIDC (sem access keys) + cobertura 82% + E2E Playwright | Concluído |
 | Deploy AWS: API Gateway + Lambda Docker + S3 trigger + SNS | Parcial (documentado, smoke manual) |
 | README + estrutura template TIAO-2026 | Parcial (faltam screenshot/diagrama no README) |
 | PDF FIAP + vídeo YouTube não listado | Pendente |
@@ -148,7 +148,7 @@ flowchart TB
 |--------|------------|-------------|
 | API | FastAPI 0.1, Mangum (Lambda) | `src/app/main.py`, routers em `src/app/routers/` |
 | CV | YOLOv5 (PyTorch Hub), OpenCV | `application/cv/detect_storm.py`, `services/storm_detector.py`, `src/models/stormdetector.py` |
-| ML risco | scikit-learn Random Forest + INMET | `src/app/services/agri_risk_model.py`, `risk_assessment.py`, `clients/inmet.py` |
+| ML risco | LightGBM (fallback HistGradientBoosting) + AG limiares (DEAP) + INMET | `agri_risk_model.py`, `agri_threshold_ga.py`, `risk_assessment.py`, `scripts/optimize_agri_thresholds.py`, `models/agri_risk_thresholds.json` |
 | Clima | Open-Meteo (sem API key) | `src/app/clients/openmeteo.py`, `weather_service.py` |
 | Alertas | DynamoDB ou JSON mock | `storm_alerts_store.py`, `data/demo/storm_alerts.json` |
 | IoT | DynamoDB ou JSON mock | `iot_readings_store.py`, `data/demo/iot_readings.json` |
@@ -181,6 +181,7 @@ Rotas `/api/*` registradas no **FastAPI** (prioridade); Flask espelha as mesmas 
 | `core/orchestrator.js` | Orquestração de carregamento |
 | `core/api/endpoints.js` | URLs BFF centralizadas |
 | `sections/iot.js` | Card leituras + histórico IoT |
+| `sections/ml.js` | Risco ensemble (clima + YOLO + ML) com breakdown de componentes |
 | `maps/{region,windy,location}.js` | Mapas Leaflet, Windy, localização |
 
 Documentação de convenções: `.specs/codebase/CONVENTIONS.md`, `INTEGRATIONS.md`.
@@ -194,13 +195,13 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 | Módulo | % estimado | Status | Resumo factual |
 |--------|------------|--------|----------------|
 | **Visão computacional (YOLO)** | ~80% | Em progresso | 93 capturas NASA; 79 img + 79 labels em `train`. Pipeline v2 sem ghost bboxes; mAP@0.5 ≈ 0,14 (honesto). Endpoints CV + `DetectStormUseCase` + inferência Lambda. G1 (70%) não atingido. |
-| **ML risco agrícola** | ~90% | Concluído (MVP) | Modelo INMET + serviço combinando clima, CV e ML. FAOSTAT como contexto econômico. |
+| **ML risco agrícola** | ~95% | Concluído (MVP+) | LightGBM + limiares AG (DEAP); ensemble em `RiskAssessmentService`; breakdown na UI (`sections/ml.js`); artefatos em `models/` (model, scaler, meta, thresholds). |
 | **Ingestão clima (Open-Meteo)** | ~95% | Concluído | `WeatherService`, `GET /weather/current`, Lambda `ingest_weather.py` + testes. |
 | **Dashboard / UX produtor** | ~98% | Concluído | Tema claro/escuro, ES modules, event bus, location-bar com grid, três mapas (região, radar Windy, picker), seção IoT, skeleton KPIs, a11y básica. |
 | **IoT ESP32** | ~75% | Concluído (MVP) | Router `/iot/*`, store mock+DynamoDB, firmware `src/iot/firmware.cpp`, dashboard `sections/iot.js`, BFF `/api/iot/*`. Simulação Wokwi documentada. |
 | **AWS (Lambda, S3, DynamoDB, SNS)** | ~65% | Em progresso | API publicada (`/health`); pipeline S3→Lambda documentado; CI/CD OIDC; DynamoDB real requer `DYNAMODB_USE_MOCK=false`. EventBridge captura NASA pausado. |
-| **Testes automatizados** | ~90% | Concluído (MVP) | **89** testes coletados; **89 passed** (`make test`). CI em `.github/workflows/ci.yml`. |
-| **CI/CD** | ~90% | Concluído | CI em todo push/PR; CD na `main` (build Docker → ECR → Lambda + smoke `/health`). Sem access keys (OIDC). |
+| **Testes automatizados** | ~95% | Concluído (MVP+) | **~220+** testes unit/integration (`make test`, excl. e2e); **53** E2E Playwright (`make test-e2e`); **17** testes HTML estáticos (`test_dashboard_html.py`); gate de cobertura **82%** (`make test-coverage`). CI em `.github/workflows/ci.yml` (jobs `pytest` + `e2e-dashboard`). |
+| **CI/CD** | ~95% | Concluído | CI em todo push/PR: pytest + cobertura 82% + verificação pipeline agrícola (`--ci`); job E2E Playwright separado. CD na `main` (build Docker → ECR → Lambda + smoke `/health`). Sem access keys (OIDC). |
 
 ### 4.1 Endpoints principais (evidência)
 
@@ -253,7 +254,7 @@ Documentação interativa: `http://127.0.0.1:8000/docs` (local). UI produtor: `h
 | D-008 | Open-Meteo sem API key | Simplicidade MVP | Clima |
 | D-009 | DynamoDB (alertas + IoT time-series) | Serverless, TTL | Persistência |
 | D-010 | Lambda para YOLO (não SageMaker) | Custo POC | CV cloud |
-| D-011 | ML correlação simples / RF + INMET | Interpretável, MVP rápido | Risco |
+| D-011 | ML agrícola interpretável (LightGBM + regras + INMET) | Balanceia precisão e explicabilidade no MVP | Risco |
 | D-014 | pydantic-settings + `.env` | Sem segredos no código | Config |
 | D-015 | CI/CD GitHub Actions + OIDC | Credenciais temporárias; deploy auto na main | Lambda gs2-api |
 | D-016 | Clean Architecture enxuta (4 camadas) | Testabilidade; troca mock↔DynamoDB via `container.py` | Toda a API |
@@ -261,6 +262,10 @@ Documentação interativa: `http://127.0.0.1:8000/docs` (local). UI produtor: `h
 | D-018 | `DetectStormUseCase` — routers sem boto3/torch | Separação HTTP vs pipeline | CV |
 | D-019 | Pipeline labels YOLO v2 (letterbox 640 + UI mask + audit gate) | v1 tinha 74/76 bboxes fantasma | CV / dataset |
 | D-020 | Frontend ES modules + partials Jinja + event bus | Manutenibilidade; maps↔sections desacoplados | Dashboard |
+| D-021 | `.env` canônico na raiz do repo | `config.py` carrega raiz primeiro | Config / docs |
+| D-022 | Limiares de risco agrícola otimizados por AG (DEAP) | Balancear classes LOW/MEDIUM/HIGH; persistir em JSON versionado | ML risco |
+| D-023 | E2E dashboard com Playwright (job CI separado) | Validar BFF, gráficos, mapas e interações no browser real | Dashboard / QA |
+| D-024 | Gate de cobertura pytest **82%** | Baseline ~62%; meta +20% no CI e `make test-coverage` | Qualidade |
 | — | Porta única :8000 (Flask montado no FastAPI) | UX demo, `make demo` | Dashboard |
 | — | `DYNAMODB_USE_MOCK=true` no `.env` para demo local | Demo sem AWS | Dev / vídeo |
 
@@ -289,6 +294,7 @@ Detalhes completos: `.specs/project/STATE.md`.
 - [ ] Smoke end-to-end: S3 → Lambda → DynamoDB → SNS (README §3 / `make smoke-aws`)  
 - [ ] Republicar `best.pt` na Lambda (`docs/DEPLOY-LAMBDA.md`)  
 - [ ] Retreino YOLO com dataset v2.1 completo (285 bboxes) e validar mAP  
+- [x] Verificação pipeline agrícola no CI (`build_agri_pipeline.py --ci --skip-faostat`)
 - [ ] (Opcional) EventBridge + `capture_nasa_data.py` periódico — **substituído por** `.github/workflows/nasa-capture.yml` (cron 6 h)
 
 ### 7.2 Fase D — dashboard-producer-ready
@@ -301,6 +307,9 @@ Detalhes completos: `.specs/project/STATE.md`.
 - [x] Location-bar grid + sticky compacto + nav mobile
 - [ ] Screenshots dark/light no README (`docs/assets/dashboard-dark.png`, `docs/assets/dashboard-light.png`)
 - [ ] Confirmar KPIs com `DEMO_MODE=false` + API obrigatória  
+- [x] Testes E2E Playwright (`tests/e2e/`, job `e2e-dashboard` no CI)
+- [x] Testes HTML estáticos do dashboard (`tests/test_dashboard_html.py`)
+- [x] Gate de cobertura 82% (`pytest-cov`, `.coveragerc`, `make test-coverage`)
 
 **Checklist manual (vídeo FIAP / UAT):**
 
@@ -344,6 +353,19 @@ Hiperparâmetros rotulagem v2: `--limiar 185 --area 80` (base); v2.1: limiar 175
 Confiança inferência Lambda/demo: 0,035–0,45 (contexto).  
 Pesos atuais: `src/models/weights/best.pt` (~14 MB).
 
+**Integração YOLO no ensemble (v2 — 05/06/2026):** `_score_cv(lat, lon)` usa alertas geo (`StormAlertsQueryService`, raio 200 km) + captura NASA regional; peso CV atenuado quando `coverage_factor=0`. Retreino offline: `make train-yolo --recall-focus` (dataset v2.1).
+
+### 8.2 Métricas ML risco agrícola (v2)
+
+| Artefato | Valor / observação |
+|----------|-------------------|
+| Dataset treino | INMET BDMEP 43.848 registros (5 estações, 2024) |
+| Modelo runtime | `sklearn_hgb_regressor` (default); `lgbm_regressor` com `AGRI_USE_LIGHTGBM=1` no treino |
+| R² CV (treino INMET) | ≈ 0,95 (LightGBM no build local) |
+| Limiares | `models/agri_risk_thresholds.json` (AG opcional: `scripts/optimize_agri_thresholds.py`) |
+| Ensemble | 40% clima + 40% CV (dinâmico) + 20% ML |
+| Testes | 259 unit (+ E2E); cobertura app ≥ 82% |
+
 ### 8.2 Contagens no repositório (05/06/2026)
 
 | Recurso | Quantidade |
@@ -352,7 +374,10 @@ Pesos atuais: `src/models/weights/best.pt` (~14 MB).
 | `data/model-dataset/images/train` | 79 |
 | `data/model-dataset/labels/train` | 79 |
 | `src/models/weights/best.pt` | presente (~14 MB) |
-| `tests/` (pytest) | 89 coletados, 89 passed (`make test`) |
+| `tests/` (pytest, excl. e2e) | ~220+ funções; gate cobertura 82% (`make test-coverage`) |
+| `tests/e2e/` (Playwright) | 53 coletados (`make test-e2e`) |
+| `tests/test_dashboard_html.py` | 17 testes estáticos (HTML + assets) |
+| `models/agri_risk_thresholds.json` | presente (limiares AG) |
 | `src/iot/firmware.cpp` | presente |
 | `data/demo/iot_readings.json` | presente (mock) |
 
@@ -363,19 +388,32 @@ Pesos atuais: `src/models/weights/best.pt` (~14 MB).
 make demo
 # http://127.0.0.1:8000/ — UI  |  http://127.0.0.1:8000/docs — OpenAPI
 
-# Testes (mesmo comando do CI)
+# Testes unit/integration (mesmo comando do CI; exclui E2E Playwright)
 make test
-# ou: cd src && PYTHONPATH=. ../.venv/bin/pytest ../tests/ tests/ -q
+# ou: cd src && PYTHONPATH=. ../.venv/bin/pytest ../tests/ tests/ -q -m "not e2e"
+
+# Testes com gate de cobertura 82%
+make test-coverage
+
+# E2E Playwright — dashboard no browser (requer: playwright install chromium)
+make test-e2e
 
 # Atalhos Makefile
 make test-api
 make test-storms
+make test-frontend
 
 # Smoke AWS (requer credenciais + .env)
 make smoke-aws
 
-# Pipeline agrícola (INMET + FAOSTAT + retreino ML)
+# Pipeline agrícola (INMET + FAOSTAT + AG limiares + retreino ML)
 make build-agri
+
+# Modo CI (sample INMET commitado, sem download ZIP)
+make build-agri-ci
+
+# Verificar artefatos em models/ (deploy)
+make verify-agri-models
 
 # Apenas INMET ou só retreino
 make fetch-inmet
@@ -419,6 +457,8 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 05/06/2026)
 | IoT ESP32 MVP (API + firmware + UI) | v1 | Concluído |
 | DynamoDB mock local | v1 | Concluído |
 | CI/CD GitHub Actions OIDC | v1 | Concluído |
+| Cobertura pytest 82% + E2E Playwright dashboard | v1 | Concluído |
+| ML risco: AG limiares + LightGBM + `agri_risk_thresholds.json` | v1 | Concluído |
 | Backend Lambda scaffold | v1 | Parcial |
 | PDF + vídeo | v1 | Pendente |
 | YOLO mAP ≥ 70% (G1) | v2 | Pendente |
@@ -455,3 +495,4 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 05/06/2026)
 | 1.2 | 04/06/2026 | Agente / equipe GS2 | Dashboard UI profissional: tema claro/escuro, tokens CSS, polish GitHub-like, a11y, checklist Fase D |
 | 1.3 | 05/06/2026 | Agente / equipe GS2 | IoT MVP (API + firmware + dashboard); Clean Architecture (Domain/Application/Infrastructure/Interfaces); pipeline YOLO v2 e métricas honestas; frontend ES modules + event bus; 84 testes passing; CI/CD OIDC (`docs/CI-CD.md`); G4 concluído MVP |
 | 1.4 | 05/06/2026 | Agente / equipe GS2 | Auditoria documentação: specs, codebase docs, README, CHECKLIST, ROADMAP alinhados ao código; 89 testes; removidas refs Streamlit/IoT stub/CI manual; `.env` canônico na raiz |
+| 1.5 | 05/06/2026 | Agente / equipe GS2 | ML risco: LightGBM + AG limiares (DEAP) + `agri_risk_thresholds.json`; suite expandida (~220+ unit, 53 E2E Playwright, 17 HTML); gate cobertura 82% no CI; jobs `pytest` + `e2e-dashboard`; `make test-coverage`, `make test-e2e`, `make build-agri-ci` |
