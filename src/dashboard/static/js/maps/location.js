@@ -188,6 +188,7 @@ function collapseLocationBar(collapsed) {
   if (wasCompact && !collapsed && state.locationPickerMap) {
     setTimeout(() => state.locationPickerMap.invalidateSize(), 200);
   }
+  window.dispatchEvent(new Event("scroll"));
 }
 
 function resetToSaoPaulo() {
@@ -240,6 +241,19 @@ function requestGeolocation() {
   );
 }
 
+function updateStickyLayoutOffsets() {
+  const topbar = document.querySelector(".topbar");
+  const nav = document.querySelector(".page-nav");
+  const topbarH = topbar?.offsetHeight ?? 52;
+  const navH = nav?.offsetHeight ?? 44;
+  const root = document.documentElement;
+  root.style.setProperty("--topbar-height", `${topbarH}px`);
+  root.style.setProperty("--nav-height", `${navH}px`);
+  root.style.setProperty("--location-sticky-top", `${topbarH + navH}px`);
+  root.style.setProperty("--scroll-anchor-offset", `${topbarH + navH + 12}px`);
+  return { topbarH, navH };
+}
+
 export function initLocationBarUX() {
   const bar = document.getElementById(SEL.locationBar);
   const collapseBtn = document.getElementById("btn-location-collapse");
@@ -266,11 +280,18 @@ export function initLocationBarUX() {
     badge.setAttribute("title", "Expandir painel de região");
   }
 
+  let layoutOffsets = updateStickyLayoutOffsets();
+  window.addEventListener("resize", () => {
+    layoutOffsets = updateStickyLayoutOffsets();
+  }, { passive: true });
+
   const onScroll = () => {
     if (!bar) return;
-    const topbarH = document.querySelector(".topbar")?.offsetHeight || 52;
+    const { topbarH, navH } = layoutOffsets;
     const rect = bar.getBoundingClientRect();
-    bar.classList.toggle("is-stuck", rect.top <= topbarH + 4);
+    const stickLine = topbarH + navH;
+    const isCompact = bar.classList.contains("is-compact");
+    bar.classList.toggle("is-stuck", isCompact && rect.top <= stickLine + 2);
   };
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();

@@ -103,7 +103,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   position: sticky;
-  top: 3.25rem;
+  top: var(--topbar-height, 3.25rem);
   z-index: 95;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -143,17 +143,13 @@ body {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .location-bar:hover { border-color: var(--blue); }
-.location-bar {
-  --location-sticky-top: 6.75rem;
-}
-.location-bar.is-stuck {
+.location-bar.is-compact {
   position: sticky;
-  top: var(--location-sticky-top);
+  top: var(--location-sticky-top, 6.75rem);
   z-index: 90;
-  box-shadow: 0 4px 12px var(--shadow);
 }
 .location-bar.is-compact.is-stuck {
-  --location-sticky-top: 3.35rem;
+  box-shadow: 0 4px 12px var(--shadow);
 }
 .location-bar.is-compact .location-bar-body {
   display: none;
@@ -543,7 +539,7 @@ body {
   margin-top: 1.25rem;
 }
 .section-title:first-child { margin-top: 0; }
-.section-title[id] { scroll-margin-top: 7.5rem; }
+.section-title[id] { scroll-margin-top: var(--scroll-anchor-offset, 7.5rem); }
 
 /* ── KPI Grid (mobile-first) ────────────────────────────────────────── */
 .kpi-grid {
