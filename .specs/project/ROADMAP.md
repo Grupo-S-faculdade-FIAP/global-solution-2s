@@ -1,7 +1,7 @@
 ﻿# Roadmap
 
-**Project:** Global Solutions — Environmental Intelligence  
-**Last updated:** 2026-06-04
+**Project:** Global Solutions — Environmental Intelligence (GS2)
+**Last updated:** 2026-06-05
 
 ---
 
@@ -12,20 +12,20 @@
 
 | Feature | Prioridade | Status | Notas |
 |---------|------------|--------|-------|
-| YOLO NASA (90 img, mAP ≥ 0,50) | P1 | ✅ Done | `best.pt`, limiar 200/área 600 |
-| RiskAssessment + `/risk/forecast` | P1 | ✅ Done | |
-| `/storms/recent` + `/map/overlay` | P1 | ✅ Done | mock JSON até AWS |
+| YOLO NASA pipeline v2 (labels honestos, 0 ghost) | P1 | ✅ Done | 93 capturas, 79 train; mAP@0.5 ≈ 0,14 — abaixo G1 (70%) |
+| RiskAssessment + `/risk/forecast` + INMET/FAOSTAT | P1 | ✅ Done | `AgriRiskModel`, `make build-agri` |
+| `/storms/recent` + `/map/overlay` | P1 | ✅ Done | mock JSON + DynamoDB via DI |
 | Alertas analytics (weekly/hourly/daily/heatmap) | P1 | ✅ Done | Carol |
-| `/dashboard/summary` | P1 | ✅ Done | |
-| Dashboard + Windy + YOLO demo | P1 | ✅ Done | `make demo` |
+| BFF `/api/*` + dashboard ES modules | P1 | ✅ Done | `make demo`, tema claro/escuro |
 | DynamoDB mock local | P1 | ✅ Done | `DYNAMODB_USE_MOCK` |
-| ML risco agrícola (sintético) | P1 | ✅ Done | |
-| Backend FastAPI + Lambda scaffold | P1 | 🟡 Partial | deploy manual |
-| Captura NASA script | P1 | ✅ Done | EventBridge ⏸ |
-| README + estrutura TIAO | P1 | 🟡 Partial | |
+| IoT ESP32 (API + firmware + dashboard) | P1 | ✅ Done | Rodrigo — `src/iot/`, 11 testes |
+| Clean Architecture (Ports & Adapters) | P1 | ✅ Done | Domain → Application → Infrastructure → Interfaces |
+| CI/CD GitHub Actions + OIDC | P1 | ✅ Done | `docs/CI-CD.md` |
+| Backend FastAPI + Lambda deploy | P1 | 🟡 Partial | CD na main; smoke manual pendente |
+| Captura NASA script | P1 | ✅ Done | EventBridge ⏸ AWS |
+| README + estrutura TIAO | P1 | 🟡 Partial | falta screenshot/diagrama no README |
 | PDF entrega | P1 | ❌ Pending | 👤 |
 | Vídeo 5 min | P1 | ❌ Pending | 👤 roteiro em `CHECKLIST_ENTREGA.md` |
-| IoT ESP32 | P2 | ❌ Out of scope | Rodrigo |
 
 ---
 
@@ -33,10 +33,11 @@
 
 | Feature | Status |
 |---------|--------|
-| AWS DynamoDB real (mock off) | Planned |
+| YOLO mAP ≥ 70% (G1) | Planned |
+| AWS DynamoDB real em produção (mock off) | Planned |
 | `/alerts/subscribe` | Planned |
-| ML com dados Open-Meteo históricos | Planned |
-| Mais imagens Windy (novas capturas) | Planned |
+| Mais imagens Windy (novas capturas rotuladas) | Planned |
+| Telemetria IoT contínua (múltiplos dispositivos) | Planned |
 
 ---
 
@@ -45,4 +46,8 @@
 | Feature | Spec |
 |---------|------|
 | Fechamento GS | `.specs/features/gs-closure/spec.md` |
+| Refatoração arquitetura | `.specs/features/architecture-refactor/spec.md` |
+| Dashboard produtor | `.specs/features/dashboard-producer-ready/spec.md` |
+| Qualidade labels YOLO | `.specs/features/yolo-label-quality/spec.md` |
+| INMET + FAOSTAT | `.specs/features/agri-inmet-faostat/spec.md` |
 | Checklist entrega | `.specs/project/CHECKLIST_ENTREGA.md` |
