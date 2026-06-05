@@ -141,7 +141,7 @@ Use quando mudou configuração, mas **não** mudou código em `src/app/`:
 aws lambda update-function-configuration `
   --function-name gs2-api `
   --region us-east-1 `
-  --environment "Variables={ENVIRONMENT=production,S3_BUCKET_IMAGES=satellite-images-gs2,DYNAMODB_TABLE_IOT=iot}"
+  --environment "Variables={ENVIRONMENT=production,S3_BUCKET_IMAGES=satellite-images-gs2,DYNAMODB_TABLE_ALERTS=alerts,DYNAMODB_USE_MOCK=false,SNS_TOPIC_ARN=arn:aws:sns:us-east-1:544785076353:rain-alerts,SNS_ENABLED=true,SNS_ALERT_SUBJECT=Rain Alert — Storm Detected}"
 ```
 
 ---
@@ -170,7 +170,7 @@ No console AWS: **Lambda → Functions → gs2-api → Code / Monitor**.
 [ ] aws lambda update-function-code ...
 [ ] State = Active / LastUpdateStatus = Successful
 [ ] GET /health OK
-[ ] (opcional) upload .jpg no S3 e verificar logs/alertas
+[ ] (opcional) upload .jpg no S3 e verificar logs/alertas/DynamoDB/SNS
 ```
 
 ---

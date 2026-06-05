@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     SNS_TOPIC_ARN: str = ""
+    SNS_ENABLED: bool = True
+    SNS_ALERT_SUBJECT: str = "Rain Alert — Storm Detected"
 
     # ─── DynamoDB ─────────────────────────────────────────────────────────
     DYNAMODB_WEATHER_TABLE: str = "weather_metrics"

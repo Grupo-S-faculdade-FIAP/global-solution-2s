@@ -8,6 +8,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.services.sns_alerts import publish_storm_alert, sns_status
 from app.services.storm_alerts_store import add_alert
 
 
@@ -115,29 +116,6 @@ def _run_yolo_inference(image_path: pathlib.Path, model_path: pathlib.Path) -> l
     return detections
 
 
-def _publish_alert(bucket: str, key: str, detections: list[dict]) -> str | None:
-    """Publishes a rain-alert message to SNS and returns the MessageId."""
-    topic = (settings.SNS_TOPIC_ARN or "").strip()
-    if not topic:
-        logger.info("SNS_TOPIC_ARN not set — skipping SNS publish")
-        return None
-
-    sns = boto3.client("sns", region_name=settings.AWS_REGION)
-    classes_found = ", ".join({d["class"] for d in detections})
-    message = (
-        f"Storm detected in satellite image.\n"
-        f"Source: s3://{bucket}/{key}\n"
-        f"Classes: {classes_found}\n"
-        f"Detections: {len(detections)}"
-    )
-    response = sns.publish(
-        TopicArn=topic,
-        Subject="Rain Alert — Storm Detected",
-        Message=message,
-    )
-    return response["MessageId"]
-
-
 def _persist_cv_alert(bucket: str, key: str, detections: list[dict], message_id: str | None) -> None:
     """Persiste alerta via storm_alerts_store (mock JSON ou DynamoDB AWS)."""
     max_confidence: float | None = None
@@ -181,7 +159,7 @@ def process_s3_image(bucket: str, key: str) -> dict:
     message_id = None
     if detections:
         logger.info("%d storm detections found — sending alert", len(detections))
-        message_id = _publish_alert(bucket, key, detections)
+        message_id = publish_storm_alert(bucket, key, detections)
         _persist_cv_alert(bucket, key, detections, message_id)
         alert_sent = True
     else:
@@ -199,7 +177,13 @@ def process_s3_image(bucket: str, key: str) -> dict:
 @router.get("/status")
 def cv_status():
     """Status do módulo de Computer Vision."""
-    return {"module": "computer_vision", "status": "ready"}
+    return {
+        "module": "computer_vision",
+        "status": "ready",
+        "sns": sns_status(),
+        "s3_bucket_images": settings.S3_BUCKET_IMAGES,
+        "yolo_model_s3_key": settings.YOLO_MODEL_S3_KEY,
+    }
 
 
 @router.post("/detect/storm")
