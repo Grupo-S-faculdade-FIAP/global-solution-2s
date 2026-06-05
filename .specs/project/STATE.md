@@ -12,7 +12,7 @@
 ## Current Focus
 
 **Active feature:** gs-closure (melhorias MVP)
-**Last task completed:** 3 melhorias — DynamoDB unificado + smoke script, YOLO recall-focus (mAP50≈0.45), AgriRiskModel Open-Meteo 10.9k amostras (2026-06-05)
+**Last task completed:** Automação pipeline agrícola — `build_dataset_agri.command`, `scripts/build_agri_pipeline.py`, `make build-agri`, CI/deploy verify, workflow `refresh-agri.yml` (2026-06-05)
 **Next task:** `DYNAMODB_USE_MOCK=false` smoke AWS real; vídeo/PDF FIAP
 **Blockers:** nenhum
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — Relatório de Progresso e Integração (v1.0, 2026-06-04)

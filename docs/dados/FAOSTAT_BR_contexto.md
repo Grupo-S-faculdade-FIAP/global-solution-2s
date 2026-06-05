@@ -15,13 +15,13 @@ O **INMET** calibra o modelo de risco com medições meteorológicas oficiais. O
 
 | Cultura | Ano | Produção (t) | Área colhida (ha) | Rendimento (kg/ha) |
 |---------|-----|--------------|-------------------|---------------------|
-| Café verde | 2024 | 3.387.724 | — | — |
-| Café verde | 2023 | 3.348.510 | — | — |
-| Café verde | 2022 | 3.179.341 | — | — |
-| Café verde | 2021 | 2.985.581 | — | — |
-| Café verde | 2020 | 3.705.719 | — | — |
-| Café verde | 2019 | 3.011.745 | — | — |
-| Café verde | 2018 | 3.552.729 | — | — |
+| Café verde | 2024 | 3.387.724 | 1.943.951 | 1.743 |
+| Café verde | 2023 | 3.348.510 | 1.905.269 | 1.758 |
+| Café verde | 2022 | 3.179.341 | 1.867.345 | 1.703 |
+| Café verde | 2021 | 2.985.581 | 1.832.544 | 1.629 |
+| Café verde | 2020 | 3.705.719 | 1.898.422 | 1.952 |
+| Café verde | 2019 | 3.011.745 | 1.825.300 | 1.650 |
+| Café verde | 2018 | 3.552.729 | 1.863.971 | 1.906 |
 | Milho | 2024 | 114.953.304 | 21.186.813 | 5.426 |
 | Milho | 2023 | 131.949.710 | 22.315.189 | 5.913 |
 | Milho | 2022 | 109.741.960 | 21.066.546 | 5.209 |
@@ -59,4 +59,6 @@ O **INMET** calibra o modelo de risco com medições meteorológicas oficiais. O
 
 ```bash
 make export-faostat
+# offline (sem rede):
+python scripts/export_faostat_brazil.py --offline
 ```

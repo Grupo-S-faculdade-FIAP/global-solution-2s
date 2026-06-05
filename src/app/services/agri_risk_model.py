@@ -123,7 +123,7 @@ def _carregar_dados_inmet() -> tuple[np.ndarray, np.ndarray]:
             logger.info("INMET cache: %s (%d registros)", path.name, len(records))
             return _records_to_xy(records)
     raise FileNotFoundError(
-        "Cache INMET ausente. Execute: make fetch-inmet"
+        "Cache INMET ausente. Execute: make build-agri ou build_dataset_agri.command"
     )
 
 

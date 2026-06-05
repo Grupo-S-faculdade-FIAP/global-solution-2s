@@ -14,11 +14,9 @@ echo "Período: últimos 60 dias (~180 imagens)"
 echo "Destino: data/nasa_captures/"
 echo ""
 
-# Ativa venv se existir
-if [ -f "src/.venv/bin/activate" ]; then
-    source src/.venv/bin/activate
-    echo "✓ venv ativado"
-fi
+# shellcheck source=scripts/activate_venv.sh
+source scripts/activate_venv.sh
+activate_project_venv "$(pwd)" || true
 
 # Instala playwright se necessário
 python3 -c "import playwright" 2>/dev/null || {

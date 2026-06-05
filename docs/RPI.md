@@ -317,6 +317,14 @@ cd src && ../.venv/bin/pytest ../tests/ tests/ -q
 make test-api
 make test-storms
 
+# Pipeline agrícola (INMET + FAOSTAT + retreino ML) — produção e demo
+make build-agri
+# macOS: duplo clique em build_dataset_agri.command (equivalente ao NASA)
+
+# Apenas INMET ou só retreino
+make fetch-inmet
+make train-ml-inmet
+
 # Detecção local YOLO
 cd src && python models/stormdetector.py
 

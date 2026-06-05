@@ -37,3 +37,6 @@ jobs:
       - name: Run tests
         working-directory: src
         run: pytest ../tests/ tests/ -q
+
+      - name: Verify agri pipeline (CI mode)
+        run: python scripts/build_agri_pipeline.py --ci --skip-faostat

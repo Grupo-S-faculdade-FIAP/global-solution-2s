@@ -1254,6 +1254,7 @@ async function updateMLPredictor() {
       document.getElementById("ml-rec").textContent = d.recomendacao || "—";
 
       const chip = document.getElementById("ml-source-chip");
+      const setupHint = document.getElementById("ml-setup-hint");
       if (chip) {
         const src = d.dataset_source || "";
         const label = src.includes("inmet")
@@ -1265,6 +1266,8 @@ async function updateMLPredictor() {
               : src || "—";
         chip.textContent = `Modelo: ${label}`;
         chip.hidden = !src;
+        const needsSetup = src.includes("synthetic") || src.includes("openmeteo") || !src;
+        if (setupHint) setupHint.hidden = !needsSetup;
       }
 
       const p = d.probabilidades || {};

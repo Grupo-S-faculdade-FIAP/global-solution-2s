@@ -1,4 +1,4 @@
-.PHONY: install demo test test-api test-storms nasa-capture upload-s3 smoke-aws train-ml fetch-inmet train-ml-inmet export-faostat train-yolo
+.PHONY: install demo test test-api test-storms nasa-capture upload-s3 smoke-aws train-ml fetch-inmet train-ml-inmet export-faostat export-faostat-offline train-yolo build-agri build-agri-ci verify-agri-models
 
 VENV_PYTHON := .venv/bin/python
 
@@ -38,11 +38,24 @@ train-ml:
 fetch-inmet:
 	$(VENV_PYTHON) scripts/fetch_inmet_bdmep.py --years 2024
 
-train-ml-inmet: fetch-inmet
-	$(VENV_PYTHON) scripts/train_agri_risk_openmeteo.py
+train-ml-inmet:
+	$(VENV_PYTHON) scripts/build_agri_pipeline.py --skip-faostat
 
 export-faostat:
 	$(VENV_PYTHON) scripts/export_faostat_brazil.py
+
+export-faostat-offline:
+	$(VENV_PYTHON) scripts/export_faostat_brazil.py --offline
+
+# Pipeline completo: INMET + FAOSTAT + treino (duplo clique: build_dataset_agri.command)
+build-agri:
+	$(VENV_PYTHON) scripts/build_agri_pipeline.py
+
+build-agri-ci:
+	$(VENV_PYTHON) scripts/build_agri_pipeline.py --ci --skip-faostat
+
+verify-agri-models:
+	$(VENV_PYTHON) scripts/build_agri_pipeline.py --verify-only
 
 train-yolo:
 	$(VENV_PYTHON) src/yolo_training.py --epochs 40 --batch 8 --recall-focus --validate
