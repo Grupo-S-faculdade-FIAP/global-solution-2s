@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-06 (limpeza repo + docs refresh)
+**Last updated:** 2026-06-06 (limpeza docs rodada 3)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -79,6 +79,7 @@
 - 2026-06-05 — Documentação desatualizada (Streamlit, IoT stub, CI manual, 84 testes) corrigida em auditoria única; fonte canônica de env: `.env.example` na raiz.
 - 2026-06-06 — Limpeza repo: removidos `simular_treino.py`, `treinar_modelo.py`, `setup_and_train.command`, `iot_esp32`, `src/.env.example`, scripts WIP 01–04; guia YOLO consolidado em `docs/YOLO-RETREINO.md`; teste `test_map_overlay_filters_bbox` corrigido (timestamps dinâmicos).
 - 2026-06-06 — Limpeza rodada 2: `capture_satellite_data.py` (Windy), `src/Makefile`, `test_api.command`, target `make train-ml`; `build_dataset_agri.command` → `make test-api`.
+- 2026-06-06 — Limpeza rodada 3 (concluída): removidos 5 MDs “Critical Fixes” da raiz (artefatos de sessão; cobertura nos testes); `CORS_EXTRA_ORIGINS` e `XRAY_ENABLED` documentados em `.env.example`; mensagem corrigida em `build_dataset_nasa.command`; métricas atualizadas em `GUIA-DE-AVALIACAO.md`; `LIMPEZA_REPO.md` arquivado (plano executado); `.coverage` no `.gitignore`.
 
 ---
 
@@ -103,6 +104,7 @@
 - [x] Especificar e implementar módulo IoT (ESP32 + sensores)
 - [x] Auditoria e atualização de documentação (specs, README, RPI, codebase docs)
 - [x] Limpeza de arquivos desnecessários + docs refresh (06/06)
+- [x] Limpeza docs rodada 3 — Critical Fixes MDs, .env.example, build_dataset_nasa.command (06/06)
 - [ ] B0: Verificar prazo exato na plataforma FIAP
 - [ ] B3: Definir nome do produto (D-001)
 - [ ] B1: Vídeo ≤ 5 min — Enzo (`tasks.md`)
