@@ -342,6 +342,19 @@ def risk_forecast(lat: float, lon: float) -> tuple[Any, str, int]:
     return _ok(_demo_risk(lat, lon), "fallback")
 
 
+def _geojson_features_to_dicts(features: list[Any]) -> list[dict[str, Any]]:
+    """Serializa GeoJSONFeature (Pydantic) para dict — JSONResponse não aceita modelos."""
+    out: list[dict[str, Any]] = []
+    for feature in features:
+        if hasattr(feature, "model_dump"):
+            out.append(feature.model_dump())
+        elif hasattr(feature, "dict"):
+            out.append(feature.dict())
+        elif isinstance(feature, dict):
+            out.append(feature)
+    return out
+
+
 def map_overlay(bbox: str) -> tuple[Any, str, int]:
     if use_inprocess_backend():
         try:
@@ -350,7 +363,13 @@ def map_overlay(bbox: str) -> tuple[Any, str, int]:
                 features = _get_storm_query_service().map_overlay_features(
                     south, west, north, east, hours=24 * 7
                 )
-                return _ok({"type": "FeatureCollection", "features": features}, "live")
+                return _ok(
+                    {
+                        "type": "FeatureCollection",
+                        "features": _geojson_features_to_dicts(features),
+                    },
+                    "live",
+                )
         except Exception:
             pass
     status, body = backend_get("/map/overlay", params={"bbox": bbox})

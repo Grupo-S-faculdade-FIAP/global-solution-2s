@@ -61,6 +61,25 @@ def _table():
 class DynamoDBStormAlertRepository:
     """Adapter de produção — persiste alertas no DynamoDB."""
 
+    @staticmethod
+    def _validate_inputs(s3_key: str, bucket: str) -> None:
+        """Valida inputs contra path traversal e injeção.
+
+        Raises:
+            ValueError: Se inputs contiverem padrões suspeitos.
+        """
+        # Evitar path traversal
+        if ".." in s3_key or s3_key.startswith("/"):
+            raise ValueError(f"Invalid s3_key (path traversal): {s3_key}")
+        if ".." in bucket or bucket.startswith("/"):
+            raise ValueError(f"Invalid bucket (path traversal): {bucket}")
+        # Validar caracteres básicos (S3 keys podem ser bastante permissivos,
+        # mas firewalls costumam bloquear control characters)
+        if any(c in s3_key for c in ["\n", "\r", "\0", "\x00"]):
+            raise ValueError(f"Invalid s3_key (control characters): {s3_key}")
+        if any(c in bucket for c in ["\n", "\r", "\0", "\x00"]):
+            raise ValueError(f"Invalid bucket (control characters): {bucket}")
+
     def save(
         self,
         *,
@@ -72,6 +91,9 @@ class DynamoDBStormAlertRepository:
         classes: list[str] | None = None,
         confidence: float | None = None,
     ) -> dict[str, Any]:
+        # Validar inputs antes de processar
+        self._validate_inputs(s3_key, bucket)
+
         item = _build_item(
             s3_key=s3_key,
             detection_count=detection_count,
