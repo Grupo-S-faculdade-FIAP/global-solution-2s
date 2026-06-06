@@ -101,13 +101,39 @@ def test_risk_forecast_includes_detalhes(_mock_weather, mock_risk_svc):
 
 
 @patch(
+    "app.routers.data_integration.publish_simulated_alert",
+    return_value="msg-sim-1",
+)
+@patch(
     "app.routers.data_integration.add_alert_from_coords",
     return_value={"alert_id": "sim_1", "confidence": 0.85},
 )
-def test_simulate_alert(_mock):
+def test_simulate_alert(_mock_add, _mock_sns):
     response = client.post(
         "/alerts/simulate",
         json={"lat": -23.55, "lon": -46.63, "confidence": 0.85},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["sns_sent"] is True
+    assert data["sns_message_id"] == "msg-sim-1"
+
+
+def test_sns_status_endpoint():
+    response = client.get("/alerts/sns/status")
+    assert response.status_code == 200
+    assert "configured" in response.json()
+
+
+@patch(
+    "app.routers.data_integration.subscribe_email",
+    return_value={"success": True, "pending_confirmation": True, "message": "ok"},
+)
+def test_subscribe_alert_endpoint(_mock):
+    response = client.post(
+        "/alerts/subscribe",
+        json={"email": "avaliador@fiap.com.br"},
     )
     assert response.status_code == 200
     assert response.json()["success"] is True

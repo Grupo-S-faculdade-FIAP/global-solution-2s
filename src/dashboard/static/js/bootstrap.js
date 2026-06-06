@@ -5,6 +5,7 @@ import { loadAlertsBundle } from "./sections/alerts.js";
 import { loadWeatherData, loadRiskData } from "./sections/climate.js";
 import { loadIoTReadings } from "./sections/iot.js";
 import { loadYOLOStatus, loadRecentStorms } from "./sections/yolo.js";
+import { loadSnsStatus } from "./sections/sns.js";
 import { loadNASAGallery } from "./sections/nasa.js";
 import { loadRegionMap } from "./maps/region.js";
 
@@ -27,6 +28,7 @@ export async function bootstrapDashboard() {
       safeLoad("risk", loadRiskData),
       safeLoad("iot", loadIoTReadings),
       safeLoad("yolo", loadYOLOStatus),
+      safeLoad("sns", loadSnsStatus),
       safeLoad("storms", loadRecentStorms),
       safeLoad("nasa", loadNASAGallery),
       safeLoad("region-map", loadRegionMap),

@@ -127,6 +127,17 @@ def batch_detect_storms():
     return _from_handler(bff.batch_detect_storms(request.get_json() or {}))
 
 
+@app.route("/api/alerts/sns/status")
+def sns_alerts_status():
+    data, source, status = bff.sns_alerts_status()
+    return _json_response(data, data_source=source, status=status)
+
+
+@app.route("/api/alerts/subscribe", methods=["POST"])
+def sns_subscribe():
+    return _from_handler(bff.sns_subscribe(request.get_json() or {}))
+
+
 @app.route("/api/alerts/simulate-detection", methods=["POST"])
 def simulate_storm_detection():
     return _from_handler(bff.simulate_storm_detection(request.get_json() or {}))

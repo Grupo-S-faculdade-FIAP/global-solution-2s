@@ -8,6 +8,11 @@ from app.services.weather_service import WeatherService
 from app.services.alerts_analytics import AlertAnalyticsService
 from app.services.storm_alerts_query import StormAlertsQueryService
 from app.services.storm_alerts_store import add_alert_from_coords
+from app.services.sns_alerts import (
+    publish_simulated_alert,
+    sns_status,
+    subscribe_email,
+)
 from app.services.risk_assessment import RiskAssessmentService
 from app.models.schemas import (
     WeatherResponse,
@@ -245,18 +250,44 @@ class SimulateAlertRequest(BaseModel):
     lon: float = Field(-46.63, ge=-180, le=180)
 
 
+class SubscribeAlertRequest(BaseModel):
+    """Inscrição de e-mail no tópico SNS de alertas."""
+    email: str = Field(..., min_length=3, max_length=254)
+
+
+@router.get(
+    "/alerts/sns/status",
+    tags=["Analytics"],
+    summary="SNS alert configuration status",
+)
+def get_sns_alert_status() -> dict:
+    return sns_status()
+
+
+@router.post(
+    "/alerts/subscribe",
+    tags=["Analytics"],
+    summary="Subscribe email to storm alert SNS topic",
+)
+def post_subscribe_alert(body: SubscribeAlertRequest = Body(...)) -> dict:
+    return subscribe_email(body.email)
+
+
 @router.post(
     "/alerts/simulate",
     tags=["Analytics"],
     summary="Simulate storm alert",
-    description="Grava alerta simulado na tabela DynamoDB alerts",
+    description="Grava alerta simulado na tabela DynamoDB alerts e publica no SNS se configurado",
 )
 def post_simulate_alert(body: SimulateAlertRequest = Body(...)) -> dict:
     item = add_alert_from_coords(body.lat, body.lon, body.confidence)
+    sns_message_id = publish_simulated_alert(body.lat, body.lon, body.confidence)
     return {
         "success": True,
         "alert": item,
         "message": "Alerta simulado registrado",
+        "sns_sent": sns_message_id is not None,
+        "sns_message_id": sns_message_id,
     }
 
 

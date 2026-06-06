@@ -263,7 +263,7 @@ aws dynamodb scan \
 
 Procure um item com `s3_key` = `screenshots/test-storm.jpg`, `alert_type` = `storm_detection` e `detection_count` > 0.
 
-**5. (Opcional) E-mail SNS** — confirme a inscrição no tópico `rain-alerts`. Sem confirmação, o alerta é gravado no DynamoDB mas o e-mail não chega.
+**5. E-mail SNS (pelo dashboard)** — na seção **Alertas por e-mail (AWS SNS)**, inscreva o e-mail e confirme o link enviado pela AWS. Depois use **Simular alerta** para receber o e-mail de teste. Ver `docs/GUIA-DE-AVALIACAO.md`.
 
 **Sanidade da API na nuvem:**
 

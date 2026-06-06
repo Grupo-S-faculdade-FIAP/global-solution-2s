@@ -129,6 +129,28 @@ def test_api_cv_status() -> None:
     assert response.json() == {"loaded": True}
 
 
+def test_api_sns_status() -> None:
+    with patch(
+        "app.routers.dashboard_bff.bff.sns_alerts_status",
+        return_value=({"configured": True, "enabled": True}, "live", 200),
+    ):
+        response = client.get("/api/alerts/sns/status")
+
+    assert response.status_code == 200
+    assert response.json()["configured"] is True
+
+
+def test_api_sns_subscribe() -> None:
+    with patch(
+        "app.routers.dashboard_bff.bff.sns_subscribe",
+        return_value=({"success": True, "message": "ok"}, "live", 200),
+    ):
+        response = client.post("/api/alerts/subscribe", json={"email": "a@b.com"})
+
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+
+
 @pytest.mark.parametrize(
     "path,mock_target,method,body",
     [

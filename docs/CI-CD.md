@@ -259,6 +259,8 @@ aws s3 cp data/model-dataset/images/test/test-storm.jpg \
 | `AccessDenied` no ECR push | Policy ECR incompleta | Incluir `GetAuthorizationToken` + ações de upload |
 | `AccessDenied` no Lambda update (code) | Policy Lambda incompleta | Adicionar `lambda:UpdateFunctionCode` na role |
 | `AccessDenied` no `UpdateFunctionConfiguration` | Policy sem env update | Adicionar `lambda:UpdateFunctionConfiguration` na role `github-actions-gs2-deploy` (ver policy em `docs/iam/`) |
+| Dashboard SNS: inscrição falha na Lambda | Role sem `sns:Subscribe` | Anexar `docs/iam/lambda-execution-sns-policy.json` à execution role da `gs2-api` |
+| Smoke SNS `configured: false` após deploy | `SNS_TOPIC_ARN` ausente no env | Conferir passo *Update Lambda environment* em `deploy-lambda.yml` |
 | Deploy não dispara | Path filter | Mudança fora de `src/app/`, Dockerfile ou requirements-lambda |
 | CI falha com `ModuleNotFoundError: app` | PYTHONPATH | Workflow usa `PYTHONPATH=.` em `src/` |
 | Smoke test timeout | Cold start Lambda | Normal na 1ª invocação (~60–90 s); reexecutar workflow |
