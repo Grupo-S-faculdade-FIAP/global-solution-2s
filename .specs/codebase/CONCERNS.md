@@ -1,7 +1,7 @@
 # Concerns
 
 **Project:** global-solution-2s
-**Mapped on:** 2026-06-05
+**Mapped on:** 2026-06-06
 
 Este documento consolida riscos reais observados no estado atual do código.
 
@@ -30,7 +30,7 @@ Este documento consolida riscos reais observados no estado atual do código.
 | TD-004 | Falta teste E2E S3 trigger real | AWS pipeline | Regressão silenciosa | High | Aberto — smoke manual |
 | TD-005 | CI/CD inexistente | raiz | — | — | **Resolvido** — GitHub Actions OIDC |
 | TD-006 | BFF shim duplicado (dashboard/ + interfaces/) | `bff_handlers.py` | Confusão de camada canônica | Low | Aberto — decisão D-017 |
-| TD-007 | `src/.env.example` legado vs `.env.example` raiz | config | Docs inconsistentes | Low | Mitigado — raiz canônica |
+| TD-007 | `src/.env.example` legado vs `.env.example` raiz | config | Docs inconsistentes | Low | **Resolvido** — `src/.env.example` removido (06/06) |
 | TD-008 | YOLO abaixo meta G1 (70%) | CV pipeline | Avaliação FIAP | High | Aberto — `make train-yolo --recall-focus` |
 | TD-009 | Documentação multi-arquivo | `docs/`, `.specs/`, README | Drift métricas/texto | Medium | **Resolvido** (jun/2026) — `docs-refresh` fases 0–3 |
 

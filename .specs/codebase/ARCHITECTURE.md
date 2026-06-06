@@ -1,7 +1,7 @@
 # Architecture
 
 **Project:** global-solution-2s
-**Mapped on:** 2026-06-05 (v2 — Clean Architecture com Ports & Adapters)
+**Mapped on:** 2026-06-06 (v2 — Clean Architecture com Ports & Adapters)
 
 ---
 

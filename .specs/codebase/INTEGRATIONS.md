@@ -1,6 +1,6 @@
 # Integrações — Global Solutions
 
-**Atualizado:** 2026-06-05
+**Atualizado:** 2026-06-06
 
 ## Dashboard BFF (`/api/*`)
 
@@ -54,9 +54,14 @@ CI usa `make build-agri-ci` (`--skip-ga`) para validar artefatos sem rodar DEAP.
 
 | Etapa | Comando / módulo | Destino |
 |-------|------------------|---------|
-| Captura Playwright | `make nasa-capture` | `data/nasa_captures/` |
+| Captura Playwright | `make nasa-capture` | `data/nasa_captures/` (79 PNG) |
+| Conversão YOLO v2 | `scripts/goes_pipeline/04_nasa_to_yolo.py` | `data/model-dataset/` |
+| Auditoria labels | `scripts/goes_pipeline/06_audit_labels.py --strict` | gate antes do treino |
+| Retreino YOLO | `make train-yolo` → `src/yolo_training.py` | `src/models/weights/best.pt` |
 | Upload S3 + Lambda | `make nasa-capture-aws` / `upload-s3` | S3 → `DetectStormUseCase` |
 | Cron GitHub Actions | `.github/workflows/nasa-capture.yml` | captura a cada 6 h (UTC) |
+
+Guia completo: [docs/YOLO-RETREINO.md](../../docs/YOLO-RETREINO.md)
 
 ### Windy (terceiro)
 

@@ -1,4 +1,4 @@
-.PHONY: install demo test test-coverage test-e2e test-frontend test-api test-storms nasa-capture nasa-capture-aws upload-s3 smoke-aws train-ml fetch-inmet train-ml-inmet export-faostat export-faostat-offline train-yolo build-agri build-agri-ci verify-agri-models
+.PHONY: install demo test test-coverage test-e2e test-frontend test-api test-storms nasa-capture nasa-capture-aws upload-s3 smoke-aws fetch-inmet train-ml-inmet export-faostat export-faostat-offline train-yolo build-agri build-agri-ci verify-agri-models
 
 VENV_PYTHON := .venv/bin/python
 
@@ -53,9 +53,6 @@ upload-s3:
 
 smoke-aws:
 	$(VENV_PYTHON) scripts/smoke_aws_e2e.py
-
-train-ml:
-	$(VENV_PYTHON) scripts/train_agri_risk_openmeteo.py
 
 fetch-inmet:
 	$(VENV_PYTHON) scripts/fetch_inmet_bdmep.py --years 2024

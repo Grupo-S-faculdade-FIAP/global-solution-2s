@@ -2,8 +2,8 @@
 
 **Projeto:** GS2 — Plataforma de inteligência ambiental e agrícola (`global-solutions`)  
 **Disciplina / entrega:** Global Solution (Graduação ON em IA) — FIAP 2026.1  
-**Versão do documento:** 1.6  
-**Data:** 05/06/2026  
+**Versão do documento:** 1.7  
+**Data:** 06/06/2026  
 **Repositório:** [Grupo-S-faculdade-FIAP/global-solution-2s](https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s)
 
 > Documento de status factual, baseado no código, README, `.specs/project/*` e evidências verificáveis no repositório. Itens não confirmados no código estão marcados como **incerto** ou **pendente**.
@@ -194,13 +194,13 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 
 | Módulo | % estimado | Status | Resumo factual |
 |--------|------------|--------|----------------|
-| **Visão computacional (YOLO)** | ~80% | Em progresso | 93 capturas NASA; 79 img + 79 labels em `train`. Pipeline v2 sem ghost bboxes; mAP@0.5 ≈ 0,14 (honesto). Endpoints CV + `DetectStormUseCase` + inferência Lambda. G1 (70%) não atingido. |
+| **Visão computacional (YOLO)** | ~80% | Em progresso | 79 capturas NASA; 79 img + 79 labels em `train`. Pipeline v2 sem ghost bboxes; mAP@0.5 ≈ 0,14 (honesto). Retreino: `make train-yolo` — [YOLO-RETREINO.md](YOLO-RETREINO.md). G1 (70%) não atingido. |
 | **ML risco agrícola** | ~95% | Concluído (MVP+) | LightGBM + limiares AG (DEAP); ensemble em `RiskAssessmentService`; breakdown na UI (`sections/ml.js`); artefatos em `models/` (model, scaler, meta, thresholds). |
 | **Ingestão clima (Open-Meteo)** | ~95% | Concluído | `WeatherService`, `GET /weather/current`, Lambda `ingest_weather.py` + testes. |
 | **Dashboard / UX produtor** | ~98% | Concluído | Tema claro/escuro, ES modules, event bus, location-bar com grid, três mapas (região, radar Windy, picker), seção IoT, skeleton KPIs, a11y básica. |
 | **IoT ESP32** | ~75% | Concluído (MVP) | Router `/iot/*`, store mock+DynamoDB, firmware `src/iot/firmware.cpp`, dashboard `sections/iot.js`, BFF `/api/iot/*`. Simulação Wokwi documentada. |
 | **AWS (Lambda, S3, DynamoDB, SNS)** | ~65% | Em progresso | API publicada (`/health`); pipeline S3→Lambda documentado; CI/CD OIDC; DynamoDB real requer `DYNAMODB_USE_MOCK=false`. EventBridge captura NASA pausado. |
-| **Testes automatizados** | ~95% | Concluído (MVP+) | **~220+** testes unit/integration (`make test`, excl. e2e); **53** E2E Playwright (`make test-e2e`); **17** testes HTML estáticos (`test_dashboard_html.py`); gate de cobertura **82%** (`make test-coverage`). CI em `.github/workflows/ci.yml` (jobs `pytest` + `e2e-dashboard`). |
+| **Testes automatizados** | ~95% | Concluído (MVP+) | **259** testes unit/integration (`make test`, excl. e2e); **53** E2E Playwright (`make test-e2e`); gate de cobertura **82,44%** (`make test-coverage`). CI em `.github/workflows/ci.yml` (jobs `pytest` + `e2e-dashboard`). |
 | **CI/CD** | ~95% | Concluído | CI em todo push/PR: pytest + cobertura 82% + verificação pipeline agrícola (`--ci`); job E2E Playwright separado. CD na `main` (build Docker → ECR → Lambda + smoke `/health`). Sem access keys (OIDC). |
 
 ### 4.1 Endpoints principais (evidência)
@@ -366,17 +366,17 @@ Pesos atuais: `src/models/weights/best.pt` (~14 MB).
 | Ensemble | 40% clima + 40% CV (dinâmico) + 20% ML |
 | Testes | 259 unit (+ E2E); cobertura app ≥ 82% |
 
-### 8.2 Contagens no repositório (05/06/2026)
+### 8.2 Contagens no repositório (06/06/2026)
 
 | Recurso | Quantidade |
 |---------|------------|
-| `data/nasa_captures` (*.png) | 93 |
+| `data/nasa_captures` (*.png) | 79 |
 | `data/model-dataset/images/train` | 79 |
 | `data/model-dataset/labels/train` | 79 |
 | `src/models/weights/best.pt` | presente (~14 MB) |
-| `tests/` (pytest, excl. e2e) | ~220+ funções; gate cobertura 82% (`make test-coverage`) |
+| `tests/` (pytest, excl. e2e) | **259** passed; gate cobertura 82,44% (`make test-coverage`) |
 | `tests/e2e/` (Playwright) | 53 coletados (`make test-e2e`) |
-| `tests/test_dashboard_html.py` | 17 testes estáticos (HTML + assets) |
+| `scripts/goes_pipeline/` | pipeline NASA → YOLO v2 (canônico) |
 | `models/agri_risk_thresholds.json` | presente (limiares AG) |
 | `src/iot/firmware.cpp` | presente |
 | `data/demo/iot_readings.json` | presente (mock) |
@@ -418,6 +418,9 @@ make verify-agri-models
 # Apenas INMET ou só retreino
 make fetch-inmet
 make train-ml-inmet
+
+# Retreino YOLO (pipeline canônico — ver docs/YOLO-RETREINO.md)
+make train-yolo
 
 # Detecção local YOLO
 cd src && python models/stormdetector.py

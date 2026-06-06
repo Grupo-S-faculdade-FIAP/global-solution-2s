@@ -126,7 +126,7 @@ INMET → AgriRiskModel → /risk/forecast → Dashboard
 
 #### 2.4.1 Visão computacional (YOLO)
 
-- 93 capturas NASA GOES; dataset YOLO v2 com **0 bbox fantasma** (audit gate);
+- 79 capturas NASA GOES; dataset YOLO v2 com **0 bbox fantasma** (audit gate);
 - Pesos: `src/models/weights/best.pt`;
 - Inferência local (`stormdetector.py`) e na Lambda via `DetectStormUseCase`;
 - Métricas honestas: P≈0,27, R≈0,17, mAP@0.5≈0,14 — trade-off documentado vs. pipeline v1 corrompido.
@@ -316,7 +316,7 @@ Testes: `make test-coverage` (gate 82%).
 |---------|-------|------------|
 | Testes automatizados | ~220+ unit/integration + 53 E2E | `make test`, `make test-e2e` |
 | Cobertura de código | **82,44%** | Gate no CI (`make test-coverage`) |
-| Capturas NASA | 93 PNG | `data/nasa_captures/` |
+| Capturas NASA | 79 PNG | `data/nasa_captures/` |
 | Dataset YOLO train | 79 img + 79 labels | Pipeline v2, 0 ghost |
 | YOLO mAP@0.5 | ≈ 0,14 | Labels honestos; meta G1 (70%) v2 |
 | INMET registros | 43,8k horários | 5 estações BDMEP |

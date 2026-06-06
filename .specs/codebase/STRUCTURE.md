@@ -1,7 +1,7 @@
 # Structure
 
 **Project:** global-solution-2s
-**Mapped on:** 2026-06-05
+**Mapped on:** 2026-06-06
 
 ---
 
@@ -14,12 +14,11 @@ global-solutions/
 ├── assets/                     # logos e mídia de documentação
 ├── data/
 │   ├── demo/                   # JSON mock (storm_alerts, iot_readings)
-│   ├── goes_raw/               # dados satelitais brutos
 │   ├── model-dataset/          # dataset YOLO (images/labels)
-│   ├── nasa_captures/          # 93 capturas PNG (jun/2026)
+│   ├── nasa_captures/          # 79 capturas PNG (jun/2026)
 │   └── test_results/
 ├── docs/                       # RPI, deploy, CI/CD, guias FIAP
-├── scripts/                    # pipeline agrícola, smoke AWS, goes_pipeline
+├── scripts/                    # goes_pipeline (NASA→YOLO), build_agri, smoke AWS
 ├── src/
 │   ├── app/                    # backend FastAPI (Clean Architecture)
 │   │   ├── application/        # use cases (DetectStormUseCase, …)
@@ -43,8 +42,10 @@ global-solutions/
 │   └── yolo_training.py
 ├── tests/                      # suite principal (259 testes + e2e/)
 ├── yolov5/                     # código-base YOLOv5
-├── .env.example                # config canônica (copiar → .env)
-├── Makefile                    # install, demo, test, build-agri, …
+├── build_dataset_nasa.command  # atalho macOS: captura + dataset YOLO
+├── build_dataset_agri.command  # atalho macOS: pipeline INMET/ML
+├── .env.example                # config canônica na raiz (copiar → .env)
+├── Makefile                    # install, demo, test, build-agri, train-yolo, …
 └── README.md
 ```
 
@@ -56,10 +57,11 @@ global-solutions/
 |------|---------|
 | `README.md` | Contexto geral, execução, links AWS |
 | `docs/RPI.md` | Relatório de progresso FIAP (status formal) |
+| `docs/YOLO-RETREINO.md` | Pipeline canônico de retreino YOLO (meta G1) |
 | `docs/DEPLOY-LAMBDA.md` | Deploy manual Lambda |
 | `docs/CI-CD.md` | GitHub Actions + OIDC |
 | `src/app/main.py` | FastAPI + Mangum + WSGI dashboard |
-| `src/app/core/config.py` | Settings (.env raiz + src/.env) |
+| `src/app/core/config.py` | Settings (`.env` canônico na raiz) |
 | `src/app/container.py` | DI: mock JSON ↔ DynamoDB |
 | `src/app/application/cv/detect_storm.py` | Use case YOLO + SNS + persist |
 | `src/app/interfaces/events/s3_trigger.py` | Handler S3 → use case |

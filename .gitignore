@@ -11,6 +11,9 @@ docs/AWS-STATE.md
 
 # YOLO generated
 data/model-dataset/storm.resolved.yaml
+data/label_review/
+*.cache
+results.csv.bak
 
 # Python
 __pycache__/
@@ -59,8 +62,8 @@ Thumbs.db
 src/package/
 src/lambda_package.zip
 
-# Modelos treinados
-src/models/*.pt
+# Modelos treinados (qualquer subpasta)
+src/models/**/*.pt
 data/models/
 
 # Node/npm (if applicable)
@@ -70,5 +73,8 @@ npm-debug.log
 # Dados gerados (imagens grandes — não commitar)
 data/goes_raw/
 data/nasa_captures/*.png
+data/training-dataset-1000/
 runs/
 yolov5/
+treino.log
+treino_output.log

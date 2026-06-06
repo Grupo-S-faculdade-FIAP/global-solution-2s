@@ -61,7 +61,7 @@ RUN yum install -y mesa-libGL libxcb git --setopt=install_weak_deps=False && \
 # Copy application source (+ BFF dashboard handlers used by dashboard_bff router)
 COPY src/app/ app/
 COPY src/dashboard/ dashboard/
-COPY models/agri_risk_model.pkl models/agri_risk_scaler.pkl models/agri_risk_meta.pkl models/
+COPY models/agri_risk_model.pkl models/agri_risk_scaler.pkl models/agri_risk_meta.pkl models/agri_risk_thresholds.json models/
 
 # Lambda entry point: app.main.handler (Mangum wrapping FastAPI + S3 trigger router)
 CMD ["app.main.handler"]
