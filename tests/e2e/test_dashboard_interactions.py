@@ -102,6 +102,7 @@ def test_nav_highlights_active_section_on_scroll(page: Page) -> None:
         ("#sec-clima", "sec-clima"),
         ("#sec-lavoura", "sec-lavoura"),
         ("#sec-satelite", "sec-satelite"),
+        ("#sec-sns", "sec-sns"),
         ("#sec-historico", "sec-historico"),
         ("#sec-alertas-mapa", "sec-alertas-mapa"),
         ("#sec-radar", "sec-radar"),
@@ -111,6 +112,13 @@ def test_nav_links_scroll_to_sections(page: Page, href: str, section_id: str) ->
     wait_dashboard_ready(page)
     page.locator(f'a.page-nav-link[href="{href}"]').click()
     expect(page.locator(f"#{section_id}")).to_be_in_viewport()
+
+
+def test_sns_section_visible(page: Page) -> None:
+    wait_dashboard_ready(page)
+    expect(page.locator("#sec-sns")).to_be_visible()
+    expect(page.locator("#sns-email")).to_be_visible()
+    expect(page.locator("#sns-status-badge")).not_to_have_text("Verificando…", timeout=15_000)
 
 
 def test_footer_storage_hint_updates(page: Page) -> None:

@@ -77,7 +77,7 @@ pytest tests/ -v
 # 2. Make sure Lambda execution role has these permissions:
 #    - s3:GetObject, s3:PutObject
 #    - dynamodb:PutItem, dynamodb:Query, dynamodb:Scan
-#    - sns:Publish
+#    - sns:Publish, sns:Subscribe, sns:GetTopicAttributes (ver docs/iam/lambda-execution-sns-policy.json)
 #    - xray:PutTraceSegments (if using X-Ray)
 
 # 3. Deploy and test

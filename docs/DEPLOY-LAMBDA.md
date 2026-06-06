@@ -136,6 +136,24 @@ aws logs filter-log-events `
 
 ---
 
+## Permissões IAM — SNS (inscrição + alertas)
+
+A role de execução da Lambda `gs2-api` precisa de **`sns:Publish`**, **`sns:Subscribe`** e **`sns:GetTopicAttributes`** no tópico `rain-alerts`.
+
+Policy de referência: [`docs/iam/lambda-execution-sns-policy.json`](iam/lambda-execution-sns-policy.json)
+
+```powershell
+# Anexar inline policy à role da Lambda (ajuste o nome da role se diferente)
+aws iam put-role-policy `
+  --role-name gs2-lambda-role `
+  --policy-name gs2-sns-storm-alerts `
+  --policy-document file://docs/iam/lambda-execution-sns-policy.json
+```
+
+Sem `sns:Subscribe`, o dashboard retorna erro ao inscrever e-mail. Sem `sns:Publish`, alertas são gravados no DynamoDB mas o e-mail não é enviado.
+
+---
+
 ## Atualizar só variáveis de ambiente (sem rebuild)
 
 Use quando mudou configuração, mas **não** mudou código em `src/app/`:

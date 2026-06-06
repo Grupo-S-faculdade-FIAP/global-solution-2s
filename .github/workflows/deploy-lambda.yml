@@ -27,6 +27,7 @@ env:
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID || '544785076353' }}
   ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || 'gs2-api' }}
   LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME || 'gs2-api' }}
+  API_BASE_URL: ${{ vars.API_BASE_URL || 'https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com' }}
   API_HEALTH_URL: ${{ vars.API_HEALTH_URL || 'https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health' }}
   SNS_TOPIC_ARN: ${{ vars.SNS_TOPIC_ARN || 'arn:aws:sns:us-east-1:544785076353:rain-alerts' }}
 
@@ -136,3 +137,15 @@ jobs:
           done
           echo "Smoke test falhou."
           exit 1
+
+      - name: Smoke test SNS status endpoint
+        run: |
+          SNS_URL="${{ env.API_BASE_URL }}/alerts/sns/status"
+          echo "Smoke test SNS: $SNS_URL"
+          HTTP_CODE=$(curl -s -o /tmp/sns-status.json -w "%{http_code}" "$SNS_URL" || true)
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/sns-status.json
+          test "$HTTP_CODE" = "200"
+          grep -q '"configured"' /tmp/sns-status.json
+          grep -q 'true' /tmp/sns-status.json
+          echo "SNS status OK (Lambda env + IAM sns:Publish/Subscribe)."

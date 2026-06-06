@@ -95,7 +95,7 @@ export async function testStormDetection() {
     const data = await r.json();
 
     if (data.success) {
-      status.textContent = "Alerta registrado!";
+      status.textContent = data.message || "Alerta registrado!";
       document.getElementById("yolo-last-detection").textContent =
         new Date(data.alert.timestamp).toLocaleTimeString("pt-BR");
       document.getElementById("yolo-avg-confidence").textContent =

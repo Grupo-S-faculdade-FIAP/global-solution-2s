@@ -526,6 +526,44 @@ def batch_detect_storms(body: dict) -> tuple[Any, str, int]:
         return {"success": False, "error": str(exc)}, "live", 500
 
 
+def sns_alerts_status() -> tuple[Any, str, int]:
+    if use_inprocess_backend():
+        try:
+            from app.services.sns_alerts import sns_status as _sns_status
+
+            return _ok(_sns_status(), "live")
+        except Exception:
+            pass
+    status, body = backend_get("/alerts/sns/status")
+    if status == 200 and isinstance(body, dict):
+        return _ok(body, "live")
+    return _ok(
+        {"enabled": False, "configured": False, "topic_arn": None, "region": None},
+        "fallback",
+    )
+
+
+def sns_subscribe(body: dict) -> tuple[Any, str, int]:
+    email = (body.get("email") or "").strip()
+    if not email:
+        return {"success": False, "error": "E-mail obrigatório"}, "live", 400
+
+    if use_inprocess_backend():
+        try:
+            from app.services.sns_alerts import subscribe_email
+
+            result = subscribe_email(email)
+            code = 200 if result.get("success") else 400
+            return result, "live", code
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}, "live", 500
+
+    status, payload = backend_post("/alerts/subscribe", json_body={"email": email})
+    if isinstance(payload, dict):
+        return payload, "live", status if status != 200 else (200 if payload.get("success") else 400)
+    return {"success": False, "error": "Falha ao inscrever e-mail"}, "unavailable", 503
+
+
 def simulate_storm_detection(body: dict) -> tuple[Any, str, int]:
     confidence = body.get("confidence", 0.85)
     lat = body.get("lat", -23.55)
@@ -537,6 +575,12 @@ def simulate_storm_detection(body: dict) -> tuple[Any, str, int]:
     )
     if status == 200 and isinstance(payload, dict):
         stored = payload.get("alert", {})
+        sns_sent = bool(payload.get("sns_sent"))
+        base_message = payload.get("message", "Alerta simulado registrado")
+        if sns_sent:
+            base_message += " — e-mail SNS enviado aos inscritos confirmados."
+        elif payload.get("sns_message_id") is None and payload.get("sns_sent") is False:
+            pass  # SNS não configurado — mensagem base
         return _ok({
             "success": True,
             "alert": {
@@ -549,7 +593,9 @@ def simulate_storm_detection(body: dict) -> tuple[Any, str, int]:
                 "message": payload.get("message", "Alerta simulado"),
                 "simulated": True,
             },
-            "message": payload.get("message", "Alerta simulado registrado"),
+            "message": base_message,
+            "sns_sent": sns_sent,
+            "sns_message_id": payload.get("sns_message_id"),
         }, "live")
 
     alert = {

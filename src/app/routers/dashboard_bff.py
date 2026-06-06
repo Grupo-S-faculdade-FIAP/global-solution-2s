@@ -131,6 +131,18 @@ def api_batch_detect(body: dict = Body(default_factory=dict)) -> JSONResponse:
     return JSONResponse(content=data, status_code=status)
 
 
+@router.get("/alerts/sns/status")
+def api_sns_status() -> JSONResponse:
+    data, source, status = bff.sns_alerts_status()
+    return JSONResponse(content=data, status_code=status, headers={"X-Data-Source": source})
+
+
+@router.post("/alerts/subscribe")
+def api_sns_subscribe(body: dict = Body(default_factory=dict)) -> JSONResponse:
+    data, source, status = bff.sns_subscribe(body)
+    return JSONResponse(content=data, status_code=status, headers={"X-Data-Source": source})
+
+
 @router.post("/alerts/simulate-detection")
 def api_simulate_detection(body: Optional[dict] = Body(default=None)) -> JSONResponse:
     data, _, status = bff.simulate_storm_detection(body or {})

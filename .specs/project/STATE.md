@@ -12,7 +12,7 @@
 ## Current Focus
 
 **Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
-**Last task completed:** Limpeza repo rodada 2 (fases 1–2): órfãos Windy, src/Makefile, test_api.command, make train-ml
+**Last task completed:** SNS no dashboard — inscrição e-mail + simular alerta publica no tópico (`.specs/features/sns-dashboard/spec.md`)
 **Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); B7 screenshots opcional
 **Blockers:** nenhum
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.7 (2026-06-06)
@@ -84,7 +84,7 @@
 
 ## Deferred Ideas
 
-- Alertas em tempo real por push/email quando YOLO detectar tempestade
+- ~~Alertas em tempo real por push/email quando YOLO detectar tempestade~~ — SNS e-mail no dashboard (jun/2026); push mobile fora de escopo
 - Cobertura de outros países da América do Sul
 - App mobile para visualização no campo
 - YOLO mAP ≥ 70% (G1) — retreino offline `make train-yolo --recall-focus`; integração geo já no ensemble

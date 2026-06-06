@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SNSStormAlerts",
+      "Effect": "Allow",
+      "Action": [
+        "sns:Publish",
+        "sns:Subscribe",
+        "sns:GetTopicAttributes"
+      ],
+      "Resource": "arn:aws:sns:us-east-1:544785076353:rain-alerts"
+    }
+  ]
+}

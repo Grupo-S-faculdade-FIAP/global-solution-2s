@@ -217,7 +217,9 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 | GET | `/alerts/weekly`, `/hourly`, `/daily`, `/heatmap`, `/summary` | Analytics de alertas |
 | GET | `/alerts/status` | Status do store (mock vs AWS) |
 | GET | `/dashboard/summary` | KPIs agregados |
-| POST | `/alerts/simulate` | Seed de alerta (mock) |
+| GET | `/alerts/sns/status` | Status SNS (tópico configurado) |
+| POST | `/alerts/subscribe` | Inscrição de e-mail no tópico SNS |
+| POST | `/alerts/simulate` | Seed de alerta + publish SNS (se configurado) |
 | GET | `/cv/status`, POST `/cv/detect/storm` | Módulo CV |
 | GET/POST | `/ml/predict/agricultural-risk`, `/ml/status` | ML risco agrícola |
 | GET | `/iot/status` | Status módulo IoT |
@@ -235,7 +237,9 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 | GET | `/api/nasa/capturas` | Galeria de capturas NASA |
 | GET | `/api/iot/status`, `/api/iot/readings/latest` | Status e leituras IoT |
 | POST | `/api/storms/detect`, `/api/storms/batch-detect`, `/api/storms/detect-sample` | Inferência YOLO na demo |
-| POST | `/api/alerts/simulate-detection` | Simula detecção + alerta |
+| GET | `/api/alerts/sns/status` | Status SNS para UI |
+| POST | `/api/alerts/subscribe` | Inscrição e-mail avaliador |
+| POST | `/api/alerts/simulate-detection` | Simula detecção + alerta + SNS |
 
 Documentação interativa: `http://127.0.0.1:8000/docs` (local). UI produtor: `http://127.0.0.1:8000/`.
 
@@ -332,7 +336,7 @@ Detalhes completos: `.specs/project/STATE.md`.
 ### 7.4 Pós-MVP (v2 — ROADMAP)
 
 - ML com histórico Open-Meteo real  
-- `/alerts/subscribe`  
+- ~~`/alerts/subscribe`~~ *(implementado no dashboard — jun/2026)*  
 - Mais imagens Windy com rótulo revisado  
 - YOLO mAP ≥ 70% (G1)  
 - IoT multi-dispositivo + alertas push  

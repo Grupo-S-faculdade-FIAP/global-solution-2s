@@ -17,6 +17,7 @@ import { refreshWindyMap } from "./maps/windy.js";
 import { bootstrapDashboard } from "./bootstrap.js";
 import { finalizeDashboardLoad, setDataSourceChip } from "./core/ui.js";
 import { bindYoloActions } from "./sections/yolo.js";
+import { bindSnsActions } from "./sections/sns.js";
 import { updateChartDefaults, refreshAllCharts, refreshHeatmapColors } from "./charts.js";
 
 function initThemeSubscribers() {
@@ -43,6 +44,7 @@ async function initDashboard() {
     initLocationBarUX();
     bindLocationControls();
     bindYoloActions();
+    bindSnsActions();
     await bootstrapDashboard();
   } catch (err) {
     console.error("Dashboard: falha ao inicializar", err);

@@ -73,3 +73,17 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
 | **Rodrigo Dias Figueiroa** | ESP32, firmware, integração IoT |
 | **Lucas Hideki Oliveira Koyama** | YOLO, pipeline NASA, ML, AWS, README |
 | **Tiago Lindgren Curi** | CI/CD OIDC, review AWS, infraestrutura |
+
+---
+
+## Testar alertas por e-mail (SNS) — pelo dashboard
+
+1. Abra `make demo` → http://127.0.0.1:8000 (ou a URL da API na AWS).
+2. Role até a seção **Alertas por e-mail (AWS SNS)** (atalho na nav: **E-mail SNS**).
+3. Se o badge mostrar **SNS ativo**, informe seu e-mail e clique em **Receber alertas por e-mail**.
+4. Abra a caixa de entrada e clique em **Confirm subscription** no e-mail da Amazon SNS.
+5. Na seção **Detecção de tempestades**, clique em **Simular alerta** — o alerta aparece no dashboard e um e-mail é enviado aos inscritos confirmados.
+
+> **Ambiente local sem AWS:** o badge mostra **SNS indisponível**; a simulação de alerta no dashboard continua funcionando, mas o e-mail só é enviado com `SNS_TOPIC_ARN` configurado na Lambda.
+
+Especificação: `.specs/features/sns-dashboard/spec.md`

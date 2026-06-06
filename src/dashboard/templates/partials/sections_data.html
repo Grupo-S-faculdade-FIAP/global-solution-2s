@@ -31,6 +31,29 @@
   {% endif %}
 </div>
 
+<p class="section-title" id="sec-sns">Alertas por e-mail (AWS SNS)</p>
+<div class="dash-card" id="sns-card">
+  <div class="card-head">
+    <div>
+      <div class="card-head-title"><i class="bi bi-envelope-fill"></i> Notificações por e-mail</div>
+      <div class="card-head-sub">Inscreva-se no tópico SNS e teste com "Simular alerta" acima</div>
+    </div>
+    <span id="sns-status-badge" class="sns-status-badge sns-status-unknown">Verificando…</span>
+  </div>
+  <p class="sns-hint" id="sns-hint">
+    A AWS envia um e-mail de confirmação após a inscrição. Só recebe alertas quem clicar em
+    <strong>Confirm subscription</strong> no e-mail da Amazon SNS.
+  </p>
+  <div class="sns-subscribe">
+    <label for="sns-email">Seu e-mail (avaliador)</label>
+    <div class="sns-subscribe-row">
+      <input type="email" id="sns-email" name="sns-email" placeholder="seu.email@exemplo.com" autocomplete="email" aria-label="E-mail para alertas SNS">
+      <button type="button" id="btn-sns-subscribe" class="btn-action btn-primary">Receber alertas por e-mail</button>
+    </div>
+    <span class="sns-feedback" id="sns-feedback" role="status" aria-live="polite"></span>
+  </div>
+</div>
+
 <p class="section-title">Imagens de satélite — NASA Worldview (GOES-East IR C13)</p>
 <div class="dash-card">
   <div class="card-head">

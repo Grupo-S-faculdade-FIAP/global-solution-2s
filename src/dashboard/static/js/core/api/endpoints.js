@@ -7,6 +7,16 @@ export const dashboard = {
   summary: (days = 30) => fetchApi(`/api/dashboard/summary?days=${days}`),
 };
 
+export const sns = {
+  status: () => fetchApi("/api/alerts/sns/status"),
+  subscribe: (body) =>
+    fetchApi("/api/alerts/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+};
+
 export const alerts = {
   summary: () => fetchApi("/api/alerts/summary"),
   daily: () => fetchApi("/api/alerts/daily"),

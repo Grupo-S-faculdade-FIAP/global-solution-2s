@@ -31,6 +31,8 @@ from dashboard.bff_handlers import (  # noqa: F401
     detect_storm,
     batch_detect_storms,
     simulate_storm_detection,
+    sns_alerts_status,
+    sns_subscribe,
     iot_latest,
     iot_status,
     detect_storm_sample,
