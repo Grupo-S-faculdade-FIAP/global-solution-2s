@@ -43,7 +43,7 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
   - **Lucas / Tiago** — *Cloud:* AWS Lambda, S3 trigger, SNS, DynamoDB
   - **Caroline** — *Análise de dados:* gráficos de alertas por dia da semana, hora, heatmap e tendência 30 dias
 - [x] Demonstração de habilidades técnicas desenvolvidas ao longo do curso;
-  - **Evidência:** `make demo`, ~220+ testes, CI 82% cobertura, E2E Playwright — Tiago / equipe
+  - **Evidência:** `make demo`, 259 testes + 53 E2E Playwright, CI 82% cobertura — Tiago / equipe
 - [x] Integração entre *Machine Learning*, *visão computacional*, *sensores*, automação ou aplicações cognitivas;
   - **Lucas** — *ML:* treino YOLO + `AgriRiskModel` + ensemble em `RiskAssessmentService`
   - **Lucas** — *Visão computacional:* inferência YOLO local e na Lambda
