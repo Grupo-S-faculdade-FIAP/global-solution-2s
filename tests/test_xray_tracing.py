@@ -1,121 +1,62 @@
-"""Tests for X-Ray distributed tracing integration."""
+"""Tests for X-Ray distributed tracing utilities.
 
-import os
-from unittest.mock import MagicMock, patch
+Testa decoradores e funções de rastreamento com X-Ray.
+"""
 
 import pytest
 
-from app.core.tracing import (
-    init_xray,
-    add_trace_metadata,
-    start_subsegment,
-    wrap_lambda_handler,
+from app.core.xray_tracing import (
+    is_xray_available,
+    xray_annotation,
+    xray_metadata,
+    xray_subsegment,
+    xray_traced,
 )
 
 
-def test_xray_disabled():
-    """Testa behavior quando X-Ray está desabilitado."""
-    os.environ["XRAY_ENABLED"] = "false"
-
-    # Estas chamadas não devem causar erro mesmo com X-Ray desabilitado
-    init_xray()
-    add_trace_metadata("key", "value")
-
-    # Subsegmento deve retornar dummy context manager
-    with start_subsegment("test") as ctx:
-        assert ctx is not None
+def test_xray_available():
+    """Testa função is_xray_available()."""
+    result = is_xray_available()
+    assert isinstance(result, bool)
 
 
-def test_xray_enabled_without_sdk():
-    """Testa behavior quando X-Ray está habilitado mas SDK não está instalado."""
-    os.environ["XRAY_ENABLED"] = "true"
-
-    # Deve logar warning mas não falhar
-    with patch("app.core.tracing.logger") as mock_logger:
-        init_xray()
-        # Verifica que warning foi logado (ImportError)
-        # Note: Este teste pode passar ou falhar dependendo se sdk está instalado
+def test_xray_metadata_noop_when_disabled():
+    """Testa que xray_metadata não falha se X-Ray desabilitado."""
+    xray_metadata("test_key", "test_value")
+    xray_metadata("number", 42)
+    xray_metadata("dict", {"a": 1})
 
 
-def test_add_trace_metadata_disabled():
-    """Testa que add_trace_metadata retorna silenciosamente se X-Ray desabilitado."""
-    os.environ["XRAY_ENABLED"] = "false"
-    # Não deve lançar exceção
-    add_trace_metadata("test_key", {"nested": "value"})
+def test_xray_annotation_noop_when_disabled():
+    """Testa que xray_annotation não falha se X-Ray desabilitado."""
+    xray_annotation("test_annotation", "value1")
+    xray_annotation("status", "success")
 
 
-def test_start_subsegment_returns_context():
-    """Testa que start_subsegment sempre retorna um context manager."""
-    os.environ["XRAY_ENABLED"] = "false"
-
-    ctx = start_subsegment("operation")
-    assert hasattr(ctx, "__enter__")
-    assert hasattr(ctx, "__exit__")
-
-    # Deve funcionar como context manager
-    with ctx:
-        pass  # No-op
+def test_xray_subsegment_context_manager():
+    """Testa xray_subsegment como context manager."""
+    with xray_subsegment("test_operation"):
+        x = 1 + 1
+        assert x == 2
 
 
-def test_wrap_lambda_handler_disabled():
-    """Testa que wrap_lambda_handler retorna handler original se X-Ray desabilitado."""
-    os.environ["XRAY_ENABLED"] = "false"
+def test_xray_traced_decorator():
+    """Testa decorador @xray_traced."""
 
-    def my_handler(event, context):
-        return {"status": "ok"}
+    @xray_traced(name="test_function")
+    def add(a, b):
+        return a + b
 
-    wrapped = wrap_lambda_handler(my_handler)
-    # Deveria retornar a mesma função
-    assert wrapped is my_handler
-
-
-def test_wrap_lambda_handler_passthrough():
-    """Testa que handler wrappado passa através argumentos corretamente."""
-    os.environ["XRAY_ENABLED"] = "false"
-
-    def my_handler(event, context):
-        return {
-            "statusCode": 200,
-            "body": f"Received: {event.get('test')}",
-        }
-
-    wrapped = wrap_lambda_handler(my_handler)
-
-    # Simular evento e contexto
-    event = {"test": "data"}
-    context = MagicMock()
-    context.function_name = "test_function"
-
-    result = wrapped(event, context)
-    assert result["statusCode"] == 200
-    assert "data" in result["body"]
+    result = add(2, 3)
+    assert result == 5
 
 
-def test_xray_metadata_with_lambda_context():
-    """Testa adição de metadata com contexto Lambda simulado."""
-    os.environ["XRAY_ENABLED"] = "false"
+def test_xray_traced_decorator_with_exception():
+    """Testa que decorador não mascara exceções."""
 
-    # Criar mock de contexto Lambda
-    context = MagicMock()
-    context.function_name = "storm_detector"
-    context.invoked_function_arn = "arn:aws:lambda:us-east-1:123456789:function:storm_detector"
-    context.request_id = "request-12345"
+    @xray_traced(name="failing_function")
+    def divide(a, b):
+        return a / b
 
-    # Adicionar metadata com contexto
-    add_trace_metadata("lambda_context", {
-        "function_name": context.function_name,
-        "request_id": context.request_id,
-    })
-
-    # Não deve lançar erro
-
-
-@pytest.fixture(autouse=True)
-def reset_xray_env():
-    """Reset XRAY_ENABLED após cada teste."""
-    original = os.environ.get("XRAY_ENABLED")
-    yield
-    if original is None:
-        os.environ.pop("XRAY_ENABLED", None)
-    else:
-        os.environ["XRAY_ENABLED"] = original
+    with pytest.raises(ZeroDivisionError):
+        divide(10, 0)

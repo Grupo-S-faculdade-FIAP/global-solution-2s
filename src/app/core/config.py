@@ -72,6 +72,8 @@ class Settings(BaseSettings):
     YOLO_IOU_THRESHOLD: float = 0.45
     YOLO_INPUT_SIZE: int = 640
     YOLO_MODEL_RETENTION_DAYS: int = 30
+    YOLO_MODEL_VERSION: str = "1.0.0"  # Versão semantica
+    MODEL_VERSIONS_REGISTRY_PATH: str = "~/.cache/model_versions.json"
 
     # ─── DynamoDB — Alertas (CV pipeline) ─────────────────────────────────
     DYNAMODB_TABLE_ALERTS: str = "alerts"

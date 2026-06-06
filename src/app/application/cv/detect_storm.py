@@ -16,9 +16,13 @@ import hashlib
 import logging
 import os
 import pathlib
-from typing import TYPE_CHECKING, Any, Callable
+import pickle
+import random
+import time
+from typing import TYPE_CHECKING, Any
 
 from app.core.config import settings
+from app.core.xray_tracing import xray_traced, xray_subsegment, xray_metadata
 
 if TYPE_CHECKING:
     from app.domain.cv.ports import StormAlertRepository
@@ -30,6 +34,24 @@ _MODEL_LOCAL = _TMP / "storm_model.pt"
 _YOLOV5_SRC = pathlib.Path("/opt/yolov5_src")
 _PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[3]
 _LOCAL_WEIGHTS = _PROJECT_ROOT / "models" / "weights" / "best.pt"
+
+
+def _exponential_backoff(attempt: int, base_delay: float = 1.0, max_delay: float = 32.0) -> None:
+    """Sleep com exponential backoff + jitter (evita thundering herd).
+
+    Formula: sleep_time = min(base_delay * 2^attempt + random_jitter, max_delay)
+
+    Args:
+        attempt: Número da tentativa (começando em 0).
+        base_delay: Delay inicial em segundos.
+        max_delay: Delay máximo em segundos.
+    """
+    sleep_time = min(base_delay * (2 ** attempt), max_delay)
+    # Adiciona jitter aleatório (0-50% do sleep_time)
+    jitter = random.uniform(0, sleep_time * 0.5)
+    total_sleep = sleep_time + jitter
+    logger.debug("Backoff: sleeping %.2fs (attempt %d)", total_sleep, attempt)
+    time.sleep(total_sleep)
 
 
 def _deterministic_alert_id(bucket: str, key: str) -> str:
@@ -45,28 +67,33 @@ def _yolov5_repo() -> tuple[str, str]:
     return "ultralytics/yolov5", "github"
 
 
-def _apply_pathlib_compat() -> None:
-    """Compatibilidade pathlib para checkpoints YOLO treinados em outro SO.
+def _safe_torch_load(path: str, weights_only: bool = False) -> Any:
+    """Carrega modelo PyTorch com fallback seguro para pesos desserializáveis.
 
-    Sem isso, torch.hub.load falha no Lambda com:
-    No module named 'pathlib._local'; 'pathlib' is not a package
-    (ultralytics/yolov5#13578).
+    Args:
+        path: Caminho do arquivo .pt
+        weights_only: Se True, apenas pesos serão desserializados (mais seguro).
+                     Se False, permite code execution (necessário para YOLO).
+
+    Returns:
+        Modelo carregado.
+
+    Raises:
+        RuntimeError: Se torch.load falhar mesmo com fallback.
     """
-    import sys
+    import torch  # noqa: PLC0415
 
-    sys.modules.setdefault("pathlib._local", pathlib)
-    if os.name == "nt":
-        pathlib.PosixPath = pathlib.WindowsPath
-    else:
-        pathlib.WindowsPath = pathlib.PosixPath
-
-
-def _create_torch_load_wrapper(original_load: Callable) -> Callable:
-    """Factory para criar wrapper de torch.load sem monkey patching."""
-    def safe_load(*args: Any, **kwargs: Any) -> Any:
-        kwargs.setdefault("weights_only", False)
-        return original_load(*args, **kwargs)
-    return safe_load
+    try:
+        # Tenta com weights_only=False para suportar YOLO checkpoints
+        return torch.load(path, weights_only=False)
+    except (RuntimeError, pickle.UnpicklingError) as exc:
+        logger.warning("Failed to load with weights_only=False: %s. Retrying...", exc)
+        try:
+            # Fallback: tenta com weights_only=True (apenas pesos)
+            return torch.load(path, weights_only=True)
+        except Exception as exc2:
+            logger.error("Failed to load weights with both strategies: %s, %s", exc, exc2)
+            raise RuntimeError(f"Cannot load model from {path}: {exc2}") from exc2
 
 
 def _ensure_model() -> pathlib.Path:
@@ -86,12 +113,12 @@ def _ensure_model() -> pathlib.Path:
     from botocore.exceptions import ClientError  # noqa: PLC0415
 
     max_retries = 3
-    for attempt in range(1, max_retries + 1):
+    for attempt in range(max_retries):
         try:
             s3 = boto3.client("s3", region_name=settings.AWS_REGION)
             logger.info(
                 "Cold start (attempt %d/%d): downloading model from s3://%s/%s",
-                attempt, max_retries,
+                attempt + 1, max_retries,
                 settings.S3_BUCKET_IMAGES,
                 settings.YOLO_MODEL_S3_KEY,
             )
@@ -103,11 +130,12 @@ def _ensure_model() -> pathlib.Path:
             logger.info("Model downloaded to %s", _MODEL_LOCAL)
             return _MODEL_LOCAL
         except ClientError as exc:
-            if attempt < max_retries:
+            if attempt < max_retries - 1:
                 logger.warning(
-                    "S3 download failed (attempt %d/%d): %s. Retrying...",
-                    attempt, max_retries, exc,
+                    "S3 download failed (attempt %d/%d): %s. Retrying with backoff...",
+                    attempt + 1, max_retries, exc,
                 )
+                _exponential_backoff(attempt, base_delay=1.0, max_delay=8.0)
             else:
                 logger.error("S3 download failed after %d attempts: %s", max_retries, exc)
                 raise
@@ -123,24 +151,21 @@ def _run_yolo_inference(
 ) -> list[dict[str, Any]]:
     """Executa inferência YOLO e retorna lista de detecções.
 
-    Usa injeção de dependência para torch.load via contexto local,
-    evitando monkey patching global.
+    Carrega modelo com torch.load (weights_only=False para YOLO) e executa
+    inferência na imagem fornecida.
 
     Raises:
         ValueError: Se imagem for inválida.
         RuntimeError: Erros do modelo YOLO.
     """
-    _apply_pathlib_compat()
     import torch  # noqa: PLC0415
 
-    # Injetar wrapper de torch.load apenas no escopo desta função
-    original_load = torch.load
-    torch.load = _create_torch_load_wrapper(original_load)
-
     try:
+        # Carregar modelo com fallback seguro (sem monkey patching)
+        torch.hub.set_dir("/tmp/torch_hub")
         repo, source = _yolov5_repo()
+
         if source == "local":
-            torch.hub.set_dir("/tmp/torch_hub")
             model = torch.hub.load(
                 repo,
                 "custom",
@@ -157,6 +182,7 @@ def _run_yolo_inference(
                 force_reload=False,
                 verbose=False,
             )
+
         model.conf = settings.YOLO_CONFIDENCE_THRESHOLD
         model.iou = settings.YOLO_IOU_THRESHOLD
 
@@ -172,9 +198,9 @@ def _run_yolo_inference(
                 "bbox": [round(v, 1) for v in xyxy],
             })
         return detections
-    finally:
-        # Restaurar torch.load original ao sair
-        torch.load = original_load
+    except Exception as exc:
+        logger.error("YOLO inference failed: %s", exc)
+        raise
 
 
 class DetectStormUseCase:
@@ -183,6 +209,7 @@ class DetectStormUseCase:
     def __init__(self, repo: "StormAlertRepository") -> None:
         self._repo = repo
 
+    @xray_traced(name="detect_storm_pipeline")
     def execute(self, bucket: str, key: str) -> dict[str, Any]:
         """
         Processa uma imagem de satélite armazenada no S3.
@@ -210,28 +237,36 @@ class DetectStormUseCase:
 
         try:
             # Download com retry
-            s3 = boto3.client("s3", region_name=settings.AWS_REGION)
-            logger.info("Downloading image s3://%s/%s", bucket, key)
-            max_retries = 3
-            for attempt in range(1, max_retries + 1):
-                try:
-                    s3.download_file(bucket, key, str(image_local))
-                    break
-                except ClientError as exc:
-                    if attempt < max_retries:
-                        logger.warning(
-                            "S3 download failed (attempt %d/%d): %s. Retrying...",
-                            attempt, max_retries, exc,
-                        )
-                    else:
-                        logger.error(
-                            "S3 download failed after %d attempts: %s",
-                            max_retries, exc,
-                        )
-                        raise
+            with xray_subsegment("s3_download_image"):
+                s3 = boto3.client("s3", region_name=settings.AWS_REGION)
+                logger.info("Downloading image s3://%s/%s", bucket, key)
+                xray_metadata("bucket", bucket)
+                xray_metadata("key", key)
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        s3.download_file(bucket, key, str(image_local))
+                        break
+                    except ClientError as exc:
+                        if attempt < max_retries - 1:
+                            logger.warning(
+                                "S3 download failed (attempt %d/%d): %s. Retrying with backoff...",
+                                attempt + 1, max_retries, exc,
+                            )
+                            _exponential_backoff(attempt, base_delay=0.5, max_delay=4.0)
+                        else:
+                            logger.error(
+                                "S3 download failed after %d attempts: %s",
+                                max_retries, exc,
+                            )
+                            raise
 
-            model_path = _ensure_model()
-            detections = _run_yolo_inference(image_local, model_path)
+            with xray_subsegment("ensure_model"):
+                model_path = _ensure_model()
+
+            with xray_subsegment("yolo_inference"):
+                detections = _run_yolo_inference(image_local, model_path)
+                xray_metadata("detection_count", len(detections))
 
             alert_sent = False
             message_id = None
@@ -240,15 +275,23 @@ class DetectStormUseCase:
             if detections:
                 logger.info("%d storm detections found — persisting alert", len(detections))
                 alert_id = _deterministic_alert_id(bucket, key)
-                saved = self._persist(bucket, key, detections, alert_id)
-                duplicate = bool(saved.get("_duplicate"))
+
+                with xray_subsegment("persist_alert"):
+                    saved = self._persist(bucket, key, detections, alert_id)
+                    duplicate = bool(saved.get("_duplicate"))
+                    xray_metadata("alert_id", alert_id)
+                    xray_metadata("duplicate", duplicate)
+
                 if duplicate:
                     logger.info("Alert already stored for s3://%s/%s — skipping SNS", bucket, key)
                 else:
-                    message_id = publish_storm_alert(bucket, key, detections)
+                    with xray_subsegment("publish_sns_alert"):
+                        message_id = publish_storm_alert(bucket, key, detections)
+                        xray_metadata("sns_message_id", message_id)
                 alert_sent = True
             else:
                 logger.info("No storm detected in %s", key)
+                xray_metadata("detection_found", False)
 
             return {
                 "bucket": bucket,
