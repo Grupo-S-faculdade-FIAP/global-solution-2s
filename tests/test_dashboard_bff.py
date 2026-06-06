@@ -15,21 +15,6 @@ _OK = ({"ok": True}, "demo", 200)
 _ERR = ({"error": "unavailable"}, "demo", 503)
 
 
-@pytest.mark.parametrize(
-    "path,mock_target",
-    [
-        ("/api/alerts/weekly?days=7", "alerts_weekly"),
-        ("/api/alerts/hourly?days=14", "alerts_hourly"),
-        ("/api/alerts/daily?days=30", "alerts_daily"),
-        ("/api/alerts/heatmap?days=30", "alerts_heatmap"),
-        ("/api/alerts/summary?days=30", "alerts_summary"),
-        ("/api/dashboard/summary?days=30", "dashboard_summary"),
-        ("/api/weather/current?lat=-23.5&lon=-46.6", "weather_current"),
-        ("/api/risk/forecast?lat=-23.5&lon=-46.6", "risk_forecast"),
-        ("/api/storms/recent?hours=12", "storms_recent"),
-        ("/api/map/overlay?bbox=-25,-50,-20,-40", "map_overlay"),
-    ],
-)
 def test_bff_map_overlay_serializes_geojson() -> None:
     """Regressão: GeoJSONFeature (Pydantic) deve serializar em /api/map/overlay."""
     with patch(
@@ -59,6 +44,21 @@ def test_bff_map_overlay_serializes_geojson() -> None:
     assert data["features"][0]["geometry"]["coordinates"] == [-46.63, -23.55]
 
 
+@pytest.mark.parametrize(
+    "path,mock_target",
+    [
+        ("/api/alerts/weekly?days=7", "alerts_weekly"),
+        ("/api/alerts/hourly?days=14", "alerts_hourly"),
+        ("/api/alerts/daily?days=30", "alerts_daily"),
+        ("/api/alerts/heatmap?days=30", "alerts_heatmap"),
+        ("/api/alerts/summary?days=30", "alerts_summary"),
+        ("/api/dashboard/summary?days=30", "dashboard_summary"),
+        ("/api/weather/current?lat=-23.5&lon=-46.6", "weather_current"),
+        ("/api/risk/forecast?lat=-23.5&lon=-46.6", "risk_forecast"),
+        ("/api/storms/recent?hours=12", "storms_recent"),
+        ("/api/map/overlay?bbox=-25,-50,-20,-40", "map_overlay"),
+    ],
+)
 def test_bff_get_routes_success(path: str, mock_target: str) -> None:
     with patch(f"app.routers.dashboard_bff.bff.{mock_target}", return_value=_OK) as mocked:
         response = client.get(path)
