@@ -187,13 +187,13 @@ class SNSDLQManager:
             )
 
             attrs = response.get("Attributes", {})
-            last_modified = int(attrs.get("LastModifiedTimestamp", 0))
+            last_modified = int(float(attrs.get("LastModifiedTimestamp", 0)))
 
             return {
                 "MessageCount": int(attrs.get("ApproximateNumberOfMessages", 0)),
                 "ApproximateNumberOfMessagesNotVisible": int(attrs.get("ApproximateNumberOfMessagesNotVisible", 0)),
                 "VisibilityTimeout": int(attrs.get("VisibilityTimeout", 0)),
-                "CreatedTimestamp": datetime.fromtimestamp(int(attrs.get("CreatedTimestamp", 0))),
+                "CreatedTimestamp": datetime.fromtimestamp(int(float(attrs.get("CreatedTimestamp", 0)))),
                 "LastModifiedTimestamp": datetime.fromtimestamp(last_modified),
                 "ApproximateNumberOfMessagesDelayed": int(attrs.get("ApproximateNumberOfMessagesDelayed", 0)),
             }

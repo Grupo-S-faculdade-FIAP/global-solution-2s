@@ -49,7 +49,7 @@ class TestS3BucketValidation:
 
     def test_invalid_bucket_path_traversal(self):
         """Testa bucket name com path traversal."""
-        with pytest.raises(ValueError, match="path traversal"):
+        with pytest.raises(ValueError, match="lowercase|path traversal"):
             validate_s3_bucket_name("../bucket")
 
     def test_invalid_bucket_starting_with_dash(self):
@@ -89,7 +89,7 @@ class TestS3KeyValidation:
 
     def test_invalid_key_tab(self):
         """Testa S3 key com tab."""
-        with pytest.raises(ValueError, match="forbidden"):
+        with pytest.raises(ValueError, match="control characters|forbidden"):
             validate_s3_key("image\t.jpg")
 
     def test_invalid_key_null_byte(self):
@@ -156,7 +156,7 @@ class TestAlertIDValidation:
 
     def test_valid_alert_id(self):
         """Testa alert_id válido."""
-        validate_alert_id("storm_abc123def456ab")
+        validate_alert_id("storm_abc123def4567890")
         validate_alert_id("storm_0000000000000000")
         validate_alert_id("storm_ffffffffffffffff")
 

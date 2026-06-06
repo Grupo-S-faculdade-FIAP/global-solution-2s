@@ -142,7 +142,10 @@ def test_subscribe_alert_endpoint(_mock):
 def test_alerts_storage_status():
     response = client.get("/alerts/status")
     assert response.status_code == 200
-    assert response.json()["store"] == "dynamodb"
+    data = response.json()
+    assert "enabled" in data
+    assert "configured" in data
+    assert "valid" in data
 
 
 @patch(

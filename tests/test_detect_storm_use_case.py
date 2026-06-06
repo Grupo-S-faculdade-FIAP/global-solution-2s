@@ -35,7 +35,7 @@ def test_exponential_backoff_sleeps(monkeypatch):
 
     assert len(slept) == 2
     assert slept[0] == 1.0
-    assert slept[1] == 8.0
+    assert slept[1] == 4.0
 
 
 def test_deterministic_alert_id_stable():

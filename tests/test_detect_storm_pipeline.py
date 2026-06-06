@@ -48,13 +48,17 @@ class TestExponentialBackoff:
 class TestDetectStormWithBackoff:
     """Testes de integração com retry e backoff."""
 
-    @patch("app.application.cv.detect_storm.boto3.client")
-    def test_ensure_model_retries_with_backoff(self, mock_boto3):
+    @patch("boto3.client")
+    def test_ensure_model_retries_with_backoff(self, mock_boto3, monkeypatch, tmp_path):
         """Testa retry com backoff ao baixar modelo."""
         from botocore.exceptions import ClientError
-        from app.application.cv.detect_storm import _ensure_model
+        from app.application.cv import detect_storm as ds
 
-        # Mock que falha 2 vezes e sucesso na 3ª
+        model_path = tmp_path / "storm_model.pt"
+        monkeypatch.setattr(ds, "_MODEL_LOCAL", model_path)
+        monkeypatch.setattr(ds, "_LOCAL_WEIGHTS", tmp_path / "missing.pt")
+        monkeypatch.setattr(ds, "_exponential_backoff", lambda *args, **kwargs: None)
+
         mock_s3 = MagicMock()
         error = ClientError(
             {"Error": {"Code": "ServiceUnavailable"}},
@@ -63,16 +67,9 @@ class TestDetectStormWithBackoff:
         mock_s3.download_file.side_effect = [error, error, None]
         mock_boto3.return_value = mock_s3
 
-        start = time.time()
-        try:
-            _ensure_model()
-        except Exception:
-            pass
-        elapsed = time.time() - start
-
-        # Deve ter feito waits para backoff (pelo menos 1 segundo total)
-        # (0 + jitter) + (1 + jitter) = ~1 segundo mínimo
-        assert elapsed > 0.5  # Algum backoff ocorreu
+        result = ds._ensure_model()
+        assert result == model_path
+        assert mock_s3.download_file.call_count == 3
 
 
 if __name__ == "__main__":
