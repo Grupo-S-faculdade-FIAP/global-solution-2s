@@ -14,7 +14,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import numpy as np
-from deap import algorithms, base, creator, tools
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
 try:
@@ -253,7 +252,9 @@ def optimize_thresholds(
     seed: int = 42,
     sample_size: int = 3000,
 ) -> AgriThresholds:
-    """Executa AG e retorna melhores limiares."""
+    """Executa AG e retorna melhores limiares (requer pacote `deap` — só offline/CI)."""
+    from deap import algorithms, base, creator, tools  # noqa: PLC0415
+
     random.seed(seed)
     np.random.seed(seed)
 

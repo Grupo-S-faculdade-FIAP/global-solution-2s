@@ -70,7 +70,9 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
   - **CI/CD (GitHub Actions + OIDC):** [docs/CI-CD.md](docs/CI-CD.md)
   - **Wiki AWS:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki/AWS%E2%80%90STATE
 
-- **`src/`**: Todo o código-fonte desenvolvido — API FastAPI (routers de CV, IoT e Dashboard), scripts de treinamento YOLO, notebooks de exploração e análise de dados, código para ESP32 e modelos serializados.
+- **`src/`**: Código-fonte — API FastAPI (Clean Architecture), dashboard Flask/HTML, firmware ESP32 (`src/iot/`), modelos YOLO (`src/models/`) e treino (`src/yolo_training.py`).
+
+- **`scripts/`**: Pipelines operacionais — `goes_pipeline/` (NASA → YOLO), INMET/FAOSTAT (`build_agri_pipeline.py`), smoke AWS (`smoke_aws_e2e.py`).
 
 - **`data/`**: Capturas NASA (`nasa_captures/`), dataset YOLO (`model-dataset/`), dados demo (`demo/`), cache INMET (`weather/inmet/`).
 
@@ -98,18 +100,19 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 **Observações gerais:**
 - Este projeto foi desenvolvido no contexto da Global Solution da FIAP (Graduação ON em IA)
 
-### Status do projeto — 2026-06-05
+### Status do projeto — 2026-06-06
 
 | Área | Evidência |
 |------|-----------|
 | Testes unit/integration | **259 passed** (`make test`) |
 | Cobertura CI | **82,44%** (`make test-coverage`) |
 | Testes E2E Playwright | **53** (`make test-e2e`) |
-| Capturas NASA | 93 PNG em `data/nasa_captures` |
+| Capturas NASA | 79 PNG em `data/nasa_captures` |
 | Dataset YOLO train | 79 imagens + 79 labels (`data/model-dataset/`) |
 | Pipeline labels | v2 — letterbox 640, 0 bbox fantasma; mAP@0.5 ≈ 0,14 (abaixo meta G1 70%) |
+| Retreino YOLO | `make train-yolo` + [docs/YOLO-RETREINO.md](docs/YOLO-RETREINO.md) |
 | ML risco | INMET + AG limiares + ensemble geo-aware — `make build-agri` |
-| IoT | ESP32 DHT22 + API + dashboard + 11 testes |
+| IoT | ESP32 DHT22 + API + dashboard + 11 testes — firmware em `src/iot/firmware.cpp` |
 | CI/CD | GitHub Actions + OIDC — [docs/CI-CD.md](docs/CI-CD.md) |
 | Arquitetura | Clean Architecture — [docs/RPI.md](docs/RPI.md) |
 

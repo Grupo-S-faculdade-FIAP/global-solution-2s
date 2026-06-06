@@ -1,5 +1,6 @@
 """Tests for storm alerts query service (API-01–05)."""
 
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -67,20 +68,21 @@ def test_recent_detections_returns_mapped_items(mock_boto3, _mock_off):
 @patch("app.services.storm_alerts_store.use_mock_store", return_value=False)
 @patch("app.services.storm_alerts_store.boto3")
 def test_map_overlay_filters_bbox(mock_boto3, _mock_off):
+    now = datetime.now(timezone.utc)
     mock_table = MagicMock()
     mock_boto3.resource.return_value.Table.return_value = mock_table
     mock_table.scan.return_value = {
         "Items": [
             {
                 "alert_type": "storm_detection",
-                "timestamp": "2026-06-04T15:00:00Z",
+                "timestamp": (now - timedelta(hours=12)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "alert_id": "a1",
                 "s3_key": "nasa_brasil_sudeste_x.png",
                 "detection_count": 1,
             },
             {
                 "alert_type": "storm_detection",
-                "timestamp": "2026-06-04T14:00:00Z",
+                "timestamp": (now - timedelta(hours=13)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "alert_id": "a2",
                 "s3_key": "nasa_americas_x.png",
                 "detection_count": 1,

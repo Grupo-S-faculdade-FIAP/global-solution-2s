@@ -62,7 +62,9 @@ make smoke-aws        # smoke S3 → Lambda → DynamoDB
 make nasa-capture     # captura NASA (Playwright)
 ```
 
-Venv esperado: `.venv/` na raiz do repo.
+Venv esperado: `.venv/` na raiz do repo. Config: `.env.example` → `.env` na **raiz** (não usar `src/.env.example` — removido).
+
+**Retreino YOLO:** `docs/YOLO-RETREINO.md` · `make train-yolo` · `scripts/goes_pipeline/`
 
 ---
 

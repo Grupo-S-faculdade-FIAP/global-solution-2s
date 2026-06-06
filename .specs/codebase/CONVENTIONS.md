@@ -1,5 +1,7 @@
 # Convenções — Global Solutions
 
+**Atualizado:** 2026-06-06
+
 ## Frontend (dashboard)
 
 Stack: **vanilla JS (ES modules)** + **Jinja partials** + **CSS tokens** + **BFF Flask/FastAPI** em `/api/*`.

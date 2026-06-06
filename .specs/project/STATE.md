@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-05 (pipeline risco v2 + YOLO geo)
+**Last updated:** 2026-06-06 (limpeza repo + docs refresh)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -12,10 +12,10 @@
 ## Current Focus
 
 **Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
-**Last task completed:** docs-refresh completo (fases 0–3) — 259 testes, 82,44% cov; todos os docs alinhados
+**Last task completed:** Limpeza repo rodada 2 (fases 1–2): órfãos Windy, src/Makefile, test_api.command, make train-ml
 **Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); B7 screenshots opcional
 **Blockers:** nenhum
-**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.6 (2026-06-05)
+**RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.7 (2026-06-06)
 
 ---
 
@@ -77,6 +77,8 @@
 - 2026-06-05 — Gaps técnicos resolvidos: IoT store + router implementados (DynamoDB/mock), confiança YOLO real salva nos alertas, firmware movido para `src/iot/firmware.cpp` apontando para API GS2, seção IoT no dashboard (card leituras + histórico), BFF `/api/iot/*`, 11 testes IoT em `tests/test_iot_readings.py`.
 - 2026-06-05 — Arquitetura limpa aplicada em 4 fases: Ports, Adapters, DetectStormUseCase, S3TriggerHandler, container.py, interfaces/http/bff/. Suite atual: **259 testes** (`make test`) + **53 E2E** + cobertura **82%**.
 - 2026-06-05 — Documentação desatualizada (Streamlit, IoT stub, CI manual, 84 testes) corrigida em auditoria única; fonte canônica de env: `.env.example` na raiz.
+- 2026-06-06 — Limpeza repo: removidos `simular_treino.py`, `treinar_modelo.py`, `setup_and_train.command`, `iot_esp32`, `src/.env.example`, scripts WIP 01–04; guia YOLO consolidado em `docs/YOLO-RETREINO.md`; teste `test_map_overlay_filters_bbox` corrigido (timestamps dinâmicos).
+- 2026-06-06 — Limpeza rodada 2: `capture_satellite_data.py` (Windy), `src/Makefile`, `test_api.command`, target `make train-ml`; `build_dataset_agri.command` → `make test-api`.
 
 ---
 
@@ -100,6 +102,7 @@
 - [x] Implementar T-01 a T-12 (MVP integrado — ver ROADMAP)
 - [x] Especificar e implementar módulo IoT (ESP32 + sensores)
 - [x] Auditoria e atualização de documentação (specs, README, RPI, codebase docs)
+- [x] Limpeza de arquivos desnecessários + docs refresh (06/06)
 - [ ] B0: Verificar prazo exato na plataforma FIAP
 - [ ] B3: Definir nome do produto (D-001)
 - [ ] B1: Vídeo ≤ 5 min — Enzo (`tasks.md`)

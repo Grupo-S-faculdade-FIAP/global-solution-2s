@@ -88,6 +88,9 @@ def _run_yolo_inference(
     """Executa inferência YOLO e retorna lista de detecções."""
     import torch  # noqa: PLC0415
 
+    # Checkpoints treinados no Windows usam PosixPath no pickle (stormdetector.py).
+    pathlib.PosixPath = pathlib.WindowsPath
+
     _allow_yolo_checkpoint_load()
     repo, source = _yolov5_repo()
     if source == "local":
