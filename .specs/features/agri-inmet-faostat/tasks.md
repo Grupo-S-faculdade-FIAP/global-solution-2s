@@ -1,5 +1,7 @@
 # Tasks — agri-inmet-faostat
 
+**Status: Arquivado — todas as tasks concluídas (jun/2026)**
+
 | # | Task | Req | Status |
 |---|------|-----|--------|
 | T-01 | `InmetClient` + parser BDMEP CSV | AGRI-01, AGRI-04 | done |

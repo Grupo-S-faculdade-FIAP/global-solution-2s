@@ -51,7 +51,7 @@ Documentação: [docs/README.md](docs/README.md) · codebase: `.specs/codebase/`
 ```bash
 make install          # dependências
 make demo             # API + dashboard → http://127.0.0.1:8000
-make test             # 259 testes (excl. E2E)
+make test             # 440 testes (excl. E2E)
 make test-coverage    # gate cobertura 82%
 make test-e2e         # 53 testes Playwright
 make test-api         # endpoints REST

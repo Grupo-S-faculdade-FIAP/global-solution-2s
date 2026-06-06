@@ -26,7 +26,7 @@
 | ML risco v2 (ensemble geo + AG limiares) | P1 | ✅ Done | `risk-pipeline-v2`, `ml.js` |
 | E2E Playwright + cobertura 82% | P1 | ✅ Done | `make test-e2e`, CI job `e2e-dashboard` |
 | Docs alinhados ao código (docs-refresh) | P1 | ✅ Done | fases 0–3; cobertura 82,44% verificada |
-| README + estrutura TIAO | P1 | 🟡 Partial | DOC-1: NASA, ML, 259 testes; falta screenshot |
+| README + estrutura TIAO | P1 | 🟡 Partial | DOC-1: NASA, ML, 440 testes; falta screenshot |
 | PDF entrega | P1 | ❌ Pending | 👤 esqueleto em `docs/PDF-ENTREGA-ESQUELETO.md` |
 | Vídeo 5 min | P1 | ❌ Pending | 👤 roteiro em `CHECKLIST_ENTREGA.md` |
 
@@ -38,7 +38,7 @@
 |---------|--------|
 | YOLO mAP ≥ 70% (G1) | Planned |
 | AWS DynamoDB real em produção (mock off) | Planned |
-| `/alerts/subscribe` | Planned |
+| SNS e-mail no dashboard | ✅ Done (jun/2026) |
 | Mais imagens Windy (novas capturas rotuladas) | Planned |
 | Telemetria IoT contínua (múltiplos dispositivos) | Planned |
 
@@ -55,4 +55,5 @@
 | Dashboard produtor | `dashboard-producer-ready/spec.md` | Done |
 | Qualidade labels YOLO | `yolo-label-quality/spec.md` | Done |
 | INMET + FAOSTAT | `agri-inmet-faostat/spec.md` | Done |
+| SNS Dashboard (inscrição e-mail) | `sns-dashboard/spec.md` | Done |
 | Checklist entrega | `.specs/project/CHECKLIST_ENTREGA.md` | Ativo |

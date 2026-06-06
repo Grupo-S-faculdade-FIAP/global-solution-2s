@@ -32,7 +32,7 @@ global-solutions/
 │   │   ├── lambdas/            # ingest_weather
 │   │   ├── models/             # Pydantic schemas
 │   │   ├── routers/            # endpoints HTTP
-│   │   └── services/           # weather, agri risk, storm detector
+│   │   └── services/           # weather, agri risk, storm detector, sns alerts
 │   ├── dashboard/              # Flask UI + static/js (ES modules)
 │   ├── iot/                    # firmware.cpp + README
 │   ├── models/                 # stormdetector.py + weights/best.pt
@@ -40,7 +40,7 @@ global-solutions/
 │   ├── requirements*.txt
 │   ├── Dockerfile              # imagem Lambda
 │   └── yolo_training.py
-├── tests/                      # suite principal (259 testes + e2e/)
+├── tests/                      # suite principal (440 testes + e2e/)
 ├── yolov5/                     # código-base YOLOv5
 ├── build_dataset_nasa.command  # atalho macOS: captura + dataset YOLO
 ├── build_dataset_agri.command  # atalho macOS: pipeline INMET/ML
@@ -82,7 +82,7 @@ global-solutions/
 | Dashboard | `src/dashboard/` | UI HTML/JS + BFF handlers |
 | IoT | `src/iot/` | Firmware ESP32 |
 | Data / ML agrícola | `scripts/`, `docs/dados/` | INMET, FAOSTAT, treino |
-| Tests | `tests/`, `tests/e2e/`, `src/tests/` | 259 pytest + 53 E2E |
+| Tests | `tests/`, `tests/e2e/`, `src/tests/` | 440 pytest + 53 E2E |
 | Ops docs | `docs/`, `.specs/` | Deploy, RPI, specs |
 
 ---

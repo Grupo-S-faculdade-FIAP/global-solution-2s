@@ -21,7 +21,7 @@ make test
 # equivalente: cd src && PYTHONPATH=. ../.venv/bin/pytest ../tests/ tests/ -q
 ```
 
-**Resultado atual:** 259 passed, 53 E2E (`make test-e2e`), cobertura **82,44%** (`make test-coverage`) — jun/2026
+**Resultado atual:** 440 passed, 53 E2E (`make test-e2e`), cobertura **~82%** (`make test-coverage`) — jun/2026
 
 ---
 
@@ -49,7 +49,7 @@ make test
 | IoT readings | `tests/test_iot_readings.py` | 11 | Coberto |
 | Weather service | `tests/test_weather_service.py` | 7 | Coberto (chamadas reais Open-Meteo) |
 | Lambda ingestão clima | `tests/test_ingest_weather_lambda.py` | 10 | Coberto com mocks |
-| SNS alerts | `tests/test_sns_alerts.py` | 6 | Coberto |
+| SNS alerts | `tests/test_sns_alerts.py` | 16 | Coberto (rate limit, subscribe, publish) |
 | Label utils (YOLO pipeline) | `tests/test_label_utils.py` | 5 | Coberto |
 | INMET client | `tests/test_inmet_client.py` | 2 | Coberto |
 | FAOSTAT export | `tests/test_export_faostat.py` | 7 | Coberto |

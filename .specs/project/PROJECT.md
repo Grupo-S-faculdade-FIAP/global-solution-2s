@@ -38,7 +38,7 @@
 - Database: DynamoDB (alertas + dados IoT time-series) — 100% NoSQL
 - Frontend: HTML/JS (ES modules) + Windy widget + Leaflet + Chart.js
 - IoT: ESP32 + Arduino (DHT22 — firmware em `src/iot/firmware.cpp`)
-- Testes: pytest (259), Playwright E2E (53), cobertura CI ≥ 82%
+- Testes: pytest (440), Playwright E2E (53), cobertura CI ≥ 82%
 
 **Key dependencies:** torch, torchvision, fastapi, flask, boto3, httpx, requests, pydantic-settings
 
@@ -77,7 +77,7 @@
 ## Success Criteria
 
 - [x] Avaliador consegue rodar demo integrada com `make demo` em uma única URL (http://127.0.0.1:8000)
-- [x] Suite de testes passa (`make test` — 259 testes; cobertura **82,44%**, jun/2026)
+- [x] Suite de testes passa (`make test` — 440 testes; cobertura **~82%**, jun/2026)
 - [x] Dashboard exibe clima, alertas, risco agrícola (ensemble), mapas e seção IoT com fallback demo documentado
 - [ ] Vídeo ≤ 5 min no YouTube (não listado) + PDF estruturado entregues na plataforma FIAP
 - [ ] G1 YOLO: mAP@0.5 ≥ 0,70 no conjunto de validação (pendente — v2)

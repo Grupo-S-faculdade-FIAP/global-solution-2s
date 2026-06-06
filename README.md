@@ -104,8 +104,8 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 | Área | Evidência |
 |------|-----------|
-| Testes unit/integration | **259 passed** (`make test`) |
-| Cobertura CI | **82,44%** (`make test-coverage`) |
+| Testes unit/integration | **440 passed** (`make test`) |
+| Cobertura CI | **~82%** (`make test-coverage`) |
 | Testes E2E Playwright | **53** (`make test-e2e`) |
 | Capturas NASA | 79 PNG em `data/nasa_captures` |
 | Dataset YOLO train | 79 imagens + 79 labels (`data/model-dataset/`) |
@@ -135,7 +135,7 @@ Documentação: [docs/README.md](docs/README.md) · Checklist: `.specs/project/C
 |---------|-----------|
 | `make install` | Dependências Python |
 | `make demo` | API + dashboard em http://127.0.0.1:8000 |
-| `make test` | 259 testes (excl. E2E) |
+| `make test` | 440 testes (excl. E2E) |
 | `make test-coverage` | Testes + gate cobertura 82% |
 | `make test-e2e` | 53 testes Playwright no dashboard |
 | `make build-agri` | Pipeline INMET + treino ML risco |

@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-06 (limpeza docs rodada 3)
+**Last updated:** 2026-06-06 (limpeza docs rodada 4 — SNS + contagem testes)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -12,7 +12,7 @@
 ## Current Focus
 
 **Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
-**Last task completed:** SNS no dashboard — inscrição e-mail + simular alerta publica no tópico (`.specs/features/sns-dashboard/spec.md`)
+**Last task completed:** Limpeza docs rodada 4 — artefatos SNS da raiz removidos, codebase docs atualizados (440 testes, SNS integrations), features arquivadas
 **Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); B7 screenshots opcional
 **Blockers:** nenhum
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.7 (2026-06-06)
@@ -75,11 +75,13 @@
 - 2026-06-04 — Dois servidores (5000+8000) confundiam usuários e `make demo` falhava se :8000 ocupada (só Flask, BFF quebrado). Solução: `WSGIMiddleware` monta Flask em `/` após rotas FastAPI; URL única `http://127.0.0.1:8000`. Causa KPIs "—": abrir :8000 sem UI ou JS abortado antes do `bootstrapDashboard` (listeners em sliders nulos).
 - 2026-06-05 — Location-bar: flex-wrap quebrava alinhamento do mapinha; migrado para CSS Grid + header com badge. Auto-apply no mapa (debounce), toast, nav por âncoras, três mapas renomeados. Refinamento: sticky dinâmico compacto, nav scroll horizontal mobile, Leaflet zoom bottom-right, badge clicável para expandir.
 - 2026-06-05 — Gaps técnicos resolvidos: IoT store + router implementados (DynamoDB/mock), confiança YOLO real salva nos alertas, firmware movido para `src/iot/firmware.cpp` apontando para API GS2, seção IoT no dashboard (card leituras + histórico), BFF `/api/iot/*`, 11 testes IoT em `tests/test_iot_readings.py`.
-- 2026-06-05 — Arquitetura limpa aplicada em 4 fases: Ports, Adapters, DetectStormUseCase, S3TriggerHandler, container.py, interfaces/http/bff/. Suite atual: **259 testes** (`make test`) + **53 E2E** + cobertura **82%**.
+- 2026-06-05 — Arquitetura limpa aplicada em 4 fases: Ports, Adapters, DetectStormUseCase, S3TriggerHandler, container.py, interfaces/http/bff/. Suite atual: **440 testes** (`make test`) + **53 E2E** + cobertura **~82%**.
 - 2026-06-05 — Documentação desatualizada (Streamlit, IoT stub, CI manual, 84 testes) corrigida em auditoria única; fonte canônica de env: `.env.example` na raiz.
 - 2026-06-06 — Limpeza repo: removidos `simular_treino.py`, `treinar_modelo.py`, `setup_and_train.command`, `iot_esp32`, `src/.env.example`, scripts WIP 01–04; guia YOLO consolidado em `docs/YOLO-RETREINO.md`; teste `test_map_overlay_filters_bbox` corrigido (timestamps dinâmicos).
 - 2026-06-06 — Limpeza rodada 2: `capture_satellite_data.py` (Windy), `src/Makefile`, `test_api.command`, target `make train-ml`; `build_dataset_agri.command` → `make test-api`.
 - 2026-06-06 — Limpeza rodada 3 (concluída): removidos 5 MDs “Critical Fixes” da raiz (artefatos de sessão; cobertura nos testes); `CORS_EXTRA_ORIGINS` e `XRAY_ENABLED` documentados em `.env.example`; mensagem corrigida em `build_dataset_nasa.command`; métricas atualizadas em `GUIA-DE-AVALIACAO.md`; `LIMPEZA_REPO.md` arquivado (plano executado); `.coverage` no `.gitignore`.
+- 2026-06-06 — SNS dashboard implementado: inscrição e-mail via `/api/alerts/subscribe`, status via `/api/alerts/sns/status`, simular alerta publica no SNS; rate limit em `sns_rate_limit.py`; 16 testes SNS; `sections/sns.js` no dashboard.
+- 2026-06-06 — Limpeza docs rodada 4 (concluída): removidos `IMPLEMENTACOES_2025_06_06.md`, `SNS_IMPLEMENTATION_SUMMARY.md`, `QUICK_START.md` (artefatos com referências a módulos fictícios); `INTEGRATIONS.md` atualizado com seção SNS e rate limit env vars; contagem de testes corrigida para **440** em todos os docs; 7 feature specs marcadas como Arquivadas; `ROADMAP.md` e `CHECKLIST_ENTREGA.md` atualizados.
 
 ---
 
@@ -98,13 +100,15 @@
 - [x] Clonar template TIAO-2026
 - [x] Criar estrutura de pastas do repositório conforme template
 - [x] Criar scaffold FastAPI base (src/)
-- [x] Instalar dependências e rodar testes base (`make test` — 259 passed)
+- [x] Instalar dependências e rodar testes base (`make test` — 440 passed)
 - [x] Especificar feature: Data Integration Dashboard
 - [x] Implementar T-01 a T-12 (MVP integrado — ver ROADMAP)
 - [x] Especificar e implementar módulo IoT (ESP32 + sensores)
 - [x] Auditoria e atualização de documentação (specs, README, RPI, codebase docs)
 - [x] Limpeza de arquivos desnecessários + docs refresh (06/06)
 - [x] Limpeza docs rodada 3 — Critical Fixes MDs, .env.example, build_dataset_nasa.command (06/06)
+- [x] SNS no dashboard — inscrição e-mail, rate limit, 16 testes (06/06)
+- [x] Limpeza docs rodada 4 — artefatos SNS, contagem 440 testes, features arquivadas (06/06)
 - [ ] B0: Verificar prazo exato na plataforma FIAP
 - [ ] B3: Definir nome do produto (D-001)
 - [ ] B1: Vídeo ≤ 5 min — Enzo (`tasks.md`)

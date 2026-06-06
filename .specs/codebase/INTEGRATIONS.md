@@ -1,6 +1,6 @@
 # Integrações — Global Solutions
 
-**Atualizado:** 2026-06-06
+**Atualizado:** 2026-06-06 (v2 — SNS adicionado)
 
 ## Dashboard BFF (`/api/*`)
 
@@ -20,7 +20,9 @@ Header de resposta: **`X-Data-Source`** — `live` (DynamoDB/backend real), `dem
 | alerts | GET | `/api/alerts/weekly` | `days` (opc.) | gráfico semanal |
 | alerts | GET | `/api/alerts/hourly` | `days` (opc.) | gráfico horário |
 | alerts | GET | `/api/alerts/heatmap` | `days` (opc.) | heatmap 7×24 |
-| alerts | POST | `/api/alerts/simulate-detection` | `{ confidence, lat, lon }` | simular alerta YOLO |
+| alerts | POST | `/api/alerts/simulate-detection` | `{ confidence, lat, lon }` | simular alerta YOLO (publica no SNS se ativo) |
+| sns | GET | `/api/alerts/sns/status` | — | status SNS: configurado / não configurado |
+| sns | POST | `/api/alerts/subscribe` | `{ email }` | inscrição de e-mail no tópico SNS |
 | weather | GET | `/api/weather/current` | `lat`, `lon` | clima atual |
 | risk | GET | `/api/risk/forecast` | `lat`, `lon` | ensemble clima + CV geo + ML (breakdown em `detalhes`) |
 | storms | GET | `/api/storms/detector-status` | — | status YOLO |
@@ -38,6 +40,24 @@ Header de resposta: **`X-Data-Source`** — `live` (DynamoDB/backend real), `dem
 | `DEMO_MODE` | `true` | fallbacks JSON quando backend indisponível |
 | `DYNAMODB_USE_MOCK` | `true` | alertas/IoT em `data/demo/*.json` |
 | `BFF_INPROCESS` | `false` (dev) | BFF chama FastAPI via TestClient em vez de HTTP |
+| `SNS_ENABLED` | `true` | habilita publicação real no SNS (desabilitar sem credenciais AWS) |
+| `SNS_TOPIC_ARN` | — | ARN do tópico SNS (`rain-alerts`); obrigatório para SNS funcionar |
+| `SNS_ALERT_SUBJECT` | `Rain Alert — Storm Detected` | assunto do e-mail SNS |
+| `SNS_MAX_SUBSCRIBERS` | `20` | limite de inscrições por tópico |
+| `SNS_MAX_ALERTS_PER_EMAIL_DAY` | `3` | rate limit de alertas por e-mail por dia (UTC) |
+
+### AWS SNS (alertas por e-mail)
+
+Implementação em [`src/app/services/sns_alerts.py`](../../src/app/services/sns_alerts.py) + rate limit em [`src/app/services/sns_rate_limit.py`](../../src/app/services/sns_rate_limit.py).
+
+| Fluxo | Descrição |
+|-------|-----------|
+| Inscrição | `POST /api/alerts/subscribe` → `sns.subscribe(Protocol=email)` → AWS envia link de confirmação |
+| Alerta manual | `POST /api/alerts/simulate-detection` → grava no store + publica no SNS se ativo e inscrito |
+| Alerta automático | S3 upload `.jpg` → Lambda `gs2-api` → `DetectStormUseCase` → SNS publish |
+| Rate limit | `sns_rate_limit.py` — máx. `SNS_MAX_ALERTS_PER_EMAIL_DAY` por destinatário/dia |
+
+Seção do dashboard: `src/dashboard/static/js/sections/sns.js` — status, form de inscrição, botão simular.
 
 ### INMET BDMEP + pipeline ML agrícola
 

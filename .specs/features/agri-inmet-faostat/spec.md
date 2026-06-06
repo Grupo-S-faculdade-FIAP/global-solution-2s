@@ -2,7 +2,7 @@
 
 **Slug:** `agri-inmet-faostat`  
 **Data:** 2026-06-05  
-**Status:** Concluído (MVP — jun/2026)
+**Status:** Arquivado — Concluído (MVP — jun/2026)
 
 ## Problema
 
