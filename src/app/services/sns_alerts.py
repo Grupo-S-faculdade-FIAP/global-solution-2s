@@ -24,6 +24,7 @@ except ImportError:
     EmailNotValidError = ValueError
 
 from app.core.config import settings
+from app.services.sns_rate_limit import can_send_alert, record_alert_sent
 
 logger = logging.getLogger(__name__)
 
@@ -70,12 +71,17 @@ def sns_is_configured() -> bool:
 def sns_status() -> dict[str, Any]:
     """Resumo da configuração SNS (sem expor segredos)."""
     topic = (settings.SNS_TOPIC_ARN or "").strip()
-    return {
+    status: dict[str, Any] = {
         "enabled": settings.SNS_ENABLED,
         "configured": sns_is_configured(),
         "topic_arn": topic or None,
         "region": settings.AWS_REGION,
+        "max_subscribers": settings.SNS_MAX_SUBSCRIBERS,
+        "max_alerts_per_email_day": settings.SNS_MAX_ALERTS_PER_EMAIL_DAY,
     }
+    if sns_is_configured():
+        status["subscriber_count"] = _count_email_subscriptions(topic)
+    return status
 
 
 def _put_cloudwatch_metric(metric_name: str, value: float = 1.0, unit: str = "Count") -> None:
@@ -156,6 +162,138 @@ def _publish_to_sns_with_retry(topic_arn: str, subject: str, message: str) -> st
         raise
 
 
+@retry(
+    retry=retry_if_exception_type(ClientError),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    before_sleep=lambda retry_state: logger.warning(
+        f"SNS subscription publish retry {retry_state.attempt_number} after error: "
+        f"{retry_state.outcome.exception()}"
+    ),
+    reraise=True,
+)
+def _publish_to_subscription_with_retry(
+    subscription_arn: str,
+    subject: str,
+    message: str,
+) -> str:
+    """Publish message to a single SNS email subscription with retry logic."""
+    try:
+        sns = boto3.client("sns", region_name=settings.AWS_REGION)
+        response = sns.publish(
+            TargetArn=subscription_arn,
+            Subject=subject,
+            Message=message,
+        )
+        return response.get("MessageId", "")
+    except ClientError as exc:
+        error_code = exc.response.get("Error", {}).get("Code", "")
+        if _is_permanent_error(exc):
+            logger.error(
+                "Permanent SNS subscription error (code=%s): %s",
+                error_code,
+                exc.response.get("Error", {}).get("Message"),
+            )
+            raise
+        if _is_transient_error(exc):
+            logger.warning(f"Transient SNS subscription error (code={error_code}), will retry: {exc}")
+            raise
+        logger.error(f"SNS subscription error (code={error_code}): {exc}")
+        raise
+
+
+def _list_email_subscriptions(topic_arn: str) -> list[dict[str, Any]]:
+    """Lista inscrições de e-mail no tópico SNS (confirmadas e pendentes)."""
+    subscriptions: list[dict[str, Any]] = []
+    try:
+        sns = boto3.client("sns", region_name=settings.AWS_REGION)
+        paginator = sns.get_paginator("list_subscriptions_by_topic")
+        for page in paginator.paginate(TopicArn=topic_arn):
+            for sub in page.get("Subscriptions", []):
+                if sub.get("Protocol") != "email":
+                    continue
+                endpoint = (sub.get("Endpoint") or "").strip().lower()
+                if not endpoint:
+                    continue
+                subscription_arn = sub.get("SubscriptionArn", "")
+                confirmed = bool(subscription_arn and subscription_arn != "pending confirmation")
+                subscriptions.append(
+                    {
+                        "email": endpoint,
+                        "subscription_arn": subscription_arn if confirmed else None,
+                        "confirmed": confirmed,
+                        "pending_confirmation": subscription_arn == "pending confirmation",
+                    }
+                )
+    except (ClientError, BotoCoreError, AttributeError) as exc:
+        logger.warning("Failed to list SNS email subscriptions: %s", exc)
+    return subscriptions
+
+
+def _count_email_subscriptions(topic_arn: str) -> int:
+    """Conta inscrições de e-mail ativas (pendentes + confirmadas)."""
+    return len(_list_email_subscriptions(topic_arn))
+
+
+def _email_is_subscribed(topic_arn: str, email: str) -> bool:
+    endpoint = email.strip().lower()
+    return any(sub["email"] == endpoint for sub in _list_email_subscriptions(topic_arn))
+
+
+def _publish_alert_message(subject: str, message: str) -> str | None:
+    """Publica alerta respeitando limite diário por e-mail.
+
+    Com inscritos confirmados, envia individualmente por subscription ARN.
+    Sem inscritos confirmados, publica no tópico (compatível com testes e tópico vazio).
+    """
+    topic_arn = settings.SNS_TOPIC_ARN.strip()
+    confirmed = [
+        sub for sub in _list_email_subscriptions(topic_arn) if sub.get("confirmed")
+    ]
+
+    if not confirmed:
+        message_id = _publish_to_sns_with_retry(topic_arn, subject, message)
+        if message_id:
+            _put_cloudwatch_metric("StormAlertsSent")
+        return message_id or None
+
+    sent_ids: list[str] = []
+    skipped = 0
+    for sub in confirmed:
+        email = sub["email"]
+        subscription_arn = sub.get("subscription_arn")
+        if not subscription_arn:
+            continue
+        if not can_send_alert(email):
+            skipped += 1
+            logger.info(
+                "SNS alert skipped for %s — daily limit of %d reached",
+                email,
+                settings.SNS_MAX_ALERTS_PER_EMAIL_DAY,
+            )
+            continue
+        try:
+            message_id = _publish_to_subscription_with_retry(
+                subscription_arn,
+                subject,
+                message,
+            )
+        except (ClientError, BotoCoreError, RetryError) as exc:
+            logger.error("SNS publish failed for %s: %s", email, exc)
+            continue
+        if message_id:
+            record_alert_sent(email)
+            sent_ids.append(message_id)
+
+    if not sent_ids:
+        if skipped:
+            _put_cloudwatch_metric("AlertsSkipped")
+        return None
+
+    _put_cloudwatch_metric("StormAlertsSent", value=float(len(sent_ids)))
+    return sent_ids[0]
+
+
 def _build_storm_message(bucket: str, key: str, detections: list[dict[str, Any]]) -> tuple[str, str]:
     classes_found = ", ".join(sorted({str(d.get("class", "unknown")) for d in detections}))
     confidences = [
@@ -206,14 +344,20 @@ def publish_storm_alert(
         _put_cloudwatch_metric("AlertsSkipped")
         return None
 
-    topic_arn = settings.SNS_TOPIC_ARN.strip()
     subject, message = _build_storm_message(bucket, key, detections)
 
     try:
-        message_id = _publish_to_sns_with_retry(topic_arn, subject, message)
-        _put_cloudwatch_metric("StormAlertsSent")
-        logger.info("SNS alert published: MessageId=%s topic=%s s3://%s/%s", message_id, topic_arn, bucket, key)
-        return message_id
+        message_id = _publish_alert_message(subject, message)
+        if message_id:
+            logger.info(
+                "SNS alert published: MessageId=%s s3://%s/%s",
+                message_id,
+                bucket,
+                key,
+            )
+            return message_id
+        logger.info("SNS alert not sent for s3://%s/%s (no eligible subscribers)", bucket, key)
+        return None
     except (ClientError, BotoCoreError, RetryError) as exc:
         logger.error("SNS publish failed for s3://%s/%s after retries: %s", bucket, key, exc)
         _put_cloudwatch_metric("StormAlertsFailed")
@@ -292,6 +436,28 @@ def subscribe_email(email: str) -> dict[str, Any]:
         return {"success": False, "configured": True, "error": str(exc)}
 
     topic_arn = settings.SNS_TOPIC_ARN.strip()
+    max_subscribers = max(1, int(settings.SNS_MAX_SUBSCRIBERS))
+
+    if _email_is_subscribed(topic_arn, endpoint):
+        return {
+            "success": True,
+            "configured": True,
+            "email": endpoint,
+            "already_subscribed": True,
+            "message": "Este e-mail já está inscrito (ou aguardando confirmação da AWS).",
+        }
+
+    if _count_email_subscriptions(topic_arn) >= max_subscribers:
+        return {
+            "success": False,
+            "configured": True,
+            "error": (
+                f"Limite de {max_subscribers} e-mails atingido. "
+                "Não é possível cadastrar novos inscritos neste ambiente."
+            ),
+            "subscriber_limit_reached": True,
+        }
+
     try:
         sns = boto3.client("sns", region_name=settings.AWS_REGION)
         response = sns.subscribe(
@@ -346,13 +512,18 @@ def publish_simulated_alert(lat: float, lon: float, confidence: float) -> str | 
         f"Confidence: {confidence:.2%}\n"
         f"Project: {settings.PROJECT_NAME}"
     ).rstrip()
-    topic_arn = settings.SNS_TOPIC_ARN.strip()
-
     try:
-        message_id = _publish_to_sns_with_retry(topic_arn, subject, message)
-        _put_cloudwatch_metric("StormAlertsSent")
-        logger.info("SNS simulated alert published: MessageId=%s lat=%.4f lon=%.4f", message_id, lat, lon)
-        return message_id
+        message_id = _publish_alert_message(subject, message)
+        if message_id:
+            logger.info(
+                "SNS simulated alert published: MessageId=%s lat=%.4f lon=%.4f",
+                message_id,
+                lat,
+                lon,
+            )
+            return message_id
+        logger.info("SNS simulated alert not sent lat=%.4f lon=%.4f (no eligible subscribers)", lat, lon)
+        return None
     except (ClientError, BotoCoreError, RetryError) as exc:
         logger.error("SNS simulated publish failed after retries: %s", exc)
         _put_cloudwatch_metric("StormAlertsFailed")

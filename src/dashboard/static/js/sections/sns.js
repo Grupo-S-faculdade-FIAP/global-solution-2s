@@ -30,10 +30,18 @@ export async function loadSnsStatus() {
     setBadge(badge, configured);
     if (hint) {
       hint.hidden = false;
+      const maxSubs = data.max_subscribers ?? 20;
+      const maxAlerts = data.max_alerts_per_email_day ?? 3;
+      const baseHint =
+        `Limite: até ${maxSubs} e-mails cadastrados e ${maxAlerts} alertas por e-mail por dia. ` +
+        "A AWS envia um e-mail de confirmação após a inscrição. Só recebe alertas quem clicar em " +
+        "Confirm subscription no e-mail da Amazon SNS.";
       if (!configured) {
         hint.textContent =
           "SNS não está configurado neste ambiente (defina SNS_TOPIC_ARN na Lambda). " +
           "A simulação de alerta continua funcionando no dashboard; o e-mail só é enviado na AWS.";
+      } else {
+        hint.textContent = baseHint;
       }
     }
     if (btn) btn.disabled = !configured;

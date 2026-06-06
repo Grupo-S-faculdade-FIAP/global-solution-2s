@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     SNS_TOPIC_ARN: str = ""
     SNS_ENABLED: bool = True
     SNS_ALERT_SUBJECT: str = "Rain Alert — Storm Detected"
+    SNS_MAX_SUBSCRIBERS: int = 20
+    SNS_MAX_ALERTS_PER_EMAIL_DAY: int = 3
+    SNS_RATE_LIMIT_STORE_PATH: str = ""
 
     # ─── DynamoDB ─────────────────────────────────────────────────────────
     DYNAMODB_WEATHER_TABLE: str = "weather_metrics"

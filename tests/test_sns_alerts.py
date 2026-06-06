@@ -209,3 +209,115 @@ def test_publish_simulated_alert_handles_client_error(sns_settings, monkeypatch)
     )
 
     assert sns_alerts.publish_simulated_alert(-23.55, -46.63, 0.9) is None
+
+
+def test_subscribe_email_rejects_when_subscriber_limit_reached(sns_settings, monkeypatch):
+    monkeypatch.setattr(sns_alerts.settings, "SNS_MAX_SUBSCRIBERS", 2)
+
+    class FakeSNS:
+        def subscribe(self, **kwargs):
+            return {"SubscriptionArn": "pending confirmation"}
+
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [
+                        {
+                            "Subscriptions": [
+                                {"Protocol": "email", "Endpoint": "a@b.com", "SubscriptionArn": "pending confirmation"},
+                                {"Protocol": "email", "Endpoint": "c@d.com", "SubscriptionArn": "arn:sub:2"},
+                            ]
+                        }
+                    ]
+
+            return Paginator()
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    result = sns_alerts.subscribe_email("new@example.com")
+    assert result["success"] is False
+    assert result.get("subscriber_limit_reached") is True
+    assert "20" not in result["error"]  # limit is 2 in test
+    assert "2" in result["error"]
+
+
+def test_subscribe_email_already_subscribed(sns_settings, monkeypatch):
+    class FakeSNS:
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [
+                        {
+                            "Subscriptions": [
+                                {
+                                    "Protocol": "email",
+                                    "Endpoint": "user@example.com",
+                                    "SubscriptionArn": "pending confirmation",
+                                }
+                            ]
+                        }
+                    ]
+
+            return Paginator()
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    result = sns_alerts.subscribe_email("user@example.com")
+    assert result["success"] is True
+    assert result.get("already_subscribed") is True
+
+
+def test_publish_respects_per_email_daily_limit(sns_settings, monkeypatch, tmp_path):
+    from app.services import sns_rate_limit
+
+    store_file = tmp_path / "sns_rate_limits.json"
+    monkeypatch.setattr(sns_rate_limit.settings, "SNS_RATE_LIMIT_STORE_PATH", str(store_file))
+    monkeypatch.setattr(sns_rate_limit.settings, "SNS_MAX_ALERTS_PER_EMAIL_DAY", 3)
+    monkeypatch.setattr(sns_alerts.settings, "SNS_MAX_ALERTS_PER_EMAIL_DAY", 3)
+
+    published_targets: list[str] = []
+
+    class FakeSNS:
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [
+                        {
+                            "Subscriptions": [
+                                {
+                                    "Protocol": "email",
+                                    "Endpoint": "user@example.com",
+                                    "SubscriptionArn": "arn:aws:sns:us-east-1:123:sub:user",
+                                }
+                            ]
+                        }
+                    ]
+
+            return Paginator()
+
+        def publish(self, **kwargs):
+            if "TargetArn" in kwargs:
+                published_targets.append(kwargs["TargetArn"])
+            return {"MessageId": f"msg-{len(published_targets)}"}
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    detections = [{"class": "storm", "confidence": 0.9}]
+    for _ in range(3):
+        assert sns_alerts.publish_storm_alert("bucket", "img.jpg", detections) is not None
+
+    assert len(published_targets) == 3
+    assert sns_alerts.publish_storm_alert("bucket", "img.jpg", detections) is None
+    assert len(published_targets) == 3
