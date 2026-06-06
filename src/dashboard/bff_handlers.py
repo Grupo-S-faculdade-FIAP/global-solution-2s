@@ -128,12 +128,19 @@ _storm_query_service = None
 _agri_risk_model = None
 
 
+def _skip_yolo_load() -> bool:
+    """pytest/E2E: evita importar torch no subprocesso uvicorn."""
+    return os.environ.get("RISK_SKIP_YOLO", "").strip().lower() in ("1", "true", "yes", "on")
+
+
 def _get_storm_detector():
     """Carrega StormDetector sob demanda (singleton)."""
     global _storm_detector, _storm_detector_loaded, STORM_DETECTOR
     if _storm_detector_loaded:
         return _storm_detector
     _storm_detector_loaded = True
+    if _skip_yolo_load():
+        return None
     try:
         sys.path.insert(0, str(Path(__file__).parent.parent))
         from app.services.storm_detector import StormDetector

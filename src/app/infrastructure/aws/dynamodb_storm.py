@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Any
 
 import boto3
@@ -49,7 +50,7 @@ def _build_item(
         "simulated": simulated,
     }
     if confidence is not None:
-        item["confidence"] = round(float(confidence), 4)
+        item["confidence"] = Decimal(str(round(float(confidence), 4)))
     return item
 
 
