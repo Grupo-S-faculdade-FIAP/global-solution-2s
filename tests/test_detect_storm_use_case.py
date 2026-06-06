@@ -4,7 +4,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.application.cv.detect_storm import DetectStormUseCase, _deterministic_alert_id
+from app.application.cv.detect_storm import (
+    DetectStormUseCase,
+    _apply_pathlib_compat,
+    _deterministic_alert_id,
+)
 
 
 @pytest.fixture
@@ -15,6 +19,14 @@ def repo():
 @pytest.fixture
 def use_case(repo):
     return DetectStormUseCase(repo=repo)
+
+
+def test_pathlib_compat_registers_local_module():
+    import pathlib
+    import sys
+
+    _apply_pathlib_compat()
+    assert sys.modules.get("pathlib._local") is pathlib
 
 
 def test_deterministic_alert_id_stable():

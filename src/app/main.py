@@ -6,10 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.wsgi import WSGIMiddleware
 from mangum import Mangum
 
-from app.core.config import settings
+from app.core.config import settings, get_allowed_origins
+from app.core.tracing import init_xray, wrap_lambda_handler
 from app.routers import cv, ml, iot, dashboard, data_integration, dashboard_bff, dashboard_ui
 
 logger = logging.getLogger(__name__)
+
+# Inicializar X-Ray tracing (se habilitado)
+init_xray()
 
 app = FastAPI(
     title="API",
@@ -17,9 +21,12 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# CORS dinâmico: mescla ALLOWED_ORIGINS + CORS_EXTRA_ORIGINS do ambiente
+cors_origins = get_allowed_origins()
+logger.info("CORS enabled for origins: %s", cors_origins)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,8 +95,18 @@ def handler(event: dict, context: object) -> dict:
     Ponto de entrada do Lambda.
     Roteia eventos S3 (upload de imagem) para o S3TriggerHandler,
     e eventos HTTP do API Gateway para o app FastAPI via Mangum.
+
+    Instrumentado com X-Ray distributed tracing.
     """
+    from app.core.tracing import add_trace_metadata
+
     records = event.get("Records", [])
     if records and records[0].get("eventSource") == "aws:s3":
+        add_trace_metadata("event_type", "s3")
+        add_trace_metadata("s3_key", records[0].get("s3", {}).get("object", {}).get("key", "unknown"))
         return _build_s3_handler().handle(event)
+
+    add_trace_metadata("event_type", "http")
+    add_trace_metadata("resource", event.get("resource", "unknown"))
+    add_trace_metadata("method", event.get("httpMethod", "unknown"))
     return _http_handler(event, context)

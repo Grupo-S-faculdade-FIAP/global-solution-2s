@@ -22,18 +22,19 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
-    # ─── CORS (hardcoded — works everywhere) ────────────────────────────
+    # ─── CORS (dinâmico via variáveis ambiente) ───────────────────────────
     ALLOWED_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:5000",
         "http://localhost:8000",
-        "https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com",
     ]
+    # CORS_EXTRA_ORIGINS: "https://example.com,https://api.example.com"
+    # será mesclado com ALLOWED_ORIGINS se definido
 
-    # ─── AWS ──────────────────────────────────────────────────────────────
+    # ─── AWS (usa IAM roles em Lambda, não credenciais em ambiente) ───────
     AWS_REGION: str = "us-east-1"
-    AWS_ACCESS_KEY_ID: str = ""
-    AWS_SECRET_ACCESS_KEY: str = ""
+    # AWS_ACCESS_KEY_ID e AWS_SECRET_ACCESS_KEY NÃO devem ser definidos aqui.
+    # Lambda usa IAM execution role; dev local pode usar ~/.aws/credentials
     SNS_TOPIC_ARN: str = ""
     SNS_ENABLED: bool = True
     SNS_ALERT_SUBJECT: str = "Rain Alert — Storm Detected"
@@ -115,13 +116,14 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# boto3 usa os.environ / cadeia padrão — espelha credenciais do .env carregado pelo Pydantic
-import os  # noqa: E402
 
-if settings.AWS_ACCESS_KEY_ID:
-    os.environ.setdefault("AWS_ACCESS_KEY_ID", settings.AWS_ACCESS_KEY_ID)
-if settings.AWS_SECRET_ACCESS_KEY:
-    os.environ.setdefault("AWS_SECRET_ACCESS_KEY", settings.AWS_SECRET_ACCESS_KEY)
-if settings.AWS_REGION:
-    os.environ.setdefault("AWS_DEFAULT_REGION", settings.AWS_REGION)
-    os.environ.setdefault("AWS_REGION", settings.AWS_REGION)
+def get_allowed_origins() -> list[str]:
+    """Retorna lista de origens CORS, incluindo extras do ambiente se definidas."""
+    import os  # noqa: E402
+
+    origins = list(settings.ALLOWED_ORIGINS)
+    extra_origins = os.environ.get("CORS_EXTRA_ORIGINS", "")
+    if extra_origins:
+        extra_list = [o.strip() for o in extra_origins.split(",") if o.strip()]
+        origins.extend(extra_list)
+    return origins

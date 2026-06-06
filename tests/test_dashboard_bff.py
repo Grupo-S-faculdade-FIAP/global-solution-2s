@@ -30,6 +30,35 @@ _ERR = ({"error": "unavailable"}, "demo", 503)
         ("/api/map/overlay?bbox=-25,-50,-20,-40", "map_overlay"),
     ],
 )
+def test_bff_map_overlay_serializes_geojson() -> None:
+    """Regressão: GeoJSONFeature (Pydantic) deve serializar em /api/map/overlay."""
+    with patch(
+        "dashboard.bff_handlers.use_inprocess_backend",
+        return_value=True,
+    ), patch(
+        "dashboard.bff_handlers._get_storm_query_service",
+    ) as mock_svc:
+        from app.models.schemas import GeoJSONFeature, GeoJSONGeometry, GeoJSONProperties
+
+        mock_svc.return_value.map_overlay_features.return_value = [
+            GeoJSONFeature(
+                properties=GeoJSONProperties(
+                    type="storm",
+                    intensity=0.82,
+                    timestamp="2026-06-06T12:00:00Z",
+                ),
+                geometry=GeoJSONGeometry(type="Point", coordinates=[-46.63, -23.55]),
+            )
+        ]
+        response = client.get("/api/map/overlay?bbox=-25,-50,-20,-40")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["type"] == "FeatureCollection"
+    assert len(data["features"]) == 1
+    assert data["features"][0]["geometry"]["coordinates"] == [-46.63, -23.55]
+
+
 def test_bff_get_routes_success(path: str, mock_target: str) -> None:
     with patch(f"app.routers.dashboard_bff.bff.{mock_target}", return_value=_OK) as mocked:
         response = client.get(path)
