@@ -16,8 +16,6 @@ import hashlib
 import logging
 import os
 import pathlib
-import shutil
-import tempfile
 from typing import TYPE_CHECKING, Any, Callable
 
 from app.core.config import settings

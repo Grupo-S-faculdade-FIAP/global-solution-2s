@@ -21,10 +21,11 @@ def use_case(repo):
     return DetectStormUseCase(repo=repo)
 
 
-def test_pathlib_compat_registers_local_module():
+def test_pathlib_compat_registers_local_module(monkeypatch):
     import pathlib
     import sys
 
+    monkeypatch.delitem(sys.modules, "pathlib._local", raising=False)
     _apply_pathlib_compat()
     assert sys.modules.get("pathlib._local") is pathlib
 

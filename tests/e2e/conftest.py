@@ -48,6 +48,8 @@ def e2e_base_url() -> str:
             "DYNAMODB_USE_MOCK": "true",
             "IOT_USE_MOCK": "true",
             "DEMO_MODE": "true",
+            # Evita carregar torch/YOLO no subprocesso uvicorn (segfault em macOS+py3.13).
+            "RISK_SKIP_YOLO": "1",
             # HTTP loopback evita deadlock do TestClient sob carga E2E paralela.
             "BFF_INPROCESS": "false",
             "PORT": str(port),

@@ -36,7 +36,7 @@ def test_storm_save_puts_item(mock_boto3):
     )
 
     assert item["detection_count"] == 4
-    assert item["confidence"] == 0.88
+    assert float(item["confidence"]) == pytest.approx(0.88)
     mock_table.put_item.assert_called_once()
 
 
