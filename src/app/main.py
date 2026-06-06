@@ -9,7 +9,7 @@ from mangum import Mangum
 from app.core.config import settings, get_allowed_origins
 from app.core.tracing import init_xray, wrap_lambda_handler, add_trace_metadata
 from app.core.xray_tracing import xray_subsegment
-from app.routers import cv, ml, iot, dashboard, data_integration, dashboard_bff, dashboard_ui
+from app.routers import cv, ml, iot, dashboard, data_integration, dashboard_bff, dashboard_ui, dashboard_alerts
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,7 @@ app.include_router(cv.router, prefix="/cv", tags=["Computer Vision"])
 app.include_router(ml.router, prefix="/ml", tags=["Machine Learning"])
 app.include_router(iot.router, prefix="/iot", tags=["IoT"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
+app.include_router(dashboard_alerts.router, tags=["Alerts"])
 app.include_router(data_integration.router, prefix="", tags=["Data Integration"])
 app.include_router(dashboard_bff.router)
 

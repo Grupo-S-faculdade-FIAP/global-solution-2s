@@ -17,6 +17,7 @@ def sns_settings(monkeypatch):
     )
     monkeypatch.setattr(sns_alerts.settings, "SNS_ALERT_SUBJECT", "Rain Alert — Storm Detected")
     monkeypatch.setattr(sns_alerts.settings, "AWS_REGION", "us-east-1")
+    monkeypatch.setattr(sns_alerts, "_put_cloudwatch_metric", lambda *args, **kwargs: None)
 
 
 def test_sns_is_configured_requires_topic_and_enabled(monkeypatch):

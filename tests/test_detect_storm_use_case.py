@@ -6,8 +6,8 @@ import pytest
 
 from app.application.cv.detect_storm import (
     DetectStormUseCase,
-    _apply_pathlib_compat,
     _deterministic_alert_id,
+    _exponential_backoff,
 )
 
 
@@ -21,13 +21,21 @@ def use_case(repo):
     return DetectStormUseCase(repo=repo)
 
 
-def test_pathlib_compat_registers_local_module(monkeypatch):
-    import pathlib
-    import sys
+def test_exponential_backoff_sleeps(monkeypatch):
+    slept = []
 
-    monkeypatch.delitem(sys.modules, "pathlib._local", raising=False)
-    _apply_pathlib_compat()
-    assert sys.modules.get("pathlib._local") is pathlib
+    def fake_sleep(seconds):
+        slept.append(seconds)
+
+    monkeypatch.setattr("app.application.cv.detect_storm.time.sleep", fake_sleep)
+    monkeypatch.setattr("app.application.cv.detect_storm.random.uniform", lambda _a, _b: 0.0)
+
+    _exponential_backoff(0, base_delay=1.0, max_delay=32.0)
+    _exponential_backoff(2, base_delay=1.0, max_delay=8.0)
+
+    assert len(slept) == 2
+    assert slept[0] == 1.0
+    assert slept[1] == 4.0
 
 
 def test_deterministic_alert_id_stable():
