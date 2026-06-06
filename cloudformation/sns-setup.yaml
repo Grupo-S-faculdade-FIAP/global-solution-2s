@@ -1,0 +1,199 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "SNS Topic with SQS Dead Letter Queue for Global Solutions storm alerts"
+
+Parameters:
+  Environment:
+    Type: String
+    Default: "development"
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: "Environment name"
+
+  TopicName:
+    Type: String
+    Default: "storm-alerts"
+    Description: "SNS topic name"
+
+  DLQName:
+    Type: String
+    Default: "storm-alerts-dlq"
+    Description: "SQS DLQ queue name"
+
+  MessageRetentionDays:
+    Type: Number
+    Default: 14
+    MinValue: 1
+    MaxValue: 1209600
+    Description: "Message retention period in days for DLQ"
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Environment Configuration"
+        Parameters:
+          - Environment
+          - TopicName
+          - DLQName
+          - MessageRetentionDays
+    ParameterLabels:
+      Environment:
+        default: "Deployment Environment"
+
+Resources:
+  # ─────────────────────────────────────────────────────────────────────────
+  # SNS Topic for Storm Alerts
+  # ─────────────────────────────────────────────────────────────────────────
+  StormAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${TopicName}-${Environment}"
+      DisplayName: "Storm Alerts from Global Solutions"
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: "GlobalSolutions"
+        - Key: Component
+          Value: "Alerts"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # SQS DLQ for failed messages
+  # ─────────────────────────────────────────────────────────────────────────
+  StormAlertsDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${DLQName}-${Environment}"
+      MessageRetentionPeriod: !Sub "${MessageRetentionDays * 86400}"  # Convert days to seconds
+      VisibilityTimeout: 300  # 5 minutes
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: "GlobalSolutions"
+        - Key: Component
+          Value: "AlertsDLQ"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # SNS RedrivePolicy to link topic to DLQ
+  # ─────────────────────────────────────────────────────────────────────────
+  StormAlertsTopicDLQPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref StormAlertsTopic
+      PolicyText:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "AllowPublish"
+            Effect: "Allow"
+            Principal: "*"
+            Action:
+              - "sns:Publish"
+            Resource: !GetAtt StormAlertsTopic.TopicArn
+          - Sid: "AllowSendToDLQ"
+            Effect: "Allow"
+            Principal:
+              Service: "sns.amazonaws.com"
+            Action:
+              - "sqs:SendMessage"
+            Resource: !GetAtt StormAlertsDLQ.Arn
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # SQS Queue Policy to allow SNS to send messages
+  # ─────────────────────────────────────────────────────────────────────────
+  StormAlertsDLQPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !GetAtt StormAlertsDLQ.Arn
+      PolicyText:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "AllowSNSPublish"
+            Effect: "Allow"
+            Principal:
+              Service: "sns.amazonaws.com"
+            Action:
+              - "sqs:SendMessage"
+            Resource: !GetAtt StormAlertsDLQ.Arn
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !GetAtt StormAlertsTopic.TopicArn
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # CloudWatch Log Group for SNS Logs (optional but recommended)
+  # ─────────────────────────────────────────────────────────────────────────
+  StormAlertsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/sns/global-solutions/${Environment}"
+      RetentionInDays: 30
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # CloudWatch Alarms for DLQ
+  # ─────────────────────────────────────────────────────────────────────────
+  DLQMessagesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "StormAlerts-DLQ-HasMessages-${Environment}"
+      AlarmDescription: "Alert when DLQ has messages (failed alert deliveries)"
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Period: 300  # 5 minutes
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt StormAlertsDLQ.QueueName
+      AlarmActions:
+        - !Ref StormAlertsTopic
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Outputs
+  # ─────────────────────────────────────────────────────────────────────────
+
+Outputs:
+  TopicArn:
+    Description: "ARN of the SNS topic"
+    Value: !GetAtt StormAlertsTopic.TopicArn
+    Export:
+      Name: !Sub "GlobalSolutions-StormAlertsTopic-${Environment}"
+
+  TopicName:
+    Description: "Name of the SNS topic"
+    Value: !GetAtt StormAlertsTopic.TopicName
+    Export:
+      Name: !Sub "GlobalSolutions-StormAlertsTopicName-${Environment}"
+
+  DLQArn:
+    Description: "ARN of the SQS DLQ"
+    Value: !GetAtt StormAlertsDLQ.Arn
+    Export:
+      Name: !Sub "GlobalSolutions-StormAlertsDLQ-${Environment}"
+
+  DLQUrl:
+    Description: "URL of the SQS DLQ"
+    Value: !Ref StormAlertsDLQ
+    Export:
+      Name: !Sub "GlobalSolutions-StormAlertsDLQUrl-${Environment}"
+
+  LogGroupName:
+    Description: "CloudWatch Log Group for SNS logs"
+    Value: !Ref StormAlertsLogGroup
+    Export:
+      Name: !Sub "GlobalSolutions-StormAlertsLogGroup-${Environment}"
+
+  Environment:
+    Description: "Deployment environment"
+    Value: !Ref Environment
+
+  TopicArn:
+    Description: "SNS Topic ARN for use in Lambda environment variables"
+    Value: !GetAtt StormAlertsTopic.TopicArn
+    Export:
+      Name: !Sub "SNS_TOPIC_ARN-${Environment}"
