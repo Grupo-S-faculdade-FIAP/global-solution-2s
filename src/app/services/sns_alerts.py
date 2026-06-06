@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
 import boto3
@@ -16,11 +15,17 @@ from tenacity import (
     wait_exponential,
 )
 
+# RFC-compliant email validation
+try:
+    from email_validator import validate_email, EmailNotValidError
+    _EMAIL_VALIDATOR_AVAILABLE = True
+except ImportError:
+    _EMAIL_VALIDATOR_AVAILABLE = False
+    EmailNotValidError = ValueError
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
-
-_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def _is_transient_error(exc: Exception) -> bool:
@@ -216,11 +221,42 @@ def publish_storm_alert(
 
 
 def _normalize_email(email: str) -> str:
-    """Valida e normaliza e-mail para inscrição SNS."""
-    normalized = (email or "").strip().lower()
-    if not normalized or not _EMAIL_RE.match(normalized):
-        raise ValueError("E-mail inválido")
-    return normalized
+    """Valida e normaliza e-mail para inscrição SNS.
+
+    Uses RFC-compliant email validation via email_validator library.
+    Accepts valid formats including subaddressing (user+tag@example.com).
+
+    Args:
+        email: Email address to validate and normalize.
+
+    Returns:
+        Normalized email address (lowercase).
+
+    Raises:
+        ValueError: If email is invalid.
+    """
+    if not email or not isinstance(email, str):
+        raise ValueError("E-mail inválido: email deve ser uma string não-vazia")
+
+    email_clean = email.strip()
+
+    if not email_clean:
+        raise ValueError("E-mail inválido: email não pode estar vazio")
+
+    if not _EMAIL_VALIDATOR_AVAILABLE:
+        logger.warning("email_validator not installed, falling back to basic validation")
+        # Fallback: basic validation
+        if "@" not in email_clean or "." not in email_clean.split("@")[-1]:
+            raise ValueError("E-mail inválido: formato não reconhecido")
+        return email_clean.lower()
+
+    try:
+        # Validate and normalize using email_validator
+        # check_deliverability=False to avoid DNS lookups in tests
+        email_obj = validate_email(email_clean, check_deliverability=False)
+        return email_obj.normalized
+    except EmailNotValidError as exc:
+        raise ValueError(f"E-mail inválido: {str(exc)}")
 
 
 def subscribe_email(email: str) -> dict[str, Any]:

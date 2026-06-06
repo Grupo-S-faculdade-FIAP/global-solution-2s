@@ -49,18 +49,18 @@ def test_alerts_test_not_configured(monkeypatch):
 
     monkeypatch.setattr(settings, "SNS_ENABLED", False)
     monkeypatch.setattr(settings, "SNS_TOPIC_ARN", "")
-    response = client.get("/alerts/test")
+    response = client.post("/alerts/test", json={"confidence": 0.85})
     assert response.status_code == 400
 
 
 def test_alerts_test_invalid_confidence(sns_enabled):
-    response = client.get("/alerts/test?confidence=2.0")
-    assert response.status_code == 400
+    response = client.post("/alerts/test", json={"confidence": 2.0})
+    assert response.status_code == 422
 
 
 def test_alerts_test_success(sns_enabled):
     with patch("app.routers.dashboard_alerts.sns_alerts.publish_simulated_alert", return_value="msg-1"):
-        response = client.get("/alerts/test?confidence=0.85")
+        response = client.post("/alerts/test", json={"confidence": 0.85})
     assert response.status_code == 200
     assert response.json()["success"] is True
     assert response.json()["message_id"] == "msg-1"
