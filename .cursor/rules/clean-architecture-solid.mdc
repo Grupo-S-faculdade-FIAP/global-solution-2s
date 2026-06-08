@@ -1,0 +1,86 @@
+---
+description: Clean Architecture e principios SOLID aplicados ao backend FastAPI (src/app) do projeto FIAP Global Solutions — domain/application/infrastructure/interfaces, ports & adapters, DI container.
+globs: ["src/app/**/*.py"]
+alwaysApply: false
+---
+
+# Clean Architecture & SOLID — Backend Global Solutions
+
+O backend (`src/app`) segue Clean Architecture com Ports & Adapters e Dependency
+Injection via `container.py`. Ao criar ou alterar codigo em `src/app`, preserve
+essa estrutura — nao misture camadas.
+
+## Camadas (de dentro para fora)
+
+- **`domain/`** (`domain/cv`, `domain/iot`): entidades e **ports** (interfaces/Protocols,
+  ex.: `StormAlertRepository`, `IoTReadingRepository` em `ports.py`). Zero
+  dependencia de framework, AWS ou banco — apenas regras de negocio e contratos.
+- **`application/`** (`application/cv/detect_storm.py` — `DetectStormUseCase`):
+  casos de uso que orquestram ports do domain. Dependem de **abstrações**
+  (ports), nunca de adapters concretos (DynamoDB, S3, JSON).
+- **`infrastructure/`** (`infrastructure/aws`, `infrastructure/persistence`):
+  **adapters** que implementam os ports — `DynamoDBStormAlertRepository`,
+  `JsonStormAlertRepository`, `dynamodb_iot.py`, `sns_dlq.py`, `json_io.py`.
+  Aqui (e somente aqui) entram detalhes de AWS/boto3/JSON.
+- **`interfaces/` / `routers/` / `lambdas/`**: pontos de entrada (FastAPI routers,
+  handlers Lambda, BFF). Traduzem requisicao ↔ caso de uso; nao contêm regra de negocio.
+- **`services/`**: servicos de dominio que nao se encaixam em CV/IoT estritos
+  (ex.: `agri_risk_model.py`, `risk_assessment.py`, `agri_threshold_ga.py`).
+- **`container.py`**: unico lugar que decide *qual adapter* injetar
+  (`DYNAMODB_USE_MOCK`, settings) — via factories `get_storm_repo()`,
+  `get_detect_storm_use_case()`, etc. Casos de uso e routers recebem dependencias
+  prontas via `Depends(...)`; nunca instanciam adapters diretamente.
+
+## Regra de dependencia (a mais importante)
+
+> Dependencias apontam sempre para dentro: `infrastructure → application → domain`.
+> `domain` nunca importa de `application`/`infrastructure`/`fastapi`/`boto3`.
+
+Se voce notar um import de `boto3`, `fastapi` ou `infrastructure` dentro de
+`domain/` ou de um caso de uso fazendo `import boto3` diretamente, isso é uma
+violação — extraia para um adapter e exponha via port + container.
+
+## SOLID na pratica deste codebase
+
+- **SRP** — cada port/adapter/use case tem uma razão para mudar: `ports.py` muda
+  por contrato de dominio; `dynamodb_storm.py` muda por detalhe de persistência;
+  `detect_storm.py` muda por regra de negocio de deteccao. Nao acumule
+  responsabilidades num unico modulo "utils" genérico.
+- **OCP** — para suportar uma nova fonte de dados (ex.: novo provedor de clima),
+  adicione um novo adapter que implementa o port existente e registre no
+  `container.py`; não edite o caso de uso.
+- **LSP** — qualquer adapter (`JsonStormAlertRepository` ↔
+  `DynamoDBStormAlertRepository`) deve ser substituível sem alterar o
+  comportamento esperado pelo caso de uso — é assim que o projeto roda em modo
+  mock (`DYNAMODB_USE_MOCK=true`, testes/CI) e produção com o mesmo código de
+  aplicação. Ao criar um adapter novo, garanta que ele honra o mesmo contrato
+  (assinatura, exceções, semantica) do port.
+- **ISP** — ports ficam pequenos e focados (`StormAlertRepository`,
+  `IoTReadingRepository`); não crie um port "geral" que força adapters a
+  implementar metodos que não fazem sentido para eles.
+- **DIP** — casos de uso e routers dependem de **ports** (abstrações,
+  `domain/*/ports.py`), e o `container.py` resolve a implementação concreta em
+  runtime. Nunca importe um adapter de `infrastructure` direto num caso de uso
+  ou router — sempre via factory do container.
+
+## Checklist ao adicionar/alterar funcionalidade
+
+1. A regra de negocio pertence a `domain`/`application`, ou é detalhe de
+   IO/framework (→ `infrastructure`/`interfaces`)?
+2. Existe um port que descreve o contrato necessário? Se não, crie em
+   `domain/*/ports.py` antes do adapter.
+3. O adapter novo está isolado em `infrastructure/` e implementa o port
+   integralmente (sem "quase" — LSP)?
+4. O `container.py` foi atualizado para expor a factory, respeitando
+   `settings`/flags de mock existentes?
+5. Existe teste cobrindo o port com pelo menos dois adapters (mock + real, ou
+   `moto` para AWS) garantindo substituibilidade?
+
+## Referencias no codigo
+
+- `src/app/domain/cv/ports.py`, `src/app/domain/iot/ports.py`
+- `src/app/application/cv/detect_storm.py`
+- `src/app/infrastructure/aws/*.py`, `src/app/infrastructure/persistence/*.py`
+- `src/app/container.py`
+- Testes de contrato/adapter: `tests/test_dynamodb_adapters.py`,
+  `tests/test_json_storm_store.py`, `tests/test_container.py`

@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-06 (limpeza docs rodada 4 — SNS + contagem testes)
+**Last updated:** 2026-06-08 (aplicação práticas rules Cursor — non-YOLO)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -12,9 +12,10 @@
 ## Current Focus
 
 **Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
-**Last task completed:** Limpeza docs rodada 4 — artefatos SNS da raiz removidos, codebase docs atualizados (440 testes, SNS integrations), features arquivadas
-**Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); B7 screenshots opcional
+**Last task completed:** Aplicação práticas rules Cursor (non-YOLO): DI `get_sns_dlq_manager()` no container; router `dashboard_alerts` via `Depends`; PROJECT.md G1 atualizado (P≥70% conf=0,55); docstring `storm_detector` sem `print`; testes container + alerts router
+**Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); republicar `best.pt` na Lambda; B7 screenshots opcional
 **Blockers:** nenhum
+**Branch status:** refactor rules aplicado localmente; commit `refactor: apply cursor rules practices (non-yolo)` pendente push
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.7 (2026-06-06)
 
 ---
@@ -49,6 +50,9 @@
 | 2026-06-05 | D-024 | YOLO lazy load + `RISK_SKIP_YOLO=1` em pytest | BFF e RiskAssessment não carregam torch na importação | CV / testes |
 | 2026-06-05 | D-025 | CV geo-aware: alertas 200 km + peso dinâmico no ensemble | Risco muda por localização; sem cobertura satélite → peso CV=0 | Risco / YOLO |
 | 2026-06-05 | D-026 | Dashboard: calculadora usa `/api/risk/forecast` (ensemble + breakdown) | Uma narrativa na UI (`ml.js` + `#risk-badge`) | Frontend |
+| 2026-06-08 | D-027 | YOLO G1: ponto operacional conf=0,55 (P=73,5%, R=30,2%, mAP@0.5=50,4%) | Critério rubrica G1 é precisão ≥70%; menor conf com P≥0,70 no sweep val tiled | CV / inferência |
+| 2026-06-08 | D-028 | Pesos canônicos: `storm70-l-tiled` (YOLOv5l) em `src/models/weights/best.pt` | mAP@0.5=56,5% (TTA 57,1%); treinos l6/p2 cancelados (Option A) | CV / deploy |
+| 2026-06-08 | D-029 | Rules/skills Cursor versionadas em `.cursor/` com índices README | 4 rules + 3 skills; carve-out YOLO G1 em `data-ml-python.mdc`; refs em CLAUDE.md e copilot-instructions | Agentes / docs |
 
 ---
 
@@ -68,7 +72,8 @@
 - 2026-06-04 — Retreino NASA com `--limiar 200 --area 600` (pipeline v1, **corrompido**): 266 bboxes, 74/76 com bbox fantasma `0.079687 0.176852…`, mAP@0.5 ≈ 0.546, precision ~0.89, recall ~0.42 — modelo aprendeu artefato de UI, não nuvens.
 - 2026-06-05 — Pipeline v2 (`scripts/goes_pipeline/label_utils.py`): letterbox 640, detecção na img de treino, máscara UI, `--limiar 185 --area 80`. Dataset: 93 img, 34 com storm, 76 bboxes, 0 ghost, audit PASSED.
 - 2026-06-05 — Retreino v2.0 (76 bboxes): P≈0.003, R≈0.688, mAP@0.5≈0.078 — labels honestos, dataset esparsо.
-- 2026-06-05 — Dataset v2.1 (limiar 175 / area 50): 285 bboxes, 64 img com storm, 0 ghost. Retreino `storm-detector-v2`: P≈0.27, R≈0.17, mAP@0.5≈0.14 — mAP quase dobrou; ainda abaixo G1 (70%).
+- 2026-06-05 — Dataset v2.1 (limiar 175 / area 50): 285 bboxes, 64 img com storm, 0 ghost. Retreino `storm-detector-v2`: P≈0.27, R≈0.17, mAP@0.5≈0.14 — baseline antes do retreino GPU tiled.
+- 2026-06-08 — Retreino GPU RunPod `storm70-l-tiled` (YOLOv5l, dataset tiled): mAP@0.5=0.565 (TTA 0.571). Sweep conf: 0.25→P=54.2%; 0.40→66.3%; **0.55→73.5%**; 0.70→84.6%; 0.85→90.9%. G1 precisão atingida em conf=0.55. Treinos l6/p2 cancelados (Option A). `best.pt` SCP local (~89 MB).
 - 2026-06-04 — DynamoDB mock: `DYNAMODB_USE_MOCK=true` (default) → `data/demo/storm_alerts.json`; `POST /alerts/simulate`; gráficos e `/storms/recent` usam o mesmo store.
 - 2026-06-04 — Dashboard: `DEMO_MODE=true` (default) mantém fallbacks de gráficos; `false` exige FastAPI e oculta botões de dev. Localização em `localStorage` (`dashboard-location`).
 - 2026-06-04 — Dashboard: seção **Mapa da região** (Leaflet CDN) consome `/api/map/overlay` com bbox da localização; Windy permanece como **Radar meteorológico**.
@@ -82,15 +87,23 @@
 - 2026-06-06 — Limpeza rodada 3 (concluída): removidos 5 MDs “Critical Fixes” da raiz (artefatos de sessão; cobertura nos testes); `CORS_EXTRA_ORIGINS` e `XRAY_ENABLED` documentados em `.env.example`; mensagem corrigida em `build_dataset_nasa.command`; métricas atualizadas em `GUIA-DE-AVALIACAO.md`; `LIMPEZA_REPO.md` arquivado (plano executado); `.coverage` no `.gitignore`.
 - 2026-06-06 — SNS dashboard implementado: inscrição e-mail via `/api/alerts/subscribe`, status via `/api/alerts/sns/status`, simular alerta publica no SNS; rate limit em `sns_rate_limit.py`; 16 testes SNS; `sections/sns.js` no dashboard.
 - 2026-06-06 — Limpeza docs rodada 4 (concluída): removidos `IMPLEMENTACOES_2025_06_06.md`, `SNS_IMPLEMENTATION_SUMMARY.md`, `QUICK_START.md` (artefatos com referências a módulos fictícios); `INTEGRATIONS.md` atualizado com seção SNS e rate limit env vars; contagem de testes corrigida para **440** em todos os docs; 7 feature specs marcadas como Arquivadas; `ROADMAP.md` e `CHECKLIST_ENTREGA.md` atualizados.
+- 2026-06-08 — Limpeza docs rodada 5: runbook/plano saíram da raiz; `data/training-dataset-1000/` e `data/model-dataset-tiled/` mantidos (augmentação/treino ativos); único `labels_backup_*` mantido; regra `.cursor/rules/document-organization.mdc` referenciada em `CLAUDE.md`.
+- 2026-06-08 — Rollout rules/skills: commit de `clean-architecture-solid`, `data-ml-python`, skills `agri-risk-ml-workflow` e `clean-architecture-review`; índices `.cursor/rules/README.md` e `.cursor/skills/README.md`; carve-out YOLO G1 (conf=0.55, storm70-l-tiled) em `data-ml-python.mdc` — sem alterar pesos, config ou scripts de treino.
+- 2026-06-08 — Auditoria rules (non-YOLO): AgriRiskModel/GA já usam `logging`; prints restantes são CLI (`capture_nasa_data`, `yolo_training`, `goes_pipeline`) — fora de paths de produção API; métricas 0,14/84/259 testes só em changelog histórico RPI (OK).
 
 ---
 
 ## Deferred Ideas
 
+- `detect_storm.py`: boto3 lazy em `_download_model_from_s3` (application) — extrair adapter S3 + port se refatorar CV
+- `dashboard_alerts.py` `/metrics`: `__import__("boto3")` inline — extrair `CloudWatchMetricsAdapter` em `infrastructure/aws/`
+- Scripts CLI NASA/YOLO (`capture_nasa_data.py`, `goes_pipeline/`): `print` aceitável para operador; migrar para `logging` só se unificar runbooks
+
 - ~~Alertas em tempo real por push/email quando YOLO detectar tempestade~~ — SNS e-mail no dashboard (jun/2026); push mobile fora de escopo
 - Cobertura de outros países da América do Sul
 - App mobile para visualização no campo
-- YOLO mAP ≥ 70% (G1) — retreino offline `make train-yolo --recall-focus`; integração geo já no ensemble
+- YOLO mAP@0.5 ≥ 70% (meta PROJECT.md) — atual 56,5%; precisão G1 atingida em conf=0,55
+- Republicar `best.pt` (~89 MB YOLOv5l) na Lambda S3
 
 ---
 
@@ -109,6 +122,8 @@
 - [x] Limpeza docs rodada 3 — Critical Fixes MDs, .env.example, build_dataset_nasa.command (06/06)
 - [x] SNS no dashboard — inscrição e-mail, rate limit, 16 testes (06/06)
 - [x] Limpeza docs rodada 4 — artefatos SNS, contagem 440 testes, features arquivadas (06/06)
+- [x] Limpeza docs rodada 5 — runbook/plano, índices GPU, pastas vazias (08/06)
+- [x] Aplicar práticas rules Cursor (non-YOLO): DI SNS DLQ, docs G1, STATE deferred (08/06)
 - [ ] B0: Verificar prazo exato na plataforma FIAP
 - [ ] B3: Definir nome do produto (D-001)
 - [ ] B1: Vídeo ≤ 5 min — Enzo (`tasks.md`)

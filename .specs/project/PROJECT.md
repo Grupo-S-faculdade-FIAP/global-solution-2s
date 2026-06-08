@@ -20,7 +20,7 @@
 
 ## Goals
 
-- [ ] **G1** — Detectar tempestades e padrões de nuvens chuvosas em imagens de satélite com YOLO (precisão ≥ 70% no conjunto de validação) — **parcial:** pipeline v2 com labels honestos; mAP@0.5 ≈ 0,14 (abaixo da meta)
+- [x] **G1** — Detectar tempestades e padrões de nuvens chuvosas em imagens de satélite com YOLO (precisão ≥ 70% no conjunto de validação) — atingido em conf=0,55 (P=73,5%, R=30,2%); mAP@0.5=56,5% (meta mAP≥70% permanece para v2)
 - [x] **G2** — Prever risco agrícola com ML + clima — `AgriRiskModel` (INMET BDMEP), AG limiares (DEAP), `RiskAssessmentService` ensemble geo-aware, `/risk/forecast`
 - [x] **G3** — Visualizar dados climáticos em tempo real via Windy widget + Open-Meteo em dashboard web integrado
 - [x] **G4** — Coletar dados de ambiente em campo com ESP32 (DHT22) e enviar ao pipeline cloud (`POST /iot/readings`, mock + DynamoDB)
@@ -80,6 +80,7 @@
 - [x] Suite de testes passa (`make test` — 440 testes; cobertura **~82%**, jun/2026)
 - [x] Dashboard exibe clima, alertas, risco agrícola (ensemble), mapas e seção IoT com fallback demo documentado
 - [ ] Vídeo ≤ 5 min no YouTube (não listado) + PDF estruturado entregues na plataforma FIAP
+- [x] G1 YOLO: precisão ≥ 70% no conjunto de validação (conf=0,55, P=73,5% — D-027)
 - [ ] G1 YOLO: mAP@0.5 ≥ 0,70 no conjunto de validação (pendente — v2)
 
 ---

@@ -8,7 +8,7 @@ Classes:
 Exemplo:
     detector = StormDetector(model_path="src/models/weights/best.pt")
     results = detector.predict("path/to/image.jpg")
-    print(results.detections)
+    logger.info("detections=%s", results.detections)
 """
 
 import cv2
@@ -58,7 +58,7 @@ class StormDetector:
     def __init__(
         self,
         model_path: str = "src/models/weights/best.pt",
-        confidence_threshold: float = 0.5,
+        confidence_threshold: float = 0.55,
         device: str = "cpu",
     ):
         """

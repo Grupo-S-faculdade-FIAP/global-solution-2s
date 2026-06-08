@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from app.application.cv.detect_storm import DetectStormUseCase
     from app.domain.cv.ports import StormAlertRepository
     from app.domain.iot.ports import IoTReadingRepository
+    from app.infrastructure.aws.sns_dlq import SNSDLQManager
 
 logger = logging.getLogger(__name__)
 
@@ -94,3 +95,15 @@ def get_detect_storm_use_case() -> "DetectStormUseCase":
     repo = get_storm_repo()
     logger.debug("Created DetectStormUseCase with %s", repo.__class__.__name__)
     return DetectStormUseCase(repo=repo)
+
+
+def get_sns_dlq_manager() -> "SNSDLQManager":
+    """Factory para SNSDLQManager (adapter AWS SNS/SQS DLQ).
+
+    Returns:
+        Adapter configurado para leitura e reprocessamento de mensagens DLQ.
+    """
+    from app.infrastructure.aws.sns_dlq import SNSDLQManager
+
+    logger.debug("Created SNSDLQManager")
+    return SNSDLQManager()

@@ -166,7 +166,7 @@ python scripts/build_agri_pipeline.py --ci --skip-faostat
 
 | Métrica | Valor (jun/2026) |
 |---------|------------------|
-| Testes unit/integration | **259** passed |
+| Testes unit/integration | **440** passed |
 | Cobertura mínima | **82%** (atual ~82,4%) |
 | Mock | `DYNAMODB_USE_MOCK=true` |
 

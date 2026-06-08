@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Depends
 
+from app.container import get_sns_dlq_manager
 from app.core.config import settings
 from app.core.sns_config import validate_sns_setup, get_topic_arn_from_env
 from app.infrastructure.aws.sns_dlq import SNSDLQManager
@@ -41,7 +42,9 @@ except ImportError:
 
 
 @router.get("/status")
-async def get_alerts_status() -> dict[str, Any]:
+async def get_alerts_status(
+    dlq_manager: SNSDLQManager = Depends(get_sns_dlq_manager),
+) -> dict[str, Any]:
     """Get SNS alerts system status.
 
     Returns:
@@ -63,7 +66,6 @@ async def get_alerts_status() -> dict[str, Any]:
 
     if topic_arn:
         try:
-            dlq_manager = SNSDLQManager()
             dlq_url = dlq_manager.get_dlq_url_from_topic(topic_arn)
             dlq_available = dlq_url is not None
         except Exception as exc:
@@ -135,7 +137,10 @@ async def get_alerts_metrics() -> dict[str, Any]:
 
 
 @router.get("/dlq", response_model=DLQStatsResponse)
-async def get_dlq_messages(params: DLQQueryParams = Depends()) -> dict[str, Any]:
+async def get_dlq_messages(
+    params: DLQQueryParams = Depends(),
+    dlq_manager: SNSDLQManager = Depends(get_sns_dlq_manager),
+) -> dict[str, Any]:
     """Get messages from DLQ.
 
     Query Parameters:
@@ -154,7 +159,6 @@ async def get_dlq_messages(params: DLQQueryParams = Depends()) -> dict[str, Any]
         raise HTTPException(status_code=400, detail="SNS topic not configured")
 
     try:
-        dlq_manager = SNSDLQManager()
         dlq_url = dlq_manager.get_dlq_url_from_topic(topic_arn)
 
         if not dlq_url:
@@ -183,7 +187,10 @@ async def get_dlq_messages(params: DLQQueryParams = Depends()) -> dict[str, Any]
 
 
 @router.post("/retry-dlq", response_model=RetryDLQResponse)
-async def retry_dlq_messages(request: RetryDLQRequest) -> dict[str, Any]:
+async def retry_dlq_messages(
+    request: RetryDLQRequest,
+    dlq_manager: SNSDLQManager = Depends(get_sns_dlq_manager),
+) -> dict[str, Any]:
     """Reprocess messages from DLQ.
 
     Attempts to republish each failed message. If successful, the message
@@ -207,7 +214,6 @@ async def retry_dlq_messages(request: RetryDLQRequest) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="SNS topic not configured")
 
     try:
-        dlq_manager = SNSDLQManager()
         dlq_url = dlq_manager.get_dlq_url_from_topic(topic_arn)
 
         if not dlq_url:

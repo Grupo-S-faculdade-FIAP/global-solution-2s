@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 # Importa slowapi para rate limiting (com graceful fallback)
 try:
     from slowapi import Limiter
+    from slowapi.errors import RateLimitExceeded
     from slowapi.util import get_remote_address
 
     _RATE_LIMITER = Limiter(key_func=get_remote_address)
@@ -38,7 +39,7 @@ app = FastAPI(
 if _RATE_LIMITING_AVAILABLE:
     app.state.limiter = _RATE_LIMITER
     app.add_exception_handler(
-        __import__("slowapi.errors").RateLimitExceeded,
+        RateLimitExceeded,
         lambda request, exc: {
             "detail": "Rate limit exceeded. Max 100 requests per minute per IP."
         },

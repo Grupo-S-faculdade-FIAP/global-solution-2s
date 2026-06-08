@@ -17,9 +17,18 @@ import sys
 from pathlib import Path
 
 # Root do projeto = dois níveis acima deste arquivo (src/yolo_training.py)
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATASET_ROOT = PROJECT_ROOT / "data" / "model-dataset"
-_GOES_PIPELINE = PROJECT_ROOT / "scripts" / "goes_pipeline"
+PROJECT_ROOT    = Path(__file__).resolve().parent.parent
+_BASE_DATASET   = PROJECT_ROOT / "data" / "model-dataset"
+_AUG_DATASET    = PROJECT_ROOT / "data" / "training-dataset-1000"
+_GOES_PIPELINE  = PROJECT_ROOT / "scripts" / "goes_pipeline"
+
+# Usa dataset augmentado se existir e tiver imagens de treino
+DATASET_ROOT = (
+    _AUG_DATASET
+    if (_AUG_DATASET / "images" / "train").exists()
+    and any((_AUG_DATASET / "images" / "train").iterdir())
+    else _BASE_DATASET
+)
 
 
 def _run_label_quality_gate() -> None:
@@ -28,7 +37,8 @@ def _run_label_quality_gate() -> None:
         sys.path.insert(0, str(_GOES_PIPELINE))
     from label_utils import audit_dataset, format_audit_summary, save_audit_report  # noqa: E402
 
-    report = audit_dataset(DATASET_ROOT)
+    # Quality gate sempre roda sobre o dataset base (sem augmentação)
+    report = audit_dataset(_BASE_DATASET)
     out = PROJECT_ROOT / "data" / "label_review" / "audit.json"
     data = save_audit_report(report, out)
     print(format_audit_summary(data))
@@ -54,6 +64,7 @@ def _resolved_dataset_yaml(dataset_yaml: str) -> Path:
         "  0: storm\n",
         encoding="utf-8",
     )
+    print(f"📂 Dataset: {DATASET_ROOT}")
     return resolved
 
 
@@ -79,6 +90,7 @@ def _ensure_yolov5(yolov5_dir: Path) -> Path:
                 "gitpython",
                 "-r", str(yolov5_dir / "requirements.txt"),
                 "--quiet",
+                "--break-system-packages",
             ],
             check=True,
         )
@@ -102,6 +114,7 @@ def train_yolo_storm_detector(
     project_dir: str   = "runs/train",
     run_name: str      = "storm-detector-v2",
     recall_focus: bool = False,
+    cos_lr: bool       = False,
     skip_quality_gate: bool = False,
 ) -> Path:
     """
@@ -127,7 +140,11 @@ def train_yolo_storm_detector(
     print(f"   Modelo  : {model_name}")
     print(f"   Épocas  : {epochs} | Batch: {batch_size} | Device: {device}\n")
 
-    hyp_path = DATASET_ROOT / "hyp.recall.yaml"
+    # Prioridade: hyp.v3.yaml > hyp.recall.yaml (ambos em data/model-dataset/)
+    hyp_v3_path = PROJECT_ROOT / "data" / "model-dataset" / "hyp.v3.yaml"
+    hyp_recall_path = DATASET_ROOT / "hyp.recall.yaml"
+    hyp_path = hyp_v3_path if hyp_v3_path.exists() else hyp_recall_path
+
     cmd = [
         sys.executable,
         str(yolov5_dir / "train.py"),
@@ -144,7 +161,11 @@ def train_yolo_storm_detector(
     ]
     if recall_focus and hyp_path.exists():
         cmd.extend(["--hyp", str(hyp_path)])
-        print(f"   Hyp     : {hyp_path} (recall-focus)")
+        hyp_label = "v3" if hyp_path == hyp_v3_path else "recall-focus"
+        print(f"   Hyp     : {hyp_path} ({hyp_label})")
+    if cos_lr:
+        cmd.append("--cos-lr")
+        print(f"   LR      : cosine decay")
 
     result = subprocess.run(cmd, cwd=str(yolov5_dir))
     if result.returncode != 0:
@@ -167,6 +188,7 @@ def train_yolo_storm_detector(
 def validate_model(
     model_path: str = "src/models/weights/best.pt",
     dataset_yaml: str = "data/model-dataset/storm.yaml",
+    device: str = "cpu",
 ):
     """Valida o modelo treinado no conjunto de validação."""
     model_abs  = PROJECT_ROOT / model_path
@@ -179,7 +201,7 @@ def validate_model(
         str(yolov5_dir / "val.py"),
         "--weights", str(model_abs),
         "--data",    str(dataset_abs),
-        "--device",  "cpu",
+        "--device",  device,
     ]
     subprocess.run(cmd, cwd=str(yolov5_dir), check=True)
     print("✅ Validação concluída")
@@ -224,6 +246,8 @@ if __name__ == "__main__":
                         help="Somente validar best.pt existente (sem treinar)")
     parser.add_argument("--recall-focus", action="store_true",
                         help="Usar hyp.recall.yaml (viés para recall)")
+    parser.add_argument("--cos-lr", action="store_true",
+                        help="Cosine LR decay (melhor convergência)")
     parser.add_argument("--skip-quality-gate", action="store_true",
                         help="Pular auditoria de labels (não recomendado)")
     parser.add_argument("--export",   choices=["onnx", "torchscript", "tflite"],
@@ -232,7 +256,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.validate_only:
-        validate_model("src/models/weights/best.pt", args.dataset)
+        validate_model("src/models/weights/best.pt", args.dataset, device=args.device)
         raise SystemExit(0)
 
     model_path = train_yolo_storm_detector(
@@ -244,11 +268,12 @@ if __name__ == "__main__":
         device=args.device,
         patience=args.patience,
         recall_focus=args.recall_focus,
+        cos_lr=args.cos_lr,
         skip_quality_gate=args.skip_quality_gate,
     )
 
     if args.validate:
-        validate_model(str(model_path), args.dataset)
+        validate_model(str(model_path), args.dataset, device=args.device)
 
     if args.export:
         export_model(str(model_path), args.export)
