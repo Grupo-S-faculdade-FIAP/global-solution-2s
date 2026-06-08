@@ -11,7 +11,7 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
 - [x] Sistemas inteligentes de monitoramento climático utilizando dados espaciais;
   - **Evidência:** capturas NASA GOES, Open-Meteo, Windy, mapas Leaflet — Lucas / Carol
 - [x] Aplicações de visão computacional para análise de imagens orbitais;
-  - **Evidência:** YOLOv5 + `DetectStormUseCase` + pipeline NASA v2 — Lucas
+  - **Evidência:** YOLOv5 (`storm70-l-tiled`, mAP@0.5 56,5%, P=73,5% em conf=0,55) + `DetectStormUseCase` + pipeline NASA v2 — Lucas
 - [x] Soluções com redes neurais para previsão de eventos, clima ou produção agrícola;
   - **Evidência:** YOLO (detecção) + `AgriRiskModel` LightGBM + `/risk/forecast` — Lucas
 - [x] Plataformas cognitivas para análise de grandes volumes de dados espaciais;
@@ -50,7 +50,7 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
   - **Rodrigo** — *Sensores:* ESP32 + DHT22 → API → dashboard
   - **Lucas / Caroline** — *Aplicações cognitivas:* APIs de predição, recomendação e analytics integradas ao dashboard
 - [x] Aplicação prática de conceitos vistos em aula (redes neurais, YOLO, pipelines, AWS, serverless, ESP32, APIs cognitivas, SQL/NoSQL, análise em tempo real);
-  - **Lucas** — *YOLO:* treino + `best.pt` + inferência no dashboard
+  - **Lucas** — *YOLO:* treino GPU `storm70-l-tiled` + `best.pt` (~89 MB) + inferência no dashboard (conf=0,55 para G1)
   - **Lucas** — *Pipeline de dados:* captura NASA, rotulagem v2, treino
   - **Lucas / Tiago** — *AWS serverless:* S3 → Lambda → DynamoDB + SNS
   - **Rodrigo** — *ESP32:* firmware e integração HTTP

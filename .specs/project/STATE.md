@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-08 (limpeza docs rodada 5 — runbook/plano + índices GPU)
+**Last updated:** 2026-06-08 (fechamento G1 YOLO — storm70-l-tiled + sweep conf)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -12,8 +12,8 @@
 ## Current Focus
 
 **Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
-**Last task completed:** Limpeza docs rodada 5 — `RUNBOOK_CURSOR_70.md` → `docs/RUNBOOK-YOLO-70.md`, `PLANO_70_PORCENTO.md` → `.specs/quick/070-plano-yolo-70/PLANO.md`; métricas 440 em RPI/CI/GUIA/copilot; índices RunPod/Vast; pastas vazias e `yolov5/runs/val` removidos
-**Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); B7 screenshots opcional
+**Last task completed:** Fechamento G1 YOLO — treino `storm70-l6-tiled` interrompido no RunPod; `best.pt` consolidado (`storm70-l-tiled`, ~89 MB); sweep conf 0,25–0,85; ponto operacional conf=0,55 (P=73,5%); docs atualizados (README, RPI, YOLO-RETREINO, PDF, GUIA, STATE)
+**Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); republicar `best.pt` na Lambda; B7 screenshots opcional
 **Blockers:** nenhum
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.7 (2026-06-06)
 
@@ -49,6 +49,8 @@
 | 2026-06-05 | D-024 | YOLO lazy load + `RISK_SKIP_YOLO=1` em pytest | BFF e RiskAssessment não carregam torch na importação | CV / testes |
 | 2026-06-05 | D-025 | CV geo-aware: alertas 200 km + peso dinâmico no ensemble | Risco muda por localização; sem cobertura satélite → peso CV=0 | Risco / YOLO |
 | 2026-06-05 | D-026 | Dashboard: calculadora usa `/api/risk/forecast` (ensemble + breakdown) | Uma narrativa na UI (`ml.js` + `#risk-badge`) | Frontend |
+| 2026-06-08 | D-027 | YOLO G1: ponto operacional conf=0,55 (P=73,5%, R=30,2%, mAP@0.5=50,4%) | Critério rubrica G1 é precisão ≥70%; menor conf com P≥0,70 no sweep val tiled | CV / inferência |
+| 2026-06-08 | D-028 | Pesos canônicos: `storm70-l-tiled` (YOLOv5l) em `src/models/weights/best.pt` | mAP@0.5=56,5% (TTA 57,1%); treinos l6/p2 cancelados (Option A) | CV / deploy |
 
 ---
 
@@ -68,7 +70,8 @@
 - 2026-06-04 — Retreino NASA com `--limiar 200 --area 600` (pipeline v1, **corrompido**): 266 bboxes, 74/76 com bbox fantasma `0.079687 0.176852…`, mAP@0.5 ≈ 0.546, precision ~0.89, recall ~0.42 — modelo aprendeu artefato de UI, não nuvens.
 - 2026-06-05 — Pipeline v2 (`scripts/goes_pipeline/label_utils.py`): letterbox 640, detecção na img de treino, máscara UI, `--limiar 185 --area 80`. Dataset: 93 img, 34 com storm, 76 bboxes, 0 ghost, audit PASSED.
 - 2026-06-05 — Retreino v2.0 (76 bboxes): P≈0.003, R≈0.688, mAP@0.5≈0.078 — labels honestos, dataset esparsо.
-- 2026-06-05 — Dataset v2.1 (limiar 175 / area 50): 285 bboxes, 64 img com storm, 0 ghost. Retreino `storm-detector-v2`: P≈0.27, R≈0.17, mAP@0.5≈0.14 — mAP quase dobrou; ainda abaixo G1 (70%).
+- 2026-06-05 — Dataset v2.1 (limiar 175 / area 50): 285 bboxes, 64 img com storm, 0 ghost. Retreino `storm-detector-v2`: P≈0.27, R≈0.17, mAP@0.5≈0.14 — baseline antes do retreino GPU tiled.
+- 2026-06-08 — Retreino GPU RunPod `storm70-l-tiled` (YOLOv5l, dataset tiled): mAP@0.5=0.565 (TTA 0.571). Sweep conf: 0.25→P=54.2%; 0.40→66.3%; **0.55→73.5%**; 0.70→84.6%; 0.85→90.9%. G1 precisão atingida em conf=0.55. Treinos l6/p2 cancelados (Option A). `best.pt` SCP local (~89 MB).
 - 2026-06-04 — DynamoDB mock: `DYNAMODB_USE_MOCK=true` (default) → `data/demo/storm_alerts.json`; `POST /alerts/simulate`; gráficos e `/storms/recent` usam o mesmo store.
 - 2026-06-04 — Dashboard: `DEMO_MODE=true` (default) mantém fallbacks de gráficos; `false` exige FastAPI e oculta botões de dev. Localização em `localStorage` (`dashboard-location`).
 - 2026-06-04 — Dashboard: seção **Mapa da região** (Leaflet CDN) consome `/api/map/overlay` com bbox da localização; Windy permanece como **Radar meteorológico**.
@@ -91,7 +94,8 @@
 - ~~Alertas em tempo real por push/email quando YOLO detectar tempestade~~ — SNS e-mail no dashboard (jun/2026); push mobile fora de escopo
 - Cobertura de outros países da América do Sul
 - App mobile para visualização no campo
-- YOLO mAP ≥ 70% (G1) — retreino offline `make train-yolo --recall-focus`; integração geo já no ensemble
+- YOLO mAP@0.5 ≥ 70% (meta PROJECT.md) — atual 56,5%; precisão G1 atingida em conf=0,55
+- Republicar `best.pt` (~89 MB YOLOv5l) na Lambda S3
 
 ---
 

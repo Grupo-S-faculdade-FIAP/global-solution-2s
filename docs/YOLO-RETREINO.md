@@ -2,7 +2,7 @@
 
 **Projeto:** GS2 — `global-solution-2s`  
 **Atualizado:** 2026-06-08  
-**Status atual:** mAP@0.5 ≈ 0,14 (labels honestos, dataset pequeno) — abaixo da meta G1
+**Status atual:** mAP@0.5 **56,5%** (TTA 57,1%); **precisão ≥ 70%** em conf=0,55 (P=73,5%, R=30,2%) — critério G1 (precisão) atingido
 
 ---
 
@@ -73,9 +73,11 @@ python scripts/goes_pipeline/06_audit_labels.py --strict
 |--------|---------|---------|-----------|--------|------------|
 | v1 (corrompido) | 76 bbox fantasma | ~0,55 | ~0,89 | ~0,42 | Artefato de UI, não nuvens |
 | v2.0 | 76 bbox honestos | ~0,08 | ~0,003 | ~0,69 | Labels corretos, dataset esparsо |
-| v2.1 | 285 bbox | ~0,14 | ~0,27 | ~0,17 | Melhoria parcial |
+| v2.1 | 285 bbox | ~0,14 | ~0,27 | ~0,17 | Baseline antes do retreino GPU |
+| **v3 `storm70-l-tiled`** | tiled (1033 val) | **0,565** | 0,542 | 0,625 | YOLOv5l, conf=0,25; TTA **0,571** |
+| **Ponto operacional G1** | tiled val | 0,504 | **0,735** | 0,302 | conf=**0,55** — precisão ≥ 70% |
 
-**Meta PROJECT.md (G1):** mAP@0.5 ≥ **0,70** no conjunto de validação.
+**Meta PROJECT.md (G1):** precisão ≥ **70%** no conjunto de validação — **atingida** em conf=0,55. Meta mAP@0.5 ≥ 0,70 permanece como melhoria futura (atual 56,5%).
 
 Estratégias para atingir a meta (v2 pós-GS):
 

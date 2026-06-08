@@ -143,6 +143,7 @@ def _get_storm_detector():
         return None
     try:
         sys.path.insert(0, str(Path(__file__).parent.parent))
+        from app.core.config import settings
         from app.services.storm_detector import StormDetector
 
         _src_root = Path(__file__).resolve().parent.parent
@@ -150,7 +151,7 @@ def _get_storm_detector():
         if yolo_path.exists():
             _storm_detector = StormDetector(
                 model_path=yolo_path,
-                confidence_threshold=0.4,
+                confidence_threshold=settings.YOLO_CONFIDENCE_THRESHOLD,
                 device="cpu",
             )
             STORM_DETECTOR = _storm_detector
@@ -395,11 +396,13 @@ def storms_recent(hours: int = 24) -> tuple[Any, str, int]:
 
 
 def detector_status() -> tuple[Any, str, int]:
+    from app.core.config import settings
+
     model_path = Path(__file__).resolve().parent.parent / "models" / "weights" / "best.pt"
     return _ok({
         "available": _get_storm_detector() is not None,
         "model_exists": model_path.exists(),
-        "confidence_threshold": 0.4,
+        "confidence_threshold": settings.YOLO_CONFIDENCE_THRESHOLD,
         "model_path": str(model_path),
     }, "live")
 

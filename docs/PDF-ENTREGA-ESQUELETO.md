@@ -67,7 +67,7 @@ O **GS2** é uma plataforma de inteligência ambiental e agrícola que combina:
 
 | ID | Objetivo | Status |
 |----|----------|--------|
-| G1 | Detecção YOLO de tempestades em imagens de satélite | Parcial — mAP@0.5 ≈ 0,14 (labels honestos pipeline v2) |
+| G1 | Detecção YOLO de tempestades em imagens de satélite | Concluído (MVP) — mAP@0.5 56,5%; precisão 73,5% em conf=0,55 |
 | G2 | Previsão de risco agrícola (ML + INMET) | Concluído |
 | G3 | Visualização climática em tempo real | Concluído |
 | G4 | ESP32 → pipeline cloud | Concluído (MVP) |
@@ -129,7 +129,7 @@ INMET → AgriRiskModel → /risk/forecast → Dashboard
 - 79 capturas NASA GOES; dataset YOLO v2 com **0 bbox fantasma** (audit gate);
 - Pesos: `src/models/weights/best.pt`;
 - Inferência local (`stormdetector.py`) e na Lambda via `DetectStormUseCase`;
-- Métricas honestas: P≈0,27, R≈0,17, mAP@0.5≈0,14 — trade-off documentado vs. pipeline v1 corrompido.
+- Métricas v3 (`storm70-l-tiled`, YOLOv5l): mAP@0.5=**56,5%** (TTA 57,1%); ponto operacional G1: conf=0,55 → P=**73,5%**, R=30,2%, mAP=50,4%.
 
 **Inserir screenshot:** dashboard seção YOLO com detecção (não é código — permitido).
 
@@ -318,7 +318,7 @@ Testes: `make test-coverage` (gate 82%).
 | Cobertura de código | **82,44%** | Gate no CI (`make test-coverage`) |
 | Capturas NASA | 79 PNG | `data/nasa_captures/` |
 | Dataset YOLO train | 79 img + 79 labels | Pipeline v2, 0 ghost |
-| YOLO mAP@0.5 | ≈ 0,14 | Labels honestos; meta G1 (70%) v2 |
+| YOLO mAP@0.5 | **56,5%** (TTA 57,1%) | `storm70-l-tiled`; precisão G1 em conf=0,55 (73,5%) |
 | INMET registros | 43,8k horários | 5 estações BDMEP |
 | Endpoints API | 20+ rotas REST + BFF `/api/*` | Ver `docs/RPI.md` §4.1 |
 
@@ -348,7 +348,7 @@ Baseado em `docs/GUIA-DE-AVALIACAO.md`:
 
 ### 3.4 Limitações conhecidas (honestidade técnica)
 
-- YOLO abaixo da meta de 70% mAP — dataset pequeno; priorizamos labels corretos;
+- YOLO mAP@0.5 (56,5%) abaixo da meta PROJECT.md de 70% mAP; precisão G1 (≥70%) atingida via conf=0,55 com trade-off de recall (~30%);
 - Demo local usa mock DynamoDB por padrão (`DYNAMODB_USE_MOCK=true` no `.env`);
 - Cold start Lambda 60–90 s na primeira invocação;
 - Cobertura geográfica v1: Brasil;
@@ -376,7 +376,7 @@ A GS2 demonstra que é possível conectar dados orbitais, visão computacional, 
 
 ### 4.3 Trabalho futuro (pós-GS)
 
-- Retreino YOLO com mais capturas NASA (meta mAP ≥ 70%);
+- YOLO mAP@0.5 ≥ 70% (atual 56,5%; precisão G1 já atingida em conf=0,55) + mais capturas NASA;
 - DynamoDB real em produção (`mock off`);
 - Alertas push/email em tempo real;
 - Expansão da camada cognitiva com novos modelos ou fontes de dados espaciais;

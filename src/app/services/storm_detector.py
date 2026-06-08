@@ -58,7 +58,7 @@ class StormDetector:
     def __init__(
         self,
         model_path: str = "src/models/weights/best.pt",
-        confidence_threshold: float = 0.5,
+        confidence_threshold: float = 0.55,
         device: str = "cpu",
     ):
         """

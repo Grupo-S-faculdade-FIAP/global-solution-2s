@@ -17,7 +17,7 @@
 
 **Specs internas:** `.specs/project/` (PROJECT, STATE, ROADMAP, CHECKLIST) · `.specs/codebase/` (arquitetura, testes, stack)
 
-**Auditoria docs (concluída):** `.specs/features/docs-refresh/spec.md` + limpeza 08/06 — métricas canônicas: 440 testes, 82,44% cov, 53 E2E, 79 capturas NASA
+**Auditoria docs (concluída):** `.specs/features/docs-refresh/spec.md` + limpeza 08/06 — métricas canônicas: 440 testes, 82,44% cov, 53 E2E, 79 capturas NASA, YOLO mAP@0.5 56,5% (P≥70% em conf=0,55)
 
 **Licença:** [CC BY 4.0](../LICENSE) (template FIAP TIAO-2026)
 

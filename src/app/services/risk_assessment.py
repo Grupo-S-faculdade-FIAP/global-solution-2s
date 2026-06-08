@@ -22,6 +22,8 @@ from typing import Optional
 
 import numpy as np
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 W_CLIMA_BASE = 0.40
@@ -122,7 +124,7 @@ class RiskAssessmentService:
             if model_path.exists():
                 self._storm_detector = StormDetector(
                     model_path=str(model_path),
-                    confidence_threshold=0.25,
+                    confidence_threshold=settings.YOLO_CONFIDENCE_THRESHOLD,
                 )
                 logger.info("✅ StormDetector carregado")
             else:
