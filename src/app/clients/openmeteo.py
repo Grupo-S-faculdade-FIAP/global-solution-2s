@@ -10,6 +10,7 @@ from functools import lru_cache
 import requests
 
 from app.core.config import settings
+from app.services.external_api_rate_limit import acquire_external_api_slot
 
 DEFAULT_TIMEOUT_SEC = 10
 ARCHIVE_TIMEOUT_SEC = 60
@@ -44,6 +45,7 @@ def _get_current_cached(lat: float, lon: float, base_url: str, timezone: str) ->
         "timezone": timezone,
     }
     try:
+        acquire_external_api_slot("open-meteo")
         response = requests.get(base_url, params=params, timeout=DEFAULT_TIMEOUT_SEC)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
@@ -93,6 +95,7 @@ class OpenMeteoClient:
             "timezone": self.timezone,
         }
         try:
+            acquire_external_api_slot("open-meteo-archive")
             response = self.session.get(
                 self.archive_url, params=params, timeout=ARCHIVE_TIMEOUT_SEC
             )

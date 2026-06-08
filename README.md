@@ -101,17 +101,18 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 **Observações gerais:**
 - Este projeto foi desenvolvido no contexto da Global Solution da FIAP (Graduação ON em IA)
 
-### Status do projeto — 2026-06-06
+### Status do projeto — 2026-06-08
 
 | Área | Evidência |
 |------|-----------|
 | Testes unit/integration | **440 passed** (`make test`) |
 | Cobertura CI | **~82%** (`make test-coverage`) |
 | Testes E2E Playwright | **53** (`make test-e2e`) |
-| Capturas NASA | 79 PNG em `data/nasa_captures` |
-| Dataset YOLO train | 79 imagens + 79 labels (`data/model-dataset/`) |
-| Pipeline labels | v2 — letterbox 640, 0 bbox fantasma; mAP@0.5 **56,5%** (TTA 57,1%); **precisão ≥ 70%** em conf=0,55 (P=73,5%, R=30,2%) |
-| Retreino YOLO | `make train-yolo` (pipeline canônico) · pesos em `src/models/weights/best.pt` + S3 |
+| Capturas NASA | 1.602 PNG acumulados em `data/nasa_captures/` (base v2: 79) |
+| Dataset YOLO | base **1.361** train (`model-dataset/`) → tiled **3.045** train / **1.033** val (`model-dataset-tiled/`, retreino `storm70-l-tiled`) |
+| Pipeline labels | v2 — letterbox 640, pseudo-rótulos por threshold OpenCV, 0 bbox fantasma; mAP@0.5 **56,5%** (TTA 57,1%); **precisão ≥ 70%** em conf=0,55 (P=73,5%, R=30,2%) |
+| Retreino YOLO | `make train-yolo` · pesos **~89 MB** em `src/models/weights/best.pt` + `s3://satellite-images-gs2/models/best.pt` (cold start Lambda) |
+| Rótulos proxy | ML e YOLO treinam com alvos derivados de regras do pipeline — ver [docs/RPI.md](docs/RPI.md) §8.2 |
 | ML risco | INMET + AG limiares + ensemble geo-aware — `make build-agri` |
 | IoT | ESP32 DHT22 + API + dashboard + 11 testes — firmware em `src/iot/firmware.cpp` |
 | CI/CD | GitHub Actions + OIDC — [docs/CI-CD.md](docs/CI-CD.md) |

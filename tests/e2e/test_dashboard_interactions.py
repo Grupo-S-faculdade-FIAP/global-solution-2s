@@ -106,6 +106,7 @@ def test_nav_highlights_active_section_on_scroll(page: Page) -> None:
         ("#sec-historico", "sec-historico"),
         ("#sec-alertas-mapa", "sec-alertas-mapa"),
         ("#sec-radar", "sec-radar"),
+        ("#sec-sobre", "sec-sobre"),
     ],
 )
 def test_nav_links_scroll_to_sections(page: Page, href: str, section_id: str) -> None:

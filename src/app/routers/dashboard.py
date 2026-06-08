@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Query, HTTPException
 
+from app.services.external_api_rate_limit import ExternalApiRateLimitExceeded
 from app.services.weather_service import WeatherService
 
 router = APIRouter()
@@ -22,5 +23,7 @@ def get_current_climate(
     try:
         data = _weather.get_current(lat, lon)
         return {"data": data, "source": "open-meteo"}
+    except ExternalApiRateLimitExceeded:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Erro ao buscar clima: {exc}") from exc

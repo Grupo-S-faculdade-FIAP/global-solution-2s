@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-08 (fix pytest SNS alerts)
+**Last updated:** 2026-06-08 (docs honestidade proxy labels + contagens dataset)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -12,8 +12,8 @@
 ## Current Focus
 
 **Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
-**Last task completed:** Quick fix SNS alerts pytest: `/alerts/metrics` resiliente a CloudWatch indisponível, e-mail SNS normalizado lowercase, `detector_status()` via lazy loader; `pytest tests/ -q -m "not e2e"` local passou (436 passed)
-**Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); republicar `best.pt` na Lambda; B7 screenshots opcional
+**Last task completed:** Seção dashboard `#sec-sobre` (Metodologia): rótulos proxy, links GitHub/RPI/API, nav + footer
+**Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); B7 screenshots opcional
 **Blockers:** nenhum
 **Branch status:** `chore/dataset-gitignore-yolo-stack` — commit `afbf61c` pushed (`refactor: apply cursor rules practices (non-yolo)`)
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.7 (2026-06-06)
@@ -53,6 +53,7 @@
 | 2026-06-08 | D-027 | YOLO G1: ponto operacional conf=0,55 (P=73,5%, R=30,2%, mAP@0.5=50,4%) | Critério rubrica G1 é precisão ≥70%; menor conf com P≥0,70 no sweep val tiled | CV / inferência |
 | 2026-06-08 | D-028 | Pesos canônicos: `storm70-l-tiled` (YOLOv5l) em `src/models/weights/best.pt` | mAP@0.5=56,5% (TTA 57,1%); treinos l6/p2 cancelados (Option A) | CV / deploy |
 | 2026-06-08 | D-029 | Rules/skills Cursor versionadas em `.cursor/` com índices README | 4 rules + 3 skills; carve-out YOLO G1 em `data-ml-python.mdc`; refs em CLAUDE.md e copilot-instructions | Agentes / docs |
+| 2026-06-08 | D-030 | Rótulos proxy documentados (ML + YOLO) | Alvos circulares — R²/mAP medem consistência interna, não validação externa; transparência no PDF §2.4.5 | PDF B2, RPI §8.2 |
 
 ---
 
@@ -90,7 +91,7 @@
 - 2026-06-08 — Limpeza docs rodada 5: runbook/plano saíram da raiz; `data/training-dataset-1000/` e `data/model-dataset-tiled/` mantidos (augmentação/treino ativos); único `labels_backup_*` mantido; regra `.cursor/rules/document-organization.mdc` referenciada em `CLAUDE.md`.
 - 2026-06-08 — Rollout rules/skills: commit de `clean-architecture-solid`, `data-ml-python`, skills `agri-risk-ml-workflow` e `clean-architecture-review`; índices `.cursor/rules/README.md` e `.cursor/skills/README.md`; carve-out YOLO G1 (conf=0.55, storm70-l-tiled) em `data-ml-python.mdc` — sem alterar pesos, config ou scripts de treino.
 - 2026-06-08 — Auditoria rules (non-YOLO): AgriRiskModel/GA já usam `logging`; prints restantes são CLI (`capture_nasa_data`, `yolo_training`, `goes_pipeline`) — fora de paths de produção API; métricas 0,14/84/259 testes só em changelog histórico RPI (OK).
-- 2026-06-08 — CI pytest SNS alerts: `/alerts/metrics` não deve falhar com credenciais AWS inválidas; retorna envelope com datapoints vazios. `email_validator` preserva casing do local-part, então normalizar explicitamente com `.lower()`. `detector_status()` precisa consultar `_get_storm_detector()` para refletir lazy loader/patches.
+- 2026-06-08 — Rótulos proxy (ML + YOLO): alvos circulares documentados em RPI §8.2 e PDF §2.4.5; R²≈0,95 mede ajuste à regra, não predição externa; S3 `best.pt` 88,6 MiB confirmado; contagens dataset atualizadas (1.361 base → 3.045 tiled train).
 
 ---
 
@@ -104,7 +105,7 @@
 - Cobertura de outros países da América do Sul
 - App mobile para visualização no campo
 - YOLO mAP@0.5 ≥ 70% (meta PROJECT.md) — atual 56,5%; precisão G1 atingida em conf=0,55
-- Republicar `best.pt` (~89 MB YOLOv5l) na Lambda S3
+- ~~Republicar `best.pt` (~89 MB YOLOv5l) na Lambda S3~~ — confirmado 88,6 MiB em `s3://satellite-images-gs2/models/best.pt` (08/06/2026)
 
 ---
 

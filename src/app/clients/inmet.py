@@ -18,6 +18,8 @@ from typing import Any
 
 import requests
 
+from app.services.external_api_rate_limit import acquire_external_api_slot
+
 logger = logging.getLogger(__name__)
 
 BDMEP_ZIP_URL = "https://portal.inmet.gov.br/uploads/dadoshistoricos/{year}.zip"
@@ -133,6 +135,7 @@ class InmetClient:
         self.session.headers.setdefault("User-Agent", "global-solutions/1.0")
 
     def list_stations(self) -> list[dict[str, Any]]:
+        acquire_external_api_slot("inmet")
         resp = self.session.get(STATIONS_URL, timeout=120)
         resp.raise_for_status()
         data = resp.json()
@@ -149,6 +152,7 @@ class InmetClient:
         codes = set(station_codes or [s["code"] for s in DEFAULT_TRAINING_STATIONS])
         url = BDMEP_ZIP_URL.format(year=year)
         logger.info("INMET BDMEP: baixando %s", url)
+        acquire_external_api_slot("inmet-bdmep")
         resp = self.session.get(url, timeout=600)
         resp.raise_for_status()
 

@@ -33,8 +33,19 @@ def test_index_renders_main_sections(flask_client) -> None:
         "sec-satelite",
         "sec-historico",
         "sec-radar",
+        "sec-sobre",
     ):
         assert f'id="{section_id}"' in html
+
+
+def test_about_section_documents_proxy_labels(flask_client) -> None:
+    html = flask_client.get("/").data.decode()
+    assert 'id="sec-sobre"' in html
+    assert "rótulos proxy" in html
+    assert "Honestidade metodológica" in html
+    assert "Caroline de Castro Corrêa" in html
+    assert "Tiago Lindgren Curi" in html
+    assert "global-solution-2s" in html
 
 
 def test_index_includes_es_module_entry(flask_client) -> None:
@@ -69,6 +80,7 @@ def test_nav_has_all_section_links(flask_client) -> None:
         "#sec-historico",
         "#sec-alertas-mapa",
         "#sec-radar",
+        "#sec-sobre",
     ):
         assert f'href="{href}"' in html
 

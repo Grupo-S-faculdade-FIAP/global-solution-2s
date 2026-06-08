@@ -10,6 +10,7 @@ from app.core.config import settings, get_allowed_origins
 from app.core.tracing import init_xray, wrap_lambda_handler, add_trace_metadata
 from app.core.xray_tracing import xray_subsegment
 from app.routers import cv, ml, iot, dashboard, data_integration, dashboard_bff, dashboard_ui, dashboard_alerts
+from app.services.external_api_rate_limit import ExternalApiRateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,21 @@ if _RATE_LIMITING_AVAILABLE:
     logger.info("Rate limiting enabled (100 req/min per IP)")
 else:
     logger.debug("Rate limiting not available (slowapi not installed)")
+
+
+@app.exception_handler(ExternalApiRateLimitExceeded)
+async def external_api_rate_limit_handler(_request, exc: ExternalApiRateLimitExceeded):
+    from fastapi.responses import JSONResponse
+
+    headers = {}
+    if exc.retry_after_sec is not None:
+        headers["Retry-After"] = str(exc.retry_after_sec)
+    return JSONResponse(
+        status_code=429,
+        content={"detail": str(exc)},
+        headers=headers,
+    )
+
 
 # CORS dinâmico: mescla ALLOWED_ORIGINS + CORS_EXTRA_ORIGINS do ambiente
 cors_origins = get_allowed_origins()

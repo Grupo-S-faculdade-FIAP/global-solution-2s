@@ -1,0 +1,110 @@
+<p class="section-title" id="sec-sobre">Sobre o projeto</p>
+
+<div class="dash-card about-intro">
+  <div class="card-head">
+    <div>
+      <div class="card-head-title"><i class="bi bi-info-circle"></i> Global Solutions — FIAP 2026</div>
+      <div class="card-head-sub">
+        POC de inteligência ambiental e agrícola: satélite NASA GOES, visão computacional (YOLO),
+        risco agrícola (ML + INMET), sensores IoT e backend serverless na AWS.
+      </div>
+    </div>
+  </div>
+  <p class="about-lead">
+    Este painel integra clima, alertas de tempestade e risco na lavoura em uma única URL.
+    Os modelos abaixo usam <strong>rótulos proxy</strong> gerados pelo pipeline — adequado para demonstração,
+    com limitações documentadas de forma transparente.
+  </p>
+  <div class="about-links" role="navigation" aria-label="Links do projeto">
+    <a class="about-link-btn" href="https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s" target="_blank" rel="noopener noreferrer">
+      <i class="bi bi-github" aria-hidden="true"></i> Repositório
+    </a>
+    <a class="about-link-btn" href="https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/blob/main/docs/RPI.md" target="_blank" rel="noopener noreferrer">
+      <i class="bi bi-file-earmark-text" aria-hidden="true"></i> RPI técnico
+    </a>
+    <a class="about-link-btn" href="https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health" target="_blank" rel="noopener noreferrer">
+      <i class="bi bi-cloud-check" aria-hidden="true"></i> API produção
+    </a>
+    <a class="about-link-btn" href="https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki" target="_blank" rel="noopener noreferrer">
+      <i class="bi bi-book" aria-hidden="true"></i> Wiki AWS
+    </a>
+  </div>
+</div>
+
+<div class="dash-card about-team">
+  <div class="card-head">
+    <div>
+      <div class="card-head-title"><i class="bi bi-people"></i> Equipe</div>
+      <div class="card-head-sub">Global Solution FIAP 2026 · Graduação ON em IA</div>
+    </div>
+  </div>
+  <ul class="about-team-list">
+    <li>Caroline de Castro Corrêa</li>
+    <li>Rodrigo Dias Figueiroa</li>
+    <li>Enzo França Sader</li>
+    <li>Lucas Hideki Oliveira Koyama</li>
+    <li>Tiago Lindgren Curi</li>
+  </ul>
+</div>
+
+<div class="about-grid">
+  <div class="dash-card about-card">
+    <div class="about-card-icon text-blue" aria-hidden="true"><i class="bi bi-radar"></i></div>
+    <h3 class="about-card-title">Tempestades no satélite (YOLO)</h3>
+    <p class="about-card-text">
+      As caixas de detecção são treinadas com <em>pseudo-rótulos</em>: regiões de pixels brilhantes
+      acima de limiar e área mínima (<code>detect_storms</code> em OpenCV). O modelo aprende a replicar
+      essa heurística — não anotação humana independente.
+    </p>
+    <ul class="about-facts">
+      <li>mAP@0,5 ≈ <strong>56,5%</strong> (retreino <code>storm70-l-tiled</code>)</li>
+      <li>Precisão G1: <strong>73,5%</strong> em conf=0,55 (recall ~30%)</li>
+      <li>Dataset: 1.361 train base → 3.045 tiled · 0 bbox fantasma (audit v2)</li>
+    </ul>
+  </div>
+
+  <div class="dash-card about-card">
+    <div class="about-card-icon text-green" aria-hidden="true"><i class="bi bi-flower1"></i></div>
+    <h3 class="about-card-title">Risco na lavoura (ML)</h3>
+    <p class="about-card-text">
+      O regressor tabular prevê um score 0–1 derivado de
+      <code>score_continuo_normalizado(temp, umid, precip, vento)</code> — a mesma regra agrometeorológica
+      parametrizada usada como alvo. O R²≈0,95 mede <strong>ajuste à regra</strong>, não previsão de safra
+      ou perda real em campo.
+    </p>
+    <ul class="about-facts">
+      <li>Treino: INMET BDMEP — 43,8k registros (5 estações)</li>
+      <li>Limiares otimizados por algoritmo genético (DEAP)</li>
+      <li>Ensemble geo-aware: clima + CV (200 km) + ML</li>
+    </ul>
+  </div>
+
+  <div class="dash-card about-card">
+    <div class="about-card-icon text-purple" aria-hidden="true"><i class="bi bi-cloud-arrow-up"></i></div>
+    <h3 class="about-card-title">Demo local e produção</h3>
+    <p class="about-card-text">
+      Localmente, <code>make demo</code> sobe API + dashboard na porta 8000. Por padrão, DynamoDB e IoT
+      usam mocks JSON. Na AWS, upload <code>.jpg</code> no S3 dispara a Lambda, que baixa
+      <code>best.pt</code> (~89 MB) do S3 no cold start e publica alertas no SNS.
+    </p>
+    <ul class="about-facts">
+      <li><strong>440</strong> testes unit/integration · <strong>53</strong> E2E Playwright</li>
+      <li>Cobertura CI ≥ <strong>82%</strong></li>
+      <li>Cold start Lambda: ~60–90 s na 1ª invocação</li>
+      <li>Dev local: limite de <strong>20</strong> chamadas/hora a APIs externas sem token (Open-Meteo, INMET); Lambda isenta</li>
+    </ul>
+  </div>
+</div>
+
+<div class="dash-card about-callout" role="note">
+  <div class="about-callout-icon" aria-hidden="true"><i class="bi bi-shield-check"></i></div>
+  <div>
+    <p class="about-callout-title">Honestidade metodológica</p>
+    <p class="about-callout-text">
+      Métricas altas (R², precisão YOLO) indicam <strong>consistência interna com as regras do pipeline</strong>,
+      não validação científica externa. Detalhes completos em
+      <a href="https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/blob/main/docs/RPI.md#82-rótulos-proxy--transparência-metodológica" target="_blank" rel="noopener noreferrer">RPI §8.2</a>
+      e no PDF de entrega FIAP.
+    </p>
+  </div>
+</div>
