@@ -158,7 +158,8 @@ def ml_agricultural_risk():
 @app.route("/api/nasa/capturas")
 def nasa_capturas():
     limite = request.args.get("limite", 12, type=int)
-    data, source, status = bff.nasa_capturas(limite)
+    dia = request.args.get("dia") or None
+    data, source, status = bff.nasa_capturas(limite, dia=dia)
     return _json_response(data, data_source=source, status=status)
 
 

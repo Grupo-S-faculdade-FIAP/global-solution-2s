@@ -108,8 +108,11 @@ def api_ml_agricultural_risk(
 
 
 @router.get("/nasa/capturas")
-def api_nasa_capturas(limite: int = Query(12, ge=1, le=100)) -> JSONResponse:
-    data, source, status = bff.nasa_capturas(limite)
+def api_nasa_capturas(
+    limite: int = Query(12, ge=1, le=100),
+    dia: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+) -> JSONResponse:
+    data, source, status = bff.nasa_capturas(limite, dia=dia)
     return JSONResponse(content=data, status_code=status, headers={"X-Data-Source": source})
 
 

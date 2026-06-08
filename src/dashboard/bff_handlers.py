@@ -467,8 +467,11 @@ def ml_agricultural_risk(
     return _err("Backend error", status if status != 200 else 503)
 
 
-def nasa_capturas(limite: int = 12) -> tuple[Any, str, int]:
-    status, body = backend_get("/cv/nasa/capturas", params={"limite": limite})
+def nasa_capturas(limite: int = 12, dia: str | None = None) -> tuple[Any, str, int]:
+    params: dict[str, Any] = {"limite": limite}
+    if dia:
+        params["dia"] = dia
+    status, body = backend_get("/cv/nasa/capturas", params=params)
     if status == 200 and isinstance(body, dict):
         return _ok(body, "live")
     return _ok({"total": 0, "capturas": []}, "live")
