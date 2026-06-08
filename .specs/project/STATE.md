@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-06 (limpeza docs rodada 4 — SNS + contagem testes)
+**Last updated:** 2026-06-08 (limpeza docs rodada 5 — runbook/plano + índices GPU)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -12,7 +12,7 @@
 ## Current Focus
 
 **Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
-**Last task completed:** Limpeza docs rodada 4 — artefatos SNS da raiz removidos, codebase docs atualizados (440 testes, SNS integrations), features arquivadas
+**Last task completed:** Limpeza docs rodada 5 — `RUNBOOK_CURSOR_70.md` → `docs/RUNBOOK-YOLO-70.md`, `PLANO_70_PORCENTO.md` → `.specs/quick/070-plano-yolo-70/PLANO.md`; métricas 440 em RPI/CI/GUIA/copilot; índices RunPod/Vast; pastas vazias e `yolov5/runs/val` removidos
 **Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); B7 screenshots opcional
 **Blockers:** nenhum
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.7 (2026-06-06)
@@ -82,6 +82,7 @@
 - 2026-06-06 — Limpeza rodada 3 (concluída): removidos 5 MDs “Critical Fixes” da raiz (artefatos de sessão; cobertura nos testes); `CORS_EXTRA_ORIGINS` e `XRAY_ENABLED` documentados em `.env.example`; mensagem corrigida em `build_dataset_nasa.command`; métricas atualizadas em `GUIA-DE-AVALIACAO.md`; `LIMPEZA_REPO.md` arquivado (plano executado); `.coverage` no `.gitignore`.
 - 2026-06-06 — SNS dashboard implementado: inscrição e-mail via `/api/alerts/subscribe`, status via `/api/alerts/sns/status`, simular alerta publica no SNS; rate limit em `sns_rate_limit.py`; 16 testes SNS; `sections/sns.js` no dashboard.
 - 2026-06-06 — Limpeza docs rodada 4 (concluída): removidos `IMPLEMENTACOES_2025_06_06.md`, `SNS_IMPLEMENTATION_SUMMARY.md`, `QUICK_START.md` (artefatos com referências a módulos fictícios); `INTEGRATIONS.md` atualizado com seção SNS e rate limit env vars; contagem de testes corrigida para **440** em todos os docs; 7 feature specs marcadas como Arquivadas; `ROADMAP.md` e `CHECKLIST_ENTREGA.md` atualizados.
+- 2026-06-08 — Limpeza docs rodada 5: runbook/plano saíram da raiz; `data/training-dataset-1000/` e `data/model-dataset-tiled/` mantidos (augmentação/treino ativos); único `labels_backup_*` mantido; regra `.cursor/rules/document-organization.mdc` referenciada em `CLAUDE.md`.
 
 ---
 
@@ -109,6 +110,7 @@
 - [x] Limpeza docs rodada 3 — Critical Fixes MDs, .env.example, build_dataset_nasa.command (06/06)
 - [x] SNS no dashboard — inscrição e-mail, rate limit, 16 testes (06/06)
 - [x] Limpeza docs rodada 4 — artefatos SNS, contagem 440 testes, features arquivadas (06/06)
+- [x] Limpeza docs rodada 5 — runbook/plano, índices GPU, pastas vazias (08/06)
 - [ ] B0: Verificar prazo exato na plataforma FIAP
 - [ ] B3: Definir nome do produto (D-001)
 - [ ] B1: Vídeo ≤ 5 min — Enzo (`tasks.md`)

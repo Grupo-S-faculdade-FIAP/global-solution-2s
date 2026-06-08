@@ -68,6 +68,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
   - **Rubrica FIAP:** [docs/GUIA-DE-AVALIACAO.md](docs/GUIA-DE-AVALIACAO.md)
   - **Deploy Lambda:** [docs/DEPLOY-LAMBDA.md](docs/DEPLOY-LAMBDA.md)
   - **CI/CD (GitHub Actions + OIDC):** [docs/CI-CD.md](docs/CI-CD.md)
+  - **Retreino YOLO / runbook GPU:** [docs/YOLO-RETREINO.md](docs/YOLO-RETREINO.md) · [docs/RUNBOOK-YOLO-70.md](docs/RUNBOOK-YOLO-70.md)
   - **Wiki AWS:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki/AWS%E2%80%90STATE
 
 - **`src/`**: Código-fonte — API FastAPI (Clean Architecture), dashboard Flask/HTML, firmware ESP32 (`src/iot/`), modelos YOLO (`src/models/`) e treino (`src/yolo_training.py`).
@@ -110,7 +111,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 | Capturas NASA | 79 PNG em `data/nasa_captures` |
 | Dataset YOLO train | 79 imagens + 79 labels (`data/model-dataset/`) |
 | Pipeline labels | v2 — letterbox 640, 0 bbox fantasma; mAP@0.5 ≈ 0,14 (abaixo meta G1 70%) |
-| Retreino YOLO | `make train-yolo` + [docs/YOLO-RETREINO.md](docs/YOLO-RETREINO.md) |
+| Retreino YOLO | `make train-yolo` + [docs/YOLO-RETREINO.md](docs/YOLO-RETREINO.md) · runbook GPU: [docs/RUNBOOK-YOLO-70.md](docs/RUNBOOK-YOLO-70.md) |
 | ML risco | INMET + AG limiares + ensemble geo-aware — `make build-agri` |
 | IoT | ESP32 DHT22 + API + dashboard + 11 testes — firmware em `src/iot/firmware.cpp` |
 | CI/CD | GitHub Actions + OIDC — [docs/CI-CD.md](docs/CI-CD.md) |

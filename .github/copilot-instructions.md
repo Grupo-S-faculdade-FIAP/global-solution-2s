@@ -245,7 +245,7 @@ Step 5: Flag as uncertain → "I'm not certain about X — here's my reasoning, 
 ```bash
 make install          # dependências
 make demo             # API + dashboard → http://127.0.0.1:8000
-make test             # 259 testes (excl. E2E)
+make test             # 440 testes (excl. E2E)
 make test-coverage    # gate cobertura 82% (atual ~82,4%)
 make test-e2e         # 53 testes Playwright
 make build-agri       # pipeline INMET + treino ML

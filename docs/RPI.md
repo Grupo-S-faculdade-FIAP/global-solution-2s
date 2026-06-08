@@ -200,7 +200,7 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 | **Dashboard / UX produtor** | ~98% | Concluído | Tema claro/escuro, ES modules, event bus, location-bar com grid, três mapas (região, radar Windy, picker), seção IoT, skeleton KPIs, a11y básica. |
 | **IoT ESP32** | ~75% | Concluído (MVP) | Router `/iot/*`, store mock+DynamoDB, firmware `src/iot/firmware.cpp`, dashboard `sections/iot.js`, BFF `/api/iot/*`. Simulação Wokwi documentada. |
 | **AWS (Lambda, S3, DynamoDB, SNS)** | ~65% | Em progresso | API publicada (`/health`); pipeline S3→Lambda documentado; CI/CD OIDC; DynamoDB real requer `DYNAMODB_USE_MOCK=false`. EventBridge captura NASA pausado. |
-| **Testes automatizados** | ~95% | Concluído (MVP+) | **259** testes unit/integration (`make test`, excl. e2e); **53** E2E Playwright (`make test-e2e`); gate de cobertura **82,44%** (`make test-coverage`). CI em `.github/workflows/ci.yml` (jobs `pytest` + `e2e-dashboard`). |
+| **Testes automatizados** | ~95% | Concluído (MVP+) | **440** testes unit/integration (`make test`, excl. e2e); **53** E2E Playwright (`make test-e2e`); gate de cobertura **82,44%** (`make test-coverage`). CI em `.github/workflows/ci.yml` (jobs `pytest` + `e2e-dashboard`). |
 | **CI/CD** | ~95% | Concluído | CI em todo push/PR: pytest + cobertura 82% + verificação pipeline agrícola (`--ci`); job E2E Playwright separado. CD na `main` (build Docker → ECR → Lambda + smoke `/health`). Sem access keys (OIDC). |
 
 ### 4.1 Endpoints principais (evidência)
@@ -368,7 +368,7 @@ Pesos atuais: `src/models/weights/best.pt` (~14 MB).
 | R² CV (treino INMET) | ≈ 0,95 (LightGBM no build local) |
 | Limiares | `models/agri_risk_thresholds.json` (AG opcional: `scripts/optimize_agri_thresholds.py`) |
 | Ensemble | 40% clima + 40% CV (dinâmico) + 20% ML |
-| Testes | 259 unit (+ E2E); cobertura app ≥ 82% |
+| Testes | 440 unit (+ E2E); cobertura app ≥ 82% |
 
 ### 8.2 Contagens no repositório (06/06/2026)
 
@@ -378,7 +378,7 @@ Pesos atuais: `src/models/weights/best.pt` (~14 MB).
 | `data/model-dataset/images/train` | 79 |
 | `data/model-dataset/labels/train` | 79 |
 | `src/models/weights/best.pt` | presente (~14 MB) |
-| `tests/` (pytest, excl. e2e) | **259** passed; gate cobertura 82,44% (`make test-coverage`) |
+| `tests/` (pytest, excl. e2e) | **440** passed; gate cobertura 82,44% (`make test-coverage`) |
 | `tests/e2e/` (Playwright) | 53 coletados (`make test-e2e`) |
 | `scripts/goes_pipeline/` | pipeline NASA → YOLO v2 (canônico) |
 | `models/agri_risk_thresholds.json` | presente (limiares AG) |
@@ -505,5 +505,6 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 05/06/2026)
 | 1.2 | 04/06/2026 | Agente / equipe GS2 | Dashboard UI profissional: tema claro/escuro, tokens CSS, polish GitHub-like, a11y, checklist Fase D |
 | 1.3 | 05/06/2026 | Agente / equipe GS2 | IoT MVP (API + firmware + dashboard); Clean Architecture (Domain/Application/Infrastructure/Interfaces); pipeline YOLO v2 e métricas honestas; frontend ES modules + event bus; 84 testes passing; CI/CD OIDC (`docs/CI-CD.md`); G4 concluído MVP |
 | 1.4 | 05/06/2026 | Agente / equipe GS2 | Auditoria documentação: specs, codebase docs, README, CHECKLIST, ROADMAP alinhados ao código; removidas refs Streamlit/IoT stub/CI manual; `.env` canônico na raiz |
+| 1.7 | 08/06/2026 | Equipe GS2 | Limpeza docs: runbook → `docs/RUNBOOK-YOLO-70.md`, plano → `.specs/quick/070-plano-yolo-70/`; métricas 440 testes; índices GPU (RunPod/Vast) |
 | 1.6 | 05/06/2026 | Equipe GS2 | docs-refresh completo (fases 0–3): README, PROJECT, CHECKLIST, PDF trechos, codebase docs, CI-CD/DEPLOY, copilot, feature specs Done; 259 testes, 82,44% cov |
 | 1.5 | 05/06/2026 | Agente / equipe GS2 | ML risco: LightGBM + AG limiares (DEAP) + `agri_risk_thresholds.json`; suite expandida (~220+ unit, 53 E2E Playwright, 17 HTML); gate cobertura 82% no CI; jobs `pytest` + `e2e-dashboard`; `make test-coverage`, `make test-e2e`, `make build-agri-ci` |

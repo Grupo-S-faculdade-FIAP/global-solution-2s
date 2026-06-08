@@ -13,7 +13,7 @@ Uso:
     # (tile 320 -> upscale 2x no treino = objeto ~4x maior que no original 640)
 
 Na INFERÊNCIA use SAHI (pip install sahi) com slice_height=slice_width=320,
-overlap=0.2 e fundo das predições por NMS/Greedy — ver Seção 7 do RUNBOOK.
+overlap=0.2 e fundo das predições por NMS/Greedy — ver Seção 7 de docs/RUNBOOK-YOLO-70.md.
 """
 from __future__ import annotations
 import argparse

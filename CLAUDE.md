@@ -6,7 +6,7 @@ Plataforma de inteligência ambiental e agrícola (FIAP GS 2026.1): satélite, Y
 
 ## Metodologia — mesma do Cursor
 
-**Fonte canônica:** leia e siga **sempre** `.cursor/rules/tlc-spec-driven.mdc`.
+**Fonte canônica:** leia e siga **sempre** `.cursor/rules/tlc-spec-driven.mdc`. Para organização de documentação Markdown, use também `.cursor/rules/document-organization.mdc`.
 
 Esse arquivo define o fluxo Spec-Driven (SPECIFY → DESIGN → TASKS → EXECUTE), auto-sizing de escopo, estrutura `.specs/`, princípios de código e frases-gatilho. O time usa as mesmas regras no Cursor; não invente um fluxo paralelo.
 

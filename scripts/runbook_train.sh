@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# runbook_train.sh — Executa o RUNBOOK_CURSOR_70.md passo a passo
+# runbook_train.sh — Executa o docs/RUNBOOK-YOLO-70.md passo a passo
 #
 # Mudança crítica vs rodadas anteriores:
 #   --img 1280  (era 640 — MAIOR alavanca para objetos pequenos)

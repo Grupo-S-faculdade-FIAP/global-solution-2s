@@ -1,7 +1,7 @@
 # Retreino YOLOv5 — meta G1 (mAP@0.5 ≥ 70%)
 
 **Projeto:** GS2 — `global-solution-2s`  
-**Atualizado:** 2026-06-06  
+**Atualizado:** 2026-06-08  
 **Status atual:** mAP@0.5 ≈ 0,14 (labels honestos, dataset pequeno) — abaixo da meta G1
 
 ---
@@ -101,5 +101,7 @@ python models/stormdetector.py
 1. Copiar para S3: `aws s3 cp src/models/weights/best.pt s3://satellite-images-gs2/models/best.pt`
 2. Smoke test: `make smoke-aws`
 3. Verificar logs CloudWatch da Lambda `gs2-api`
+
+**GPU / meta 70%:** [RUNBOOK-YOLO-70.md](RUNBOOK-YOLO-70.md) (passo a passo) · [RUNPOD-TREINO.md](RUNPOD-TREINO.md) · [VAST-AI-TREINO.md](VAST-AI-TREINO.md) · atalho `bash RODAR_STACK_70.sh` na raiz
 
 Ver também: [DEPLOY-LAMBDA.md](DEPLOY-LAMBDA.md) · [RPI.md](RPI.md) §4 (CV)

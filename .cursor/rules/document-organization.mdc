@@ -1,0 +1,33 @@
+---
+description: Organiza documentacao Markdown, specs e artefatos de entrega no projeto FIAP Global Solutions.
+globs: "**/*.md"
+alwaysApply: false
+---
+
+# Organizacao de Documentos
+
+Ao criar ou editar Markdown neste projeto, trate a documentacao como parte da entrega FIAP Global Solutions.
+
+## Fonte canonica
+
+- Leia primeiro `.specs/project/STATE.md` e `.specs/project/PROJECT.md`; para contexto publico, use `README.md`, `docs/README.md`, `docs/RPI.md` e guias em `docs/`.
+- Nao assuma contagem de testes, cobertura, endpoints, comandos ou status de features: verifique no codigo, Makefile, CI ou docs canonicos antes de repetir.
+- Mantenha o idioma em Portugues BR, exceto nomes tecnicos, comandos e APIs.
+
+## Destino correto
+
+- Raiz: apenas `README.md`, planos/runbooks essenciais de entrega e documentos explicitamente justificados.
+- `docs/`: documentacao para avaliador FIAP e operacao (`RPI`, guia de avaliacao, deploy, CI/CD, YOLO, PDF).
+- `docs/dados/`: fontes, datasets, amostras e instrucoes de dados.
+- `.specs/project/`: memoria persistente, visao, roadmap e estado do projeto.
+- `.specs/features/`: specs/design/tasks de features ativas ou arquivadas.
+- `.specs/quick/`: pequenas tarefas concluiveis em ate 3 arquivos.
+- `src/*/README.md`: notas locais de modulo quando ajudam a navegar codigo.
+
+## Consistencia e limpeza
+
+- Atualize indices e referencias cruzadas quando mover/criar docs: `README.md`, `docs/README.md`, `.specs/project/STATE.md` e `.specs/project/PROJECT.md` quando aplicavel.
+- Preserve `README.md` e `docs/` como trilha clara para o avaliador FIAP; nao esconda instrucoes essenciais em specs internas.
+- Arquive artefatos temporarios ou de sessao em `.specs/quick/` ou `.specs/features/[slug]/`; nao crie novos Markdown na raiz sem justificativa forte.
+- Evite duplicar conteudo longo entre arquivos. Prefira linkar a fonte canonica e resumir o necessario.
+- Regras duras: sem secrets, sem invencao, escopo minimo, sem commit sem pedido explicito.
