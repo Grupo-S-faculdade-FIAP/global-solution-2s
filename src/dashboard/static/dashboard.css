@@ -876,6 +876,9 @@ html[data-theme="light"] .map-empty-state {
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px var(--border);
 }
+.map-legend-dot-history {
+  background: var(--yellow);
+}
 .leaflet-popup-content-wrapper {
   background: var(--bg-card);
   color: var(--text-prim);

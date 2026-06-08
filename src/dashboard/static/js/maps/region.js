@@ -6,6 +6,8 @@ import { getCssVar } from "../core/css.js";
 import { noteResponseSource } from "../core/ui.js";
 import { mapTileConfig } from "./tiles.js";
 
+const ACTIVE_ALERT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 export function locationBBox(lat, lon, pad = REGION_MAP_PAD) {
   const south = Math.max(-90, lat - pad);
   const north = Math.min(90, lat + pad);
@@ -24,7 +26,10 @@ function formatAlertTimestamp(ts) {
 
 function stormPopupHtml(props) {
   const conf = props.intensity != null ? `${Math.round(props.intensity * 100)}%` : "—";
-  return `<strong>Alerta de tempestade</strong><br>Confiança: ${conf}<br>Horário: ${formatAlertTimestamp(props.timestamp)}`;
+  const ts = props.timestamp ? new Date(props.timestamp) : null;
+  const active = ts && !isNaN(ts.getTime()) && Date.now() - ts.getTime() <= ACTIVE_ALERT_WINDOW_MS;
+  const title = active ? "Alerta de tempestade" : "Registro histórico de tempestade";
+  return `<strong>${title}</strong><br>Confiança: ${conf}<br>Horário: ${formatAlertTimestamp(props.timestamp)}`;
 }
 
 function featureTimestamp(feature) {
@@ -53,21 +58,36 @@ function updateRegionAlertStatus(features, loadFailed = false) {
     return;
   }
 
-  const maxConfidence = features.reduce((max, feature) => {
+  const now = Date.now();
+  const activeFeatures = features.filter((feature) => {
+    const ts = featureTimestamp(feature);
+    return ts && now - ts.getTime() <= ACTIVE_ALERT_WINDOW_MS;
+  });
+  const statusFeatures = activeFeatures.length ? activeFeatures : features;
+  const maxConfidence = statusFeatures.reduce((max, feature) => {
     const intensity = Number(feature?.properties?.intensity);
     return Number.isFinite(intensity) ? Math.max(max, intensity) : max;
   }, 0);
-  const latest = features
+  const latest = statusFeatures
     .map(featureTimestamp)
     .filter(Boolean)
     .sort((a, b) => b.getTime() - a.getTime())[0];
-  const countLabel = features.length === 1 ? "1 alerta" : `${features.length} alertas`;
+  const countLabel = statusFeatures.length === 1 ? "1 alerta" : `${statusFeatures.length} alertas`;
   const confidenceLabel = maxConfidence > 0 ? `, confiança máxima ${Math.round(maxConfidence * 100)}%` : "";
   const latestLabel = latest ? `, mais recente em ${formatAlertTimestamp(latest.toISOString())}` : "";
 
+  if (!activeFeatures.length) {
+    badge.classList.add("region-alert-badge-warning");
+    badge.textContent = "Histórico";
+    message.textContent =
+      `${countLabel} histórico(s) no raio monitorado${confidenceLabel}${latestLabel}. ` +
+      "Nenhum alerta ativo nas últimas 24h.";
+    return;
+  }
+
   badge.classList.add("region-alert-badge-danger");
-  badge.textContent = "Alerta de tempestade";
-  message.textContent = `${countLabel} no raio monitorado${confidenceLabel}${latestLabel}.`;
+  badge.textContent = "Alerta ativo";
+  message.textContent = `${countLabel} ativo(s) no raio monitorado${confidenceLabel}${latestLabel}.`;
 }
 
 export function ensureRegionMap() {
@@ -122,10 +142,12 @@ function renderRegionAlerts(geojson, loadFailed = false) {
   if (emptyEl) emptyEl.hidden = true;
 
   const layer = L.geoJSON(geojson, {
-    pointToLayer(_feature, latlng) {
+    pointToLayer(feature, latlng) {
+      const ts = featureTimestamp(feature);
+      const active = ts && Date.now() - ts.getTime() <= ACTIVE_ALERT_WINDOW_MS;
       return L.circleMarker(latlng, {
         radius: 9,
-        fillColor: getCssVar("--red") || "#f85149",
+        fillColor: getCssVar(active ? "--red" : "--yellow") || (active ? "#f85149" : "#d29922"),
         color: "#fff",
         weight: 2,
         opacity: 1,
