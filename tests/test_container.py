@@ -6,6 +6,7 @@ from app import container
 from app.infrastructure.aws.dynamodb_iot import DynamoDBIoTReadingRepository
 from app.infrastructure.aws.dynamodb_storm import DynamoDBStormAlertRepository
 from app.infrastructure.persistence.json_iot_store import JsonIoTReadingRepository
+from app.infrastructure.aws.sns_dlq import SNSDLQManager
 from app.infrastructure.persistence.json_storm_store import JsonStormAlertRepository
 
 
@@ -31,3 +32,8 @@ def test_get_iot_repo_dynamodb(monkeypatch):
     monkeypatch.setattr(container.settings, "IOT_USE_MOCK", False)
     repo = container.get_iot_repo()
     assert isinstance(repo, DynamoDBIoTReadingRepository)
+
+
+def test_get_sns_dlq_manager():
+    manager = container.get_sns_dlq_manager()
+    assert isinstance(manager, SNSDLQManager)

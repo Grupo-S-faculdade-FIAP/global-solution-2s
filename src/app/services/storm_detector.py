@@ -8,7 +8,7 @@ Classes:
 Exemplo:
     detector = StormDetector(model_path="src/models/weights/best.pt")
     results = detector.predict("path/to/image.jpg")
-    print(results.detections)
+    logger.info("detections=%s", results.detections)
 """
 
 import cv2

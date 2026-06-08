@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-08 (rules/skills Cursor + carve-out YOLO G1)
+**Last updated:** 2026-06-08 (aplicação práticas rules Cursor — non-YOLO)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -12,9 +12,10 @@
 ## Current Focus
 
 **Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
-**Last task completed:** Fechamento G1 YOLO — treino `storm70-l6-tiled` interrompido no RunPod; `best.pt` consolidado (`storm70-l-tiled`, ~89 MB); sweep conf 0,25–0,85; ponto operacional conf=0,55 (P=73,5%); docs atualizados (README, RPI, YOLO-RETREINO, PDF, GUIA, STATE)
+**Last task completed:** Aplicação práticas rules Cursor (non-YOLO): DI `get_sns_dlq_manager()` no container; router `dashboard_alerts` via `Depends`; PROJECT.md G1 atualizado (P≥70% conf=0,55); docstring `storm_detector` sem `print`; testes container + alerts router
 **Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); republicar `best.pt` na Lambda; B7 screenshots opcional
 **Blockers:** nenhum
+**Branch status:** refactor rules aplicado localmente; commit `refactor: apply cursor rules practices (non-yolo)` pendente push
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.7 (2026-06-06)
 
 ---
@@ -88,10 +89,15 @@
 - 2026-06-06 — Limpeza docs rodada 4 (concluída): removidos `IMPLEMENTACOES_2025_06_06.md`, `SNS_IMPLEMENTATION_SUMMARY.md`, `QUICK_START.md` (artefatos com referências a módulos fictícios); `INTEGRATIONS.md` atualizado com seção SNS e rate limit env vars; contagem de testes corrigida para **440** em todos os docs; 7 feature specs marcadas como Arquivadas; `ROADMAP.md` e `CHECKLIST_ENTREGA.md` atualizados.
 - 2026-06-08 — Limpeza docs rodada 5: runbook/plano saíram da raiz; `data/training-dataset-1000/` e `data/model-dataset-tiled/` mantidos (augmentação/treino ativos); único `labels_backup_*` mantido; regra `.cursor/rules/document-organization.mdc` referenciada em `CLAUDE.md`.
 - 2026-06-08 — Rollout rules/skills: commit de `clean-architecture-solid`, `data-ml-python`, skills `agri-risk-ml-workflow` e `clean-architecture-review`; índices `.cursor/rules/README.md` e `.cursor/skills/README.md`; carve-out YOLO G1 (conf=0.55, storm70-l-tiled) em `data-ml-python.mdc` — sem alterar pesos, config ou scripts de treino.
+- 2026-06-08 — Auditoria rules (non-YOLO): AgriRiskModel/GA já usam `logging`; prints restantes são CLI (`capture_nasa_data`, `yolo_training`, `goes_pipeline`) — fora de paths de produção API; métricas 0,14/84/259 testes só em changelog histórico RPI (OK).
 
 ---
 
 ## Deferred Ideas
+
+- `detect_storm.py`: boto3 lazy em `_download_model_from_s3` (application) — extrair adapter S3 + port se refatorar CV
+- `dashboard_alerts.py` `/metrics`: `__import__("boto3")` inline — extrair `CloudWatchMetricsAdapter` em `infrastructure/aws/`
+- Scripts CLI NASA/YOLO (`capture_nasa_data.py`, `goes_pipeline/`): `print` aceitável para operador; migrar para `logging` só se unificar runbooks
 
 - ~~Alertas em tempo real por push/email quando YOLO detectar tempestade~~ — SNS e-mail no dashboard (jun/2026); push mobile fora de escopo
 - Cobertura de outros países da América do Sul
@@ -117,6 +123,7 @@
 - [x] SNS no dashboard — inscrição e-mail, rate limit, 16 testes (06/06)
 - [x] Limpeza docs rodada 4 — artefatos SNS, contagem 440 testes, features arquivadas (06/06)
 - [x] Limpeza docs rodada 5 — runbook/plano, índices GPU, pastas vazias (08/06)
+- [x] Aplicar práticas rules Cursor (non-YOLO): DI SNS DLQ, docs G1, STATE deferred (08/06)
 - [ ] B0: Verificar prazo exato na plataforma FIAP
 - [ ] B3: Definir nome do produto (D-001)
 - [ ] B1: Vídeo ≤ 5 min — Enzo (`tasks.md`)

@@ -24,8 +24,8 @@ def sns_enabled(monkeypatch):
 def test_alerts_status_endpoint(sns_enabled):
     with patch("app.routers.dashboard_alerts.validate_sns_setup", return_value=(False, ["No DLQ"])):
         with patch("app.routers.dashboard_alerts.get_topic_arn_from_env", return_value="arn:aws:sns:us-east-1:1:t"):
-            with patch("app.routers.dashboard_alerts.SNSDLQManager") as mock_dlq:
-                mock_dlq.return_value.get_dlq_url_from_topic.return_value = None
+            with patch("app.container.get_sns_dlq_manager") as mock_factory:
+                mock_factory.return_value.get_dlq_url_from_topic.return_value = None
                 response = client.get("/alerts/status")
 
     assert response.status_code == 200
