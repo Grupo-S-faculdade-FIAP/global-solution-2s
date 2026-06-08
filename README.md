@@ -29,12 +29,6 @@
 
 ---
 
-## 📋 Licença
-
-Este projeto está licenciado sob [Creative Commons Attribution 4.0 International (CC BY 4.0)](LICENSE) — mesmo modelo do [template FIAP TIAO-2026](https://github.com/CaiqueFiap-2026/TEMPLATE-TIAO-2026).
-
----
-
 ## 📜 Descrição
 
 O **GS2** é uma plataforma de inteligência ambiental e agrícola que combina visão computacional (YOLOv5), machine learning, computação em nuvem (AWS) e sensores IoT (ESP32) para detectar padrões de nuvens convectivas em imagens de satélite, prever risco agrícola e gerar alertas acionáveis.
