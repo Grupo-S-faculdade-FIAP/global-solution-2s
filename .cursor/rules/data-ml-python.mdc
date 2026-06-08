@@ -1,0 +1,114 @@
+---
+description: Convencoes de analise de dados e Machine Learning em Python para o projeto FIAP Global Solutions (AgriRiskModel, YOLOv5, pipelines INMET/FAOSTAT/NASA).
+globs: ["**/*.py", "**/*.ipynb"]
+alwaysApply: false
+---
+
+# Analise de Dados & ML em Python — Global Solutions
+
+> Inspirado nas skills de Data Science da Tech Leads Club (agent-skills.techleads.club)
+> e em boas praticas consolidadas (pandas docs, scikit-learn user guide, "Effective pandas").
+
+Este projeto combina ML tabular (LightGBM/HistGradientBoosting + AG/DEAP), visao
+computacional (YOLOv5/torch) e pipelines de dados (INMET, FAOSTAT, NASA GOES, Open-Meteo).
+Ao tocar codigo de dados/ML, siga as convencoes ja estabelecidas abaixo — nao introduza
+um estilo novo quando ja existe um padrao no codebase.
+
+## Stack canonica (nao adicionar libs sem necessidade real)
+
+- **Dados/ML tabular:** `pandas`, `numpy`, `scikit-learn`, `lightgbm` (com fallback
+  `HistGradientBoostingRegressor` — ver `_resolve_regressor_backend` em `agri_risk_model.py`),
+  `joblib`/`pickle` para serializacao, `deap` para algoritmos geneticos.
+- **Visao computacional:** `torch`, `torchvision`, `opencv-python-headless`, YOLOv5 (`src/yolo_training.py`, `src/models/`).
+- **HTTP/integracao:** `httpx`, `requests`, `tenacity` (retry com backoff exponencial).
+- **API/serving:** `fastapi`, `pydantic`/`pydantic-settings`, `mangum` (Lambda).
+- Antes de adicionar uma lib nova, verifique `src/requirements.txt` / `requirements-lambda.txt`
+  e confirme que ela nao duplica algo ja presente.
+
+## Pandas & NumPy
+
+- Prefira `.loc`/`.iloc` para indexacao explicita; evite chained indexing
+  (`df[df.x > 1]['y'] = ...`) — gera `SettingWithCopyWarning` e bugs sutis.
+- Vetorize com NumPy/pandas em vez de `for`/`apply` linha a linha quando o dataset
+  for grande (capturas NASA, cache INMET podem ter milhares de linhas).
+- Trate ausencia/erro de dado de forma explicita (NaN, fallback para amostra local —
+  veja `_INMET_CACHE` / `_INMET_SAMPLE` em `agri_risk_model.py` como padrao de
+  "cache real com fallback para amostra commitada").
+- Documente a fonte e a unidade de cada coluna/feature meteorologica
+  (°C, mm, km/h, %) — esses pipelines alimentam decisões de risco agricola.
+
+## scikit-learn / LightGBM / modelos tabulares
+
+- Pipelines de treino seguem o padrao: `StandardScaler` + regressor, com
+  `cross_val_score` para validacao (ver `agri_risk_model.py`, `agri_threshold_ga.py`).
+  Reutilize esse padrao em vez de criar um pipeline paralelo.
+- Mantenha o **fallback de backend** (`AGRI_USE_LIGHTGBM` env var →
+  `HistGradientBoostingRegressor`) ao tocar `agri_risk_model.py` /
+  `agri_threshold_ga.py` — existe para evitar segfault LightGBM+torch no macOS.
+  Nao remova nem torne LightGBM obrigatorio.
+- Ao mudar features, hiperparametros ou regras de classificacao de risco, registre
+  `DATASET_SOURCE` e `MODEL_TYPE` corretamente e re-treine com os scripts/Make
+  targets existentes (nao versione um `.pkl` divergente do codigo que o gera).
+- Limiares (`thresholds`) sao artefatos versionados em
+  `models/agri_risk_thresholds.json` — gerados pelo AG (`agri_threshold_ga.py`),
+  nunca hard-code valores de limiar direto no codigo de inferencia.
+
+## Algoritmo Genetico (DEAP)
+
+- `agri_threshold_ga.py` define `TARGET_DIST` (distribuicao alvo de classes) e
+  `AgriThresholds` (dataclass com todos os parametros evoluiveis). Ao alterar a
+  busca: preserve a reprodutibilidade (seed do `random`/`numpy`), documente a
+  funcao de fitness e nao quebre o formato `to_dict`/`asdict` usado para persistir
+  em `agri_risk_thresholds.json`.
+- Mudancas na funcao de fitness ou em `TARGET_DIST` sao decisoes de modelagem:
+  explique o racional no commit/spec, nao apenas o "o que" mudou.
+
+## Versionamento de modelos
+
+- Modelos de visao (YOLOv5 `.pt`) usam `ModelVersion` (`app/core/model_versioning.py`):
+  checksum SHA256, framework, `input_size`, `classes`, metadata. Ao publicar um novo
+  peso, gere a entrada de versao em vez de sobrescrever silenciosamente.
+- Modelos tabulares (`agri_risk_model.pkl`, `agri_risk_scaler.pkl`,
+  `agri_risk_meta.pkl`) ficam em `models/`; mantenha modelo + scaler + thresholds
+  + meta em sincronia — um `.pkl` sem o scaler/thresholds correspondente quebra
+  `RiskAssessmentService`.
+
+## YOLOv5 / Visao computacional
+
+- Treino/retreino segue os runbooks em `docs/YOLO-RETREINO.md`,
+  `docs/RUNBOOK-YOLO-70.md`, `docs/RUNPOD-TREINO.md`, `docs/VAST-AI-TREINO.md`.
+  Nao invente um fluxo de treino paralelo — referencie/atualize esses runbooks.
+- Pipeline de dados: captura NASA GOES (Playwright) → rotulagem (labels v2,
+  "0 bbox fantasma") → treino YOLOv5 → `best.pt` → S3 → Lambda
+  (`DetectStormUseCase`). Preserve a integridade dessa cadeia ao editar qualquer etapa.
+
+### YOLO G1 — configuracao congelada (carve-out)
+
+> Esta rule orienta **trabalho futuro** (retreino, pipelines, refatoracao de codigo).
+> **Nao altere** os defaults de inferencia/deploy G1 sem decisao explicita em
+> `.specs/project/STATE.md` (D-027, D-028).
+
+| Artefato | Valor canonico G1 | Nao alterar em tarefas gerais |
+| --- | --- | --- |
+| Pesos | `src/models/weights/best.pt` (`storm70-l-tiled`, YOLOv5l) | sobrescrever, trocar path ou checksum sem versionar |
+| Conf inferencia | `YOLO_CONFIDENCE_THRESHOLD=0.55` (`config.py`, `.env.example`) | reduzir/aumentar conf para "melhorar metrica" ad hoc |
+| Metricas publicadas | mAP@0.5=56,5%; P=73,5% em conf=0,55 | repetir numeros antigos sem verificar docs/codigo |
+| Scripts/runbooks | `RODAR_STACK_70.sh`, hyp yaml, `label_utils.py` | mudar limiares de treino sem spec |
+
+- Skills/rules de ML tabular (`agri-risk-ml-workflow`) e Clean Architecture **nao**
+  autorizam mudanca nos itens acima — escopo YOLO G1 e independente do AgriRiskModel.
+
+## Qualidade, testes e reprodutibilidade
+
+- Toda mudanca em modelo/feature/pipeline precisa de teste correspondente em
+  `tests/` (ja ha ampla cobertura: `test_agri_risk_model.py`,
+  `test_agri_threshold_ga.py`, `test_model_versioning.py`,
+  `test_detect_storm_*`, `test_label_utils.py`, etc.) — siga o padrao de mocks
+  (`moto` para AWS) ja usado.
+- Fixe seeds (`random`, `numpy`, `torch`) em qualquer rotina de treino/avaliacao
+  nova para permitir reproducao.
+- Nunca commit de dataset bruto grande ou segredo; use os caches/amostras
+  existentes em `data/` e `.env` + `pydantic-settings` para configuracao.
+- Antes de afirmar metricas (acuracia, mAP, distribuicao de classes, cobertura),
+  verifique no codigo/relatorios atuais — nao repita numeros de docs antigos
+  (mesma regra do `document-organization.mdc`).

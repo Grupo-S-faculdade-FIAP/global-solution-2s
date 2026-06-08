@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-08 (fechamento G1 YOLO — storm70-l-tiled + sweep conf)
+**Last updated:** 2026-06-08 (rules/skills Cursor + carve-out YOLO G1)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -51,6 +51,7 @@
 | 2026-06-05 | D-026 | Dashboard: calculadora usa `/api/risk/forecast` (ensemble + breakdown) | Uma narrativa na UI (`ml.js` + `#risk-badge`) | Frontend |
 | 2026-06-08 | D-027 | YOLO G1: ponto operacional conf=0,55 (P=73,5%, R=30,2%, mAP@0.5=50,4%) | Critério rubrica G1 é precisão ≥70%; menor conf com P≥0,70 no sweep val tiled | CV / inferência |
 | 2026-06-08 | D-028 | Pesos canônicos: `storm70-l-tiled` (YOLOv5l) em `src/models/weights/best.pt` | mAP@0.5=56,5% (TTA 57,1%); treinos l6/p2 cancelados (Option A) | CV / deploy |
+| 2026-06-08 | D-029 | Rules/skills Cursor versionadas em `.cursor/` com índices README | 4 rules + 3 skills; carve-out YOLO G1 em `data-ml-python.mdc`; refs em CLAUDE.md e copilot-instructions | Agentes / docs |
 
 ---
 
@@ -86,6 +87,7 @@
 - 2026-06-06 — SNS dashboard implementado: inscrição e-mail via `/api/alerts/subscribe`, status via `/api/alerts/sns/status`, simular alerta publica no SNS; rate limit em `sns_rate_limit.py`; 16 testes SNS; `sections/sns.js` no dashboard.
 - 2026-06-06 — Limpeza docs rodada 4 (concluída): removidos `IMPLEMENTACOES_2025_06_06.md`, `SNS_IMPLEMENTATION_SUMMARY.md`, `QUICK_START.md` (artefatos com referências a módulos fictícios); `INTEGRATIONS.md` atualizado com seção SNS e rate limit env vars; contagem de testes corrigida para **440** em todos os docs; 7 feature specs marcadas como Arquivadas; `ROADMAP.md` e `CHECKLIST_ENTREGA.md` atualizados.
 - 2026-06-08 — Limpeza docs rodada 5: runbook/plano saíram da raiz; `data/training-dataset-1000/` e `data/model-dataset-tiled/` mantidos (augmentação/treino ativos); único `labels_backup_*` mantido; regra `.cursor/rules/document-organization.mdc` referenciada em `CLAUDE.md`.
+- 2026-06-08 — Rollout rules/skills: commit de `clean-architecture-solid`, `data-ml-python`, skills `agri-risk-ml-workflow` e `clean-architecture-review`; índices `.cursor/rules/README.md` e `.cursor/skills/README.md`; carve-out YOLO G1 (conf=0.55, storm70-l-tiled) em `data-ml-python.mdc` — sem alterar pesos, config ou scripts de treino.
 
 ---
 

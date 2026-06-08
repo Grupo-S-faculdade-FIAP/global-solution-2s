@@ -6,9 +6,23 @@ Plataforma de inteligência ambiental e agrícola (FIAP GS 2026.1): satélite, Y
 
 ## Metodologia — mesma do Cursor
 
-**Fonte canônica:** leia e siga **sempre** `.cursor/rules/tlc-spec-driven.mdc`. Para organização de documentação Markdown, use também `.cursor/rules/document-organization.mdc`.
+**Fonte canônica:** leia e siga **sempre** `.cursor/rules/tlc-spec-driven.mdc`.
 
-Esse arquivo define o fluxo Spec-Driven (SPECIFY → DESIGN → TASKS → EXECUTE), auto-sizing de escopo, estrutura `.specs/`, princípios de código e frases-gatilho. O time usa as mesmas regras no Cursor; não invente um fluxo paralelo.
+**Rules por contexto** (índice completo: `.cursor/rules/README.md`):
+
+| Contexto | Rule |
+| --- | --- |
+| Markdown / docs / entrega FIAP | `.cursor/rules/document-organization.mdc` |
+| Python, notebooks, ML/dados | `.cursor/rules/data-ml-python.mdc` |
+| Backend `src/app` (FastAPI) | `.cursor/rules/clean-architecture-solid.mdc` |
+
+**Skills do agente** (índice: `.cursor/skills/README.md`):
+
+- `document-organization` — organizar docs e artefatos de entrega
+- `agri-risk-ml-workflow` — treino/avaliação AgriRiskModel e thresholds DEAP
+- `clean-architecture-review` — ports/adapters e revisão SOLID no backend
+
+> **YOLO G1 congelado:** conf=0.55, pesos `storm70-l-tiled` em `best.pt` — ver carve-out em `data-ml-python.mdc` e D-027/D-028 em `STATE.md`. Rules/skills **não** alteram inferência/deploy YOLO sem decisão explícita.
 
 Espelho equivalente (GitHub Copilot): `.github/copilot-instructions.md`
 

@@ -238,6 +238,21 @@ Step 5: Flag as uncertain → "I'm not certain about X — here's my reasoning, 
 
 ---
 
+## Cursor rules e skills (espelho do repositório)
+
+Índice: `.cursor/rules/README.md` · `.cursor/skills/README.md`
+
+| Contexto | Rule / Skill |
+| --- | --- |
+| Sempre (metodologia) | `.cursor/rules/tlc-spec-driven.mdc` |
+| Markdown / docs FIAP | `document-organization` (rule + skill) |
+| Python / ML / dados | `.cursor/rules/data-ml-python.mdc` + skill `agri-risk-ml-workflow` |
+| Backend `src/app` | `.cursor/rules/clean-architecture-solid.mdc` + skill `clean-architecture-review` |
+
+**YOLO G1 congelado:** `YOLO_CONFIDENCE_THRESHOLD=0.55`, pesos `storm70-l-tiled` — não alterar em tarefas gerais; ver carve-out em `data-ml-python.mdc`.
+
+---
+
 ## Projeto GS2 — comandos e docs
 
 **Documentação:** [docs/README.md](docs/README.md) · [docs/RPI.md](docs/RPI.md) · `.specs/codebase/`
