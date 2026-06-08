@@ -30,7 +30,7 @@ export async function loadYOLOStatus() {
       el.textContent = "Operacional";
       el.className = "yolo-stat-value risk-low";
     } else if (data.model_s3_key) {
-      el.textContent = "Modelo S3 configurado";
+      el.textContent = "Operacional via Lambda";
       el.className = "yolo-stat-value risk-low";
     } else if (data.model_exists) {
       el.textContent = "Modelo local presente";

@@ -46,11 +46,10 @@ def test_ml_agricultural_risk_inprocess(mock_inprocess, mock_model):
     assert "recomendacao" in data
 
 
-@patch("dashboard.bff_handlers._get_storm_detector")
-def test_detector_status_reflects_availability(mock_det):
+def test_detector_status_reflects_availability(monkeypatch):
     from dashboard import bff_handlers as bff
 
-    mock_det.return_value = object()
+    monkeypatch.setattr(bff, "_storm_detector", object())
     data, source, status = bff.detector_status()
     assert status == 200
     assert data["available"] is True
