@@ -20,6 +20,15 @@
       <div class="yolo-stat-value" id="yolo-avg-confidence">—</div>
     </div>
   </div>
+  <div class="yolo-loading" id="yolo-loading" role="status" aria-live="polite" hidden>
+    <div class="yolo-loading-row">
+      <span id="yolo-loading-text">Carregando modelo YOLO…</span>
+      <span class="yolo-loading-hint">pode levar alguns segundos no primeiro acesso</span>
+    </div>
+    <div class="yolo-progress" aria-hidden="true">
+      <div class="yolo-progress-bar"></div>
+    </div>
+  </div>
   <div id="storms-recent-list" class="storms-recent-list">Carregando alertas recentes…</div>
   {% if demo_mode %}
   <div class="dev-actions" id="yolo-dev-actions">

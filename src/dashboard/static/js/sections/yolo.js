@@ -3,28 +3,49 @@ import { alerts, storms } from "../core/api/endpoints.js";
 import { emit } from "../core/events.js";
 import { noteResponseSource } from "../core/ui.js";
 
+function setYOLOLoading(loading, text = "Carregando modelo YOLO…") {
+  const box = document.getElementById("yolo-loading");
+  const label = document.getElementById("yolo-loading-text");
+  const status = document.getElementById("yolo-status");
+  if (label) label.textContent = text;
+  if (box) box.hidden = !loading;
+  if (status) {
+    status.setAttribute("aria-busy", loading ? "true" : "false");
+    status.classList.toggle("is-loading", loading);
+  }
+}
+
 export async function loadYOLOStatus() {
+  const el = document.getElementById("yolo-status");
+  if (el) {
+    el.textContent = "Carregando modelo…";
+    el.className = "yolo-stat-value risk-moderate is-loading";
+  }
+  setYOLOLoading(true);
   try {
     const r = await storms.detectorStatus();
     const data = await r.json();
-    const el = document.getElementById("yolo-status");
     if (!el) return;
     if (data.available) {
       el.textContent = "Operacional";
       el.className = "yolo-stat-value risk-low";
+    } else if (data.model_s3_key) {
+      el.textContent = "Modelo S3 configurado";
+      el.className = "yolo-stat-value risk-low";
     } else if (data.model_exists) {
-      el.textContent = "Modelo presente, detector não carregou";
+      el.textContent = "Modelo local presente";
       el.className = "yolo-stat-value risk-moderate";
     } else {
       el.textContent = "Sem best.pt";
       el.className = "yolo-stat-value risk-high";
     }
   } catch {
-    const el = document.getElementById("yolo-status");
     if (el) {
       el.textContent = "Erro ao verificar";
       el.className = "yolo-stat-value risk-high";
     }
+  } finally {
+    setYOLOLoading(false);
   }
 }
 
