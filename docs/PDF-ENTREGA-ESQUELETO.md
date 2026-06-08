@@ -126,8 +126,10 @@ INMET → AgriRiskModel → /risk/forecast → Dashboard
 
 #### 2.4.1 Visão computacional (YOLO)
 
-- 79 capturas NASA GOES; dataset YOLO v2 com **0 bbox fantasma** (audit gate);
-- Pesos: `src/models/weights/best.pt`;
+- 1.602 capturas NASA GOES acumuladas (base v2: 79); dataset augmentado **1.361** train → tiled **3.045** train / **1.033** val;
+- Pseudo-rótulos gerados por heurística OpenCV (`detect_storms`, limiar/área) — ver §2.4.5;
+- Dataset YOLO v2 com **0 bbox fantasma** (audit gate);
+- Pesos: `src/models/weights/best.pt` (~89 MB); produção: `s3://satellite-images-gs2/models/best.pt` (cold start Lambda);
 - Inferência local (`stormdetector.py`) e na Lambda via `DetectStormUseCase`;
 - Métricas v3 (`storm70-l-tiled`, YOLOv5l): mAP@0.5=**56,5%** (TTA 57,1%); ponto operacional G1: conf=0,55 → P=**73,5%**, R=30,2%, mAP=50,4%.
 
@@ -136,6 +138,7 @@ INMET → AgriRiskModel → /risk/forecast → Dashboard
 #### 2.4.2 Machine Learning — risco agrícola
 
 - Treino com INMET BDMEP (43,8k registros, 5 estações);
+- **Alvo proxy:** `score_continuo_normalizado(temp, umid, precip, vento)` — regra determinística das mesmas features de entrada (ver §2.4.5); R²≈0,95 mede ajuste à regra, não risco agrícola real;
 - Limiares otimizados por algoritmo genético → `models/agri_risk_thresholds.json`;
 - `RiskAssessmentService` combina clima (Open-Meteo) + CV geo-aware (raio 200 km) + ML com **pesos dinâmicos**;
 - Dashboard (`sections/ml.js`) exibe breakdown clima / CV / ML na calculadora de risco;
@@ -155,7 +158,26 @@ INMET → AgriRiskModel → /risk/forecast → Dashboard
 - Persistência mock (`data/demo/iot_readings.json`) ou DynamoDB;
 - Seção IoT no dashboard com leituras recentes.
 
-#### 2.4.5 AWS e automação
+#### 2.4.5 Geração de rótulos proxy (honestidade metodológica)
+
+> **Obrigatório para avaliadores que leem o código.** Ambos os modelos treinam com alvos derivados de regras do próprio pipeline — válido para POC, não para validação científica independente.
+
+| Modelo | Como o rótulo é gerado | Código | O que a métrica mede |
+|--------|------------------------|--------|----------------------|
+| **AgriRiskModel** | Score 0–1 = regra agrometeorológica sobre temp, umidade, precipitação e vento | `agri_risk_model.py` → `score_continuo_normalizado()` | R²≈0,95 = quão bem o regressor **memoriza a regra**, não previsão de safra/perda real |
+| **YOLO storm** | Bboxes = regiões de pixels brilhantes acima de limiar/área mínima | `04_nasa_to_yolo.py` → `detect_storms()` | mAP/P = consistência com a **heurística OpenCV**, não anotação humana independente |
+
+**Trade-off consciente:**
+
+- **Pró:** POC integrada e demonstrável em prazo de GS (ensemble geo-aware, dashboard, Lambda serverless);
+- **Contra:** métricas altas não implicam validação externa (produtividade agrícola, validação meteorológica humana);
+- **Próximo passo (v2):** rótulos humanos para YOLO; alvo de ML com variável externa (ex.: yield FAOSTAT, eventos de perda).
+
+**Frase sugerida para o corpo do PDF:**
+
+> *"Os modelos ML e CV foram treinados com rótulos proxy gerados automaticamente pelo pipeline. O R²≈0,95 do regressor agrícola e a precisão YOLO medem consistência interna com essas regras — não acurácia preditiva em campo."*
+
+#### 2.4.6 AWS e automação
 
 - API Gateway: `https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/`
 - Pipeline: upload `.jpg` em S3 → Lambda → YOLO → DynamoDB + SNS;
@@ -290,6 +312,8 @@ def get_iot_repo() -> IoTReadingRepository:
 | Windy como widget (não REST) | Plano free não libera API REST completa |
 | CI/CD OIDC | Sem access keys permanentes no repositório |
 | AG (DEAP) para limiares ML | Otimização automática dos thresholds de risco |
+| Rótulos proxy (ML + YOLO) | Alvos derivados de regras do pipeline — transparência no §2.4.5; trade-off POC vs validação externa |
+| `best.pt` via S3 (gitignored) | Cold start Lambda baixa `models/best.pt`; artefato ~89 MB fora da imagem Docker |
 
 Detalhes: `docs/RPI.md` §5 e `.specs/project/STATE.md`.
 
@@ -314,12 +338,14 @@ Testes: `make test-coverage` (gate 82%).
 
 | Métrica | Valor | Observação |
 |---------|-------|------------|
-| Testes automatizados | ~220+ unit/integration + 53 E2E | `make test`, `make test-e2e` |
+| Testes automatizados | **440** unit/integration + **53** E2E | `make test`, `make test-e2e` |
 | Cobertura de código | **82,44%** | Gate no CI (`make test-coverage`) |
-| Capturas NASA | 79 PNG | `data/nasa_captures/` |
-| Dataset YOLO train | 79 img + 79 labels | Pipeline v2, 0 ghost |
+| Capturas NASA | 1.602 PNG acumulados | `data/nasa_captures/` (base v2: 79) |
+| Dataset YOLO | 1.361 train (base) → 3.045 train tiled / 1.033 val | Augmentação + SAHI; 0 ghost |
 | YOLO mAP@0.5 | **56,5%** (TTA 57,1%) | `storm70-l-tiled`; precisão G1 em conf=0,55 (73,5%) |
+| ML R² CV | ≈ 0,95 | **Ajuste à regra proxy** — ver §2.4.5; não é acurácia preditiva real |
 | INMET registros | 43,8k horários | 5 estações BDMEP |
+| Pesos YOLO | ~89 MB | Local + `s3://satellite-images-gs2/models/best.pt` |
 | Endpoints API | 20+ rotas REST + BFF `/api/*` | Ver `docs/RPI.md` §4.1 |
 
 ### 3.2 Resultados de negócio / impacto
@@ -348,9 +374,10 @@ Baseado em `docs/GUIA-DE-AVALIACAO.md`:
 
 ### 3.4 Limitações conhecidas (honestidade técnica)
 
+- **Rótulos proxy (ML + YOLO):** ambos os modelos treinam com alvos derivados de regras/heurísticas do pipeline — R²≈0,95 e mAP/P medem consistência interna, não validação externa (§2.4.5);
 - YOLO mAP@0.5 (56,5%) abaixo da meta PROJECT.md de 70% mAP; precisão G1 (≥70%) atingida via conf=0,55 com trade-off de recall (~30%);
 - Demo local usa mock DynamoDB por padrão (`DYNAMODB_USE_MOCK=true` no `.env`);
-- Cold start Lambda 60–90 s na primeira invocação;
+- Cold start Lambda 60–90 s na primeira invocação (download `best.pt` do S3);
 - Cobertura geográfica v1: Brasil;
 - ESP32 demonstrado via simulação/Wokwi se hardware indisponível na gravação.
 

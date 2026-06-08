@@ -194,8 +194,8 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 
 | Módulo | % estimado | Status | Resumo factual |
 |--------|------------|--------|----------------|
-| **Visão computacional (YOLO)** | ~95% | Concluído (MVP) | 79 capturas NASA; dataset tiled (1033 val). `storm70-l-tiled`: mAP@0.5 **56,5%** (TTA 57,1%); precisão **73,5%** em conf=0,55 (critério G1). Pesos em `src/models/weights/best.pt` (+ S3). Retreino: `make train-yolo`. |
-| **ML risco agrícola** | ~95% | Concluído (MVP+) | LightGBM + limiares AG (DEAP); ensemble em `RiskAssessmentService`; breakdown na UI (`sections/ml.js`); artefatos em `models/` (model, scaler, meta, thresholds). |
+| **Visão computacional (YOLO)** | ~95% | Concluído (MVP) | 1.602 capturas NASA acumuladas; dataset base 1.361 train → tiled 3.045 train / 1.033 val. `storm70-l-tiled`: mAP@0.5 **56,5%** (TTA 57,1%); precisão **73,5%** em conf=0,55 (critério G1). Pesos ~89 MB em `src/models/weights/best.pt` + S3 (cold start). Retreino: `make train-yolo`. |
+| **ML risco agrícola** | ~95% | Concluído (MVP+) | Regressor tabular + limiares AG (DEAP); alvo proxy `score_continuo_normalizado` (regra determinística das features); ensemble em `RiskAssessmentService`; breakdown na UI (`sections/ml.js`); artefatos em `models/`. |
 | **Ingestão clima (Open-Meteo)** | ~95% | Concluído | `WeatherService`, `GET /weather/current`, Lambda `ingest_weather.py` + testes. |
 | **Dashboard / UX produtor** | ~98% | Concluído | Tema claro/escuro, ES modules, event bus, location-bar com grid, três mapas (região, radar Windy, picker), seção IoT, skeleton KPIs, a11y básica. |
 | **IoT ESP32** | ~75% | Concluído (MVP) | Router `/iot/*`, store mock+DynamoDB, firmware `src/iot/firmware.cpp`, dashboard `sections/iot.js`, BFF `/api/iot/*`. Simulação Wokwi documentada. |
@@ -296,7 +296,7 @@ Detalhes completos: `.specs/project/STATE.md`.
 
 - [ ] `DYNAMODB_USE_MOCK=false` e validar tabelas reais (alertas + IoT)  
 - [ ] Smoke end-to-end: S3 → Lambda → DynamoDB → SNS (README §3 / `make smoke-aws`)  
-- [ ] Republicar `best.pt` na Lambda (`docs/DEPLOY-LAMBDA.md`)  
+- [x] Republicar `best.pt` na Lambda — S3 `models/best.pt` **88,6 MiB** (08/06/2026; cold start via `DetectStormUseCase._ensure_model`)  
 - [x] Retreino YOLO GPU `storm70-l-tiled` — mAP@0.5=56,5%, P≥70% em conf=0,55 (08/06/2026)  
 - [x] Verificação pipeline agrícola no CI (`build_agri_pipeline.py --ci --skip-faostat`)
 - [ ] (Opcional) EventBridge + `capture_nasa_data.py` periódico — **substituído por** `.github/workflows/nasa-capture.yml` (cron 6 h)
@@ -361,25 +361,38 @@ Pesos atuais: `src/models/weights/best.pt` (~89 MB, YOLOv5l tiled).
 
 **Integração YOLO no ensemble (v2 — 05/06/2026):** `_score_cv(lat, lon)` usa alertas geo (`StormAlertsQueryService`, raio 200 km) + captura NASA regional; peso CV atenuado quando `coverage_factor=0`. Retreino offline: `make train-yolo --recall-focus` (dataset v2.1).
 
-### 8.2 Métricas ML risco agrícola (v2)
+### 8.2 Rótulos proxy — transparência metodológica
+
+Ambos os modelos de ML usam **rótulos fracos/proxy** gerados pelo próprio pipeline — adequado para POC integrada, não para validação científica independente.
+
+| Modelo | Fonte do rótulo | Implementação | O que a métrica mede | Limitação |
+|--------|-----------------|---------------|----------------------|-----------|
+| **AgriRiskModel** | Regra agrometeorológica parametrizada | `score_continuo_normalizado(temp, umid, precip, vento, th)` → `rule_raw_score` | Quão bem o regressor aproxima a regra de negócio | R² alto ≠ poder preditivo externo (safra, perda real) |
+| **YOLO storm** | Heurística de pixels (topos frios) | `detect_storms()` OpenCV (`--limiar 185 --area 80`) em `04_nasa_to_yolo.py` | Consistência do detector com a heurística de brilho | mAP/P medem acordo com pseudo-rótulo, não anotação humana |
+
+**Trade-off consciente:** POC rápida e demonstrável (ensemble geo-aware, dashboard, Lambda) vs. métricas de validação externa. O valor de negócio do ML está na parametrização via AG e no ensemble; o do YOLO, na detecção operacional integrada ao fluxo S3→Lambda.
+
+### 8.3 Métricas ML risco agrícola (v2)
 
 | Artefato | Valor / observação |
 |----------|-------------------|
 | Dataset treino | INMET BDMEP 43.848 registros (5 estações, 2024) |
 | Modelo runtime | `sklearn_hgb_regressor` (default); `lgbm_regressor` com `AGRI_USE_LIGHTGBM=1` no treino |
-| R² CV (treino INMET) | ≈ 0,95 (LightGBM no build local) |
+| Alvo (y) | `score_continuo_normalizado` — função determinística das 4 features de entrada (ver §8.2) |
+| R² CV (treino INMET) | ≈ 0,95 — mede **ajuste à regra proxy**, não acurácia preditiva real |
 | Limiares | `models/agri_risk_thresholds.json` (AG opcional: `scripts/optimize_agri_thresholds.py`) |
 | Ensemble | 40% clima + 40% CV (dinâmico) + 20% ML |
 | Testes | 440 unit (+ E2E); cobertura app ≥ 82% |
 
-### 8.2 Contagens no repositório (06/06/2026)
+### 8.4 Contagens no repositório (08/06/2026)
 
 | Recurso | Quantidade |
 |---------|------------|
-| `data/nasa_captures` (*.png) | 79 |
-| `data/model-dataset/images/train` | 79 |
-| `data/model-dataset/labels/train` | 79 |
-| `src/models/weights/best.pt` | presente (~14 MB) |
+| `data/nasa_captures` (*.png) | 1.602 (acumulado; base v2: 79) |
+| `data/model-dataset/images/train` | 1.361 (após augmentação pipeline v2) |
+| `data/model-dataset-tiled/images/train` | 3.045 (SAHI tiling — treino GPU `storm70-l-tiled`) |
+| `data/model-dataset-tiled/images/val` | 1.033 (métricas oficiais do retreino) |
+| `src/models/weights/best.pt` | presente (~89 MB); S3 `models/best.pt` 88,6 MiB |
 | `tests/` (pytest, excl. e2e) | **440** passed; gate cobertura 82,44% (`make test-coverage`) |
 | `tests/e2e/` (Playwright) | 53 coletados (`make test-e2e`) |
 | `scripts/goes_pipeline/` | pipeline NASA → YOLO v2 (canônico) |
@@ -387,7 +400,7 @@ Pesos atuais: `src/models/weights/best.pt` (~89 MB, YOLOv5l tiled).
 | `src/iot/firmware.cpp` | presente |
 | `data/demo/iot_readings.json` | presente (mock) |
 
-### 8.3 Como reproduzir
+### 8.5 Como reproduzir
 
 ```bash
 # Demo integrada (API + dashboard + BFF /api/*)

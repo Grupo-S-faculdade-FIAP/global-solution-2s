@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     # ─── Open-Meteo API ───────────────────────────────────────────────────
     OPENMETEO_API_URL: str = "https://api.open-meteo.com/v1/forecast"
     OPENMETEO_TIMEZONE: str = "auto"
+    # Limite horário para APIs externas sem token (dev local); Lambda isenta
+    EXTERNAL_API_RATE_LIMIT_ENABLED: bool = True
+    EXTERNAL_API_RATE_LIMIT_PER_HOUR: int = 20
+    EXTERNAL_API_RATE_LIMIT_STORE_PATH: str = ""
 
     # ─── Weather Ingestion (Lambda) ───────────────────────────────────────
     WEATHER_LOCATIONS: str = (

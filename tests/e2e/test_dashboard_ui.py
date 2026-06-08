@@ -24,6 +24,7 @@ def test_home_page_structure(page: Page) -> None:
         "sec-satelite",
         "sec-historico",
         "sec-radar",
+        "sec-sobre",
     ):
         expect(page.locator(f"#{section_id}")).to_be_attached()
 

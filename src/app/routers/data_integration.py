@@ -4,6 +4,7 @@ from typing import List
 from fastapi import APIRouter, Query, HTTPException, Body
 from pydantic import BaseModel, Field
 from app.core.config import settings
+from app.services.external_api_rate_limit import ExternalApiRateLimitExceeded
 from app.services.weather_service import WeatherService
 from app.services.alerts_analytics import AlertAnalyticsService
 from app.services.storm_alerts_query import StormAlertsQueryService
@@ -97,7 +98,7 @@ def get_weather_current(
     
     try:
         weather_data = weather_service.get_current(lat, lon)
-        
+
         return WeatherResponse(
             temperature=weather_data["temperature"],
             humidity=weather_data["humidity"],
@@ -107,6 +108,8 @@ def get_weather_current(
             precipitation=weather_data["precipitation"],
             timestamp=weather_data["timestamp"]
         )
+    except ExternalApiRateLimitExceeded:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
