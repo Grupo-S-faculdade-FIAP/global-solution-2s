@@ -44,6 +44,7 @@ def test_storms_recent_list_rendered(page: Page) -> None:
     wait_dashboard_ready(page)
     el = page.locator("#storms-recent-list")
     expect(el).not_to_have_text("Carregando alertas recentes…", timeout=15_000)
+    expect(page.locator("#yolo-last-detection")).not_to_have_text("—")
 
 
 def test_nasa_gallery_meta_updated(page: Page) -> None:
@@ -74,7 +75,9 @@ def test_location_picker_leaflet_map(page: Page) -> None:
 def test_region_map_leaflet_initializes(page: Page) -> None:
     wait_dashboard_ready(page)
     coords = page.locator("#region-map-coords")
+    status = page.locator("#region-alert-badge")
     expect(coords).not_to_have_text("—", timeout=10_000)
+    expect(status).not_to_have_text("Verificando…", timeout=15_000)
     page.locator(".region-map-wrap").scroll_into_view_if_needed()
     page.wait_for_function(
         """() => document.getElementById('region-map')?.classList.contains('leaflet-container')
