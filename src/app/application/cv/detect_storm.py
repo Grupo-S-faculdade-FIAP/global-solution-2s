@@ -161,7 +161,8 @@ def _run_yolo_inference(
     import torch  # noqa: PLC0415
 
     try:
-        # Carregar modelo com fallback seguro (sem monkey patching)
+        # YOLOv5 checkpoints need full pickle loading on PyTorch 2.6+.
+        _allow_yolo_checkpoint_load(torch)
         torch.hub.set_dir("/tmp/torch_hub")
         repo, source = _yolov5_repo()
 
@@ -201,6 +202,21 @@ def _run_yolo_inference(
     except Exception as exc:
         logger.error("YOLO inference failed: %s", exc)
         raise
+
+
+def _allow_yolo_checkpoint_load(torch_module: Any) -> None:
+    """PyTorch 2.6+ defaults to weights_only=True; YOLOv5 .pt needs False."""
+    original_load = torch_module.load
+
+    if getattr(original_load, "_gs2_yolo_weights_patch", False):
+        return
+
+    def load_with_checkpoint_support(*args: Any, **kwargs: Any) -> Any:
+        kwargs.setdefault("weights_only", False)
+        return original_load(*args, **kwargs)
+
+    load_with_checkpoint_support._gs2_yolo_weights_patch = True  # type: ignore[attr-defined]
+    torch_module.load = load_with_checkpoint_support
 
 
 class DetectStormUseCase:

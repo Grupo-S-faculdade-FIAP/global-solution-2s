@@ -15,7 +15,7 @@
 **Last task completed:** Aplicação práticas rules Cursor (non-YOLO): DI `get_sns_dlq_manager()` no container; router `dashboard_alerts` via `Depends`; PROJECT.md G1 atualizado (P≥70% conf=0,55); docstring `storm_detector` sem `print`; testes container + alerts router
 **Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); republicar `best.pt` na Lambda; B7 screenshots opcional
 **Blockers:** nenhum
-**Branch status:** refactor rules aplicado localmente; commit `refactor: apply cursor rules practices (non-yolo)` pendente push
+**Branch status:** `chore/dataset-gitignore-yolo-stack` — commit `afbf61c` pushed (`refactor: apply cursor rules practices (non-yolo)`)
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.7 (2026-06-06)
 
 ---
