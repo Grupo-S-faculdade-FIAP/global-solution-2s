@@ -22,6 +22,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+YOLOV5_SRC = Path("/opt/yolov5_src")
+
 
 @dataclass
 class Detection:
@@ -82,12 +84,21 @@ class StormDetector:
             model_path_obj = Path(model_path)
             if model_path_obj.exists():
                 # Carregar modelo customizado treinado
-                self.model = torch.hub.load(
-                    "ultralytics/yolov5",
-                    "custom",
-                    path=str(model_path),
-                    force_reload=False,
-                )
+                if (YOLOV5_SRC / "hubconf.py").exists():
+                    self.model = torch.hub.load(
+                        str(YOLOV5_SRC),
+                        "custom",
+                        path=str(model_path),
+                        source="local",
+                        force_reload=False,
+                    )
+                else:
+                    self.model = torch.hub.load(
+                        "ultralytics/yolov5",
+                        "custom",
+                        path=str(model_path),
+                        force_reload=False,
+                    )
             else:
                 # Fallback: usar modelo pré-treinado
                 logger.warning(f"Modelo {model_path} não encontrado. Usando modelo pré-treinado.")
