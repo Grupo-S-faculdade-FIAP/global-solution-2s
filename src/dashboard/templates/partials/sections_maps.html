@@ -6,6 +6,12 @@
     <small class="card-head-sub" id="region-map-sub">Marcadores YOLO no raio monitorado</small>
     <small id="region-map-coords">—</small>
   </div>
+  <div class="region-alert-status" id="region-alert-status" role="status" aria-live="polite">
+    <span class="region-alert-badge region-alert-badge-loading" id="region-alert-badge">Verificando…</span>
+    <span class="region-alert-message" id="region-alert-message">
+      Consultando alertas de tempestade no raio monitorado.
+    </span>
+  </div>
   <div class="region-map-wrap">
     <div id="region-map" role="application" aria-label="Mapa de alertas na região"></div>
     <div id="region-map-empty" class="map-empty-state" hidden>

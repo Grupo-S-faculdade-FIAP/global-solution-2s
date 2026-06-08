@@ -27,6 +27,49 @@ function stormPopupHtml(props) {
   return `<strong>Alerta de tempestade</strong><br>Confiança: ${conf}<br>Horário: ${formatAlertTimestamp(props.timestamp)}`;
 }
 
+function featureTimestamp(feature) {
+  const ts = feature?.properties?.timestamp;
+  const d = ts ? new Date(ts) : null;
+  return d && !isNaN(d.getTime()) ? d : null;
+}
+
+function updateRegionAlertStatus(features, loadFailed = false) {
+  const badge = document.getElementById(SEL.regionAlertBadge);
+  const message = document.getElementById(SEL.regionAlertMessage);
+  if (!badge || !message) return;
+
+  badge.className = "region-alert-badge";
+  if (loadFailed) {
+    badge.classList.add("region-alert-badge-warning");
+    badge.textContent = "Indisponível";
+    message.textContent = "Não foi possível consultar os alertas agora. Tente novamente em alguns instantes.";
+    return;
+  }
+
+  if (!features.length) {
+    badge.classList.add("region-alert-badge-ok");
+    badge.textContent = "Sem alerta ativo";
+    message.textContent = "Nenhum alerta de tempestade foi encontrado na sua área nos últimos 7 dias.";
+    return;
+  }
+
+  const maxConfidence = features.reduce((max, feature) => {
+    const intensity = Number(feature?.properties?.intensity);
+    return Number.isFinite(intensity) ? Math.max(max, intensity) : max;
+  }, 0);
+  const latest = features
+    .map(featureTimestamp)
+    .filter(Boolean)
+    .sort((a, b) => b.getTime() - a.getTime())[0];
+  const countLabel = features.length === 1 ? "1 alerta" : `${features.length} alertas`;
+  const confidenceLabel = maxConfidence > 0 ? `, confiança máxima ${Math.round(maxConfidence * 100)}%` : "";
+  const latestLabel = latest ? `, mais recente em ${formatAlertTimestamp(latest.toISOString())}` : "";
+
+  badge.classList.add("region-alert-badge-danger");
+  badge.textContent = "Alerta de tempestade";
+  message.textContent = `${countLabel} no raio monitorado${confidenceLabel}${latestLabel}.`;
+}
+
 export function ensureRegionMap() {
   if (state.regionMap || typeof L === "undefined") return;
   const el = document.getElementById("region-map");
@@ -60,13 +103,14 @@ export function refreshLocationPickerTiles() {
   if (state.locationPickerMarker?.setZIndexOffset) state.locationPickerMarker.setZIndexOffset(1000);
 }
 
-function renderRegionAlerts(geojson) {
+function renderRegionAlerts(geojson, loadFailed = false) {
   ensureRegionMap();
   if (!state.regionMap || !state.regionAlertsLayer) return;
 
   state.regionAlertsLayer.clearLayers();
   const features = geojson?.features || [];
   const emptyEl = document.getElementById(SEL.regionMapEmpty);
+  updateRegionAlertStatus(features, loadFailed);
 
   if (features.length === 0) {
     if (emptyEl) emptyEl.hidden = false;
@@ -122,7 +166,7 @@ export async function loadRegionMap() {
     const data = await r.json();
     renderRegionAlerts(data);
   } catch {
-    renderRegionAlerts({ type: "FeatureCollection", features: [] });
+    renderRegionAlerts({ type: "FeatureCollection", features: [] }, true);
   }
 }
 

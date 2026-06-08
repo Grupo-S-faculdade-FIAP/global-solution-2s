@@ -30,4 +30,6 @@ export const SEL = {
   windyLoadingText: "windy-loading-text",
   regionMapCoords: "region-map-coords",
   regionMapEmpty: "region-map-empty",
+  regionAlertBadge: "region-alert-badge",
+  regionAlertMessage: "region-alert-message",
 };

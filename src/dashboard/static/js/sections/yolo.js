@@ -15,6 +15,36 @@ function setYOLOLoading(loading, text = "Carregando modelo YOLO…") {
   }
 }
 
+function updateYoloSummary(stormsList) {
+  const lastEl = document.getElementById("yolo-last-detection");
+  const avgEl = document.getElementById("yolo-avg-confidence");
+  if (!lastEl || !avgEl) return;
+
+  if (!Array.isArray(stormsList) || stormsList.length === 0) {
+    lastEl.textContent = "Sem alertas recentes";
+    avgEl.textContent = "—";
+    return;
+  }
+
+  const sorted = [...stormsList].sort((a, b) => {
+    const at = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+    const bt = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+    return bt - at;
+  });
+  const latest = sorted[0];
+  const confidences = stormsList
+    .map((item) => Number(item.confidence))
+    .filter((value) => Number.isFinite(value));
+  const avgConfidence = confidences.length
+    ? confidences.reduce((sum, value) => sum + value, 0) / confidences.length
+    : null;
+
+  lastEl.textContent = latest.timestamp
+    ? new Date(latest.timestamp).toLocaleString("pt-BR")
+    : "Alerta recente";
+  avgEl.textContent = avgConfidence === null ? "—" : `${Math.round(avgConfidence * 100)}%`;
+}
+
 export async function loadYOLOStatus() {
   const el = document.getElementById("yolo-status");
   if (el) {
@@ -30,7 +60,7 @@ export async function loadYOLOStatus() {
       el.textContent = "Operacional";
       el.className = "yolo-stat-value risk-low";
     } else if (data.model_s3_key) {
-      el.textContent = "Operacional via Lambda";
+      el.textContent = "Configurado via Lambda";
       el.className = "yolo-stat-value risk-low";
     } else if (data.model_exists) {
       el.textContent = "Modelo local presente";
@@ -57,12 +87,14 @@ export async function loadRecentStorms() {
     noteResponseSource(r);
     const stormsList = await r.json();
     if (!Array.isArray(stormsList) || stormsList.length === 0) {
+      updateYoloSummary([]);
       el.innerHTML =
         '<div class="section-empty" style="padding:0.5rem 0;">' +
         '<i class="bi bi-cloud-slash" aria-hidden="true"></i>' +
         "Nenhum alerta no store local — clique em Simular alerta.</div>";
       return;
     }
+    updateYoloSummary(stormsList);
     el.innerHTML = stormsList.slice(0, 8).map((s) => {
       const t = s.timestamp ? new Date(s.timestamp).toLocaleString("pt-BR") : "—";
       return `<div style="padding:4px 0;border-bottom:1px solid var(--border);">
