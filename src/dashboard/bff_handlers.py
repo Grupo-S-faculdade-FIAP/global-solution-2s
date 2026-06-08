@@ -689,7 +689,11 @@ def _default_nasa_sample_path() -> Path | None:
 def detect_storm_sample() -> tuple[Any, str, int]:
     detector = _get_storm_detector()
     if not detector:
-        return {"success": False, "error": "Storm Detector não disponível"}, "live", 503
+        return _ok({
+            "success": False,
+            "error": "Inferência local indisponível; use o upload S3 para acionar a Lambda YOLO.",
+            "message": "Pipeline YOLO de produção: S3 → Lambda → DynamoDB/SNS.",
+        }, "live")
 
     sample = _default_nasa_sample_path()
     if not sample or not sample.exists():
