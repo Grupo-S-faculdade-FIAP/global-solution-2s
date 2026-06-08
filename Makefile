@@ -44,6 +44,10 @@ nasa-capture:
 nasa-capture-aws:
 	cd src && ../$(VENV_PYTHON) -m app.cron.capture_nasa_data --upload-cv-jpg
 
+# Script operacional: PNG para galeria + JPG para trigger YOLO no S3
+nasa-capture-s3:
+	$(VENV_PYTHON) scripts/capture_nasa_to_s3.py
+
 # Upload capturas locais existentes para S3
 # UPLOAD_JPG=1 → só JPG (Lambda); UPLOAD_CV=1 → JPG + YOLO local (dev)
 upload-s3:

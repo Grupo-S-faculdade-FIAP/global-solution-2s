@@ -61,23 +61,41 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Capture NASA Worldview (3 regiões)
+      - name: Capture NASA Worldview → S3
         id: capture
         run: |
           set -euo pipefail
           UPLOAD_CV="${{ github.event_name == 'schedule' && 'true' || github.event.inputs.upload_cv_jpg }}"
           DATA="${{ github.event.inputs.data }}"
           ARGS=""
-          if [ "$UPLOAD_CV" = "true" ]; then
-            ARGS="$ARGS --upload-cv-jpg"
+          if [ "$UPLOAD_CV" != "true" ]; then
+            ARGS="$ARGS --no-cv-jpg"
           fi
           if [ -n "$DATA" ]; then
             ARGS="$ARGS --data $DATA"
           fi
-          echo "Executando: python -m app.cron.capture_nasa_data $ARGS"
-          cd src && python -m app.cron.capture_nasa_data $ARGS | tee ../nasa-capture.log
-          COUNT=$(find ../data/nasa_captures -name '*.png' -mmin -120 -size +100k 2>/dev/null | wc -l | tr -d ' ')
-          echo "recent_png_count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "Executando: python scripts/capture_nasa_to_s3.py $ARGS"
+          python scripts/capture_nasa_to_s3.py $ARGS | tee nasa-capture.log
+          PNG_COUNT=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          text = Path("nasa-capture.log").read_text(encoding="utf-8")
+          start = text.rfind("{")
+          payload = json.loads(text[start:])
+          print(payload.get("capturas_ok", 0))
+          PY
+          )
+          JPG_COUNT=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          text = Path("nasa-capture.log").read_text(encoding="utf-8")
+          start = text.rfind("{")
+          payload = json.loads(text[start:])
+          print(len(payload.get("cv_jpg_s3_keys", [])))
+          PY
+          )
+          echo "recent_png_count=$PNG_COUNT" >> "$GITHUB_OUTPUT"
+          echo "recent_jpg_count=$JPG_COUNT" >> "$GITHUB_OUTPUT"
 
       - name: Summary
         if: always()
@@ -87,7 +105,8 @@ jobs:
           echo "- Bucket: \`${{ env.S3_BUCKET_IMAGES }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- PNG prefix: \`${{ env.NASA_S3_PREFIX }}/\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- CV trigger: \`${{ env.NASA_CV_S3_PREFIX }}/*.jpg\` → Lambda \`gs2-api\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- PNGs recentes (>100 KB, últimas 2 h): **${{ steps.capture.outputs.recent_png_count }}**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- PNGs enviados para a galeria: **${{ steps.capture.outputs.recent_png_count }}**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- JPGs enviados para trigger YOLO: **${{ steps.capture.outputs.recent_jpg_count }}**" >> "$GITHUB_STEP_SUMMARY"
           if [ -f nasa-capture.log ]; then
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
