@@ -1,8 +1,13 @@
 import { nasa } from "../core/api/endpoints.js";
 
+function todayUtcIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export async function loadNASAGallery() {
   try {
-    const r = await nasa.capturas(12);
+    const dia = todayUtcIsoDate();
+    const r = await nasa.capturas(12, dia);
     const d = await r.json();
     const gallery = document.getElementById("nasa-gallery");
     const empty = document.getElementById("nasa-empty");
@@ -11,20 +16,24 @@ export async function loadNASAGallery() {
       d.storage === "s3" ? ` · S3 ${d.bucket || ""}` : d.storage === "dataset" ? " · dataset local" : "";
     document.getElementById("nasa-total").textContent =
       d.total > 0
-        ? `${d.total} imagens${storageLabel}`
-        : "Nenhuma imagem no S3 ainda";
+        ? `${d.total} hoje (UTC)${storageLabel}`
+        : `Nenhuma captura hoje (${dia} UTC)`;
+
+    gallery.querySelectorAll(".nasa-card").forEach((node) => node.remove());
 
     if (!d.capturas || d.capturas.length === 0) {
       if (empty) {
+        empty.style.display = "";
+        empty.className = "section-error section-empty";
+        empty.style.gridColumn = "1/-1";
         empty.innerHTML =
-          '<i class="bi bi-globe-americas"></i> Nenhuma imagem NASA no S3 ainda.<br>' +
-          '<span style="font-size:11px">Configure <code>S3_BUCKET_IMAGES</code> no .env e rode ' +
-          '<code>python -m app.cron.capture_nasa_data</code> ou o workflow <code>NASA Capture</code>.</span>';
+          '<i class="bi bi-globe-americas"></i> Nenhuma captura NASA hoje no S3.<br>' +
+          '<span style="font-size:11px">Aguarde o workflow <code>NASA Capture</code> ou dispare manualmente em Actions.</span>';
       }
       return;
     }
 
-    empty?.remove();
+    if (empty) empty.style.display = "none";
     d.capturas.forEach((cap) => {
       const div = document.createElement("div");
       div.className = "nasa-card";

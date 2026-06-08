@@ -219,13 +219,27 @@ def resolve_nasa_image(nome_arquivo: str, fonte: str = "captures") -> Path | Non
     return None
 
 
-def list_nasa_captures(limite: int = 12) -> dict:
+def _matches_capture_day(item: dict[str, Any], dia: str) -> bool:
+    """Filtra captura por data YYYY-MM-DD (prefixo S3 ou token no nome do arquivo)."""
+    try:
+        dt = datetime.strptime(dia, "%Y-%m-%d")
+    except ValueError:
+        return True
+    folder = f"{dt.year}/{dt.month:02d}/{dt.day:02d}/"
+    if folder in item.get("s3_key", ""):
+        return True
+    return dia.replace("-", "") in item.get("arquivo", "")
+
+
+def list_nasa_captures(limite: int = 12, dia: str | None = None) -> dict:
     """Retorna metadados das capturas PNG mais recentes (S3 prioritário)."""
     storage = "local"
     arquivos_s3 = _list_s3_nasa_objects() if _bucket_configured() else []
 
     if arquivos_s3:
         storage = "s3"
+        if dia:
+            arquivos_s3 = [item for item in arquivos_s3 if _matches_capture_day(item, dia)]
         total = len(arquivos_s3)
         capturas = []
         for item in arquivos_s3[:limite]:
@@ -245,6 +259,7 @@ def list_nasa_captures(limite: int = 12) -> dict:
             "storage": storage,
             "bucket": settings.S3_BUCKET_IMAGES,
             "prefix": _nasa_s3_prefix().rstrip("/"),
+            "dia": dia,
         }
 
     captures_dir = nasa_captures_dir()

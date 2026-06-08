@@ -65,5 +65,9 @@ export const iot = {
 };
 
 export const nasa = {
-  capturas: (limite = 12) => fetchApi(`/api/nasa/capturas?limite=${limite}`),
+  capturas: (limite = 12, dia = null) => {
+    const params = new URLSearchParams({ limite: String(limite) });
+    if (dia) params.set("dia", dia);
+    return fetchApi(`/api/nasa/capturas?${params}`);
+  },
 };

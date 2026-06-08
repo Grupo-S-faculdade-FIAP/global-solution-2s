@@ -43,6 +43,35 @@ def test_list_nasa_captures_from_s3() -> None:
     assert result["capturas"][0]["url"] == "https://s3.example/presigned"
 
 
+def test_list_nasa_captures_filters_by_day() -> None:
+    fake_items = [
+        {
+            "s3_key": "nasa-satellite/2026/06/08/nasa_brasil_20260608_1200.png",
+            "arquivo": "nasa_brasil_20260608_1200.png",
+            "criado_em": datetime(2026, 6, 8, 12, 0, tzinfo=timezone.utc).isoformat(),
+            "tamanho_kb": 512,
+            "last_modified": datetime(2026, 6, 8, 12, 0, tzinfo=timezone.utc),
+        },
+        {
+            "s3_key": "nasa-satellite/2026/06/04/nasa_brasil_20260604_1200.png",
+            "arquivo": "nasa_brasil_20260604_1200.png",
+            "criado_em": datetime(2026, 6, 4, 12, 0, tzinfo=timezone.utc).isoformat(),
+            "tamanho_kb": 512,
+            "last_modified": datetime(2026, 6, 4, 12, 0, tzinfo=timezone.utc),
+        },
+    ]
+    with (
+        patch.object(svc, "_bucket_configured", return_value=True),
+        patch.object(svc, "_list_s3_nasa_objects", return_value=fake_items),
+        patch.object(svc, "presigned_nasa_url", return_value="https://s3.example/presigned"),
+    ):
+        result = list_nasa_captures(limite=12, dia="2026-06-08")
+
+    assert result["total"] == 1
+    assert result["capturas"][0]["arquivo"] == "nasa_brasil_20260608_1200.png"
+    assert result["dia"] == "2026-06-08"
+
+
 def test_list_nasa_captures_local_fallback_when_s3_empty() -> None:
     captures_dir = nasa_captures_dir()
     if not captures_dir.is_dir():

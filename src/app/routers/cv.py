@@ -52,9 +52,12 @@ def cv_status() -> dict:
 
 
 @router.get("/nasa/capturas")
-def nasa_capturas(limite: int = 12) -> dict:
+def nasa_capturas(
+    limite: int = 12,
+    dia: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+) -> dict:
     """Lista capturas NASA (S3 prioritário; fallback local/dataset)."""
-    return list_nasa_captures(limite=max(1, min(limite, 100)))
+    return list_nasa_captures(limite=max(1, min(limite, 100)), dia=dia)
 
 
 @router.get("/nasa/imagem/{nome_arquivo}")
