@@ -15,6 +15,14 @@ on:
         description: "Data específica YYYY-MM-DD (vazio = hoje UTC)"
         required: false
         default: ""
+      region_set:
+        description: "Conjunto de regiões (brasil-operacional, brasil-norte, brasil-centro, brasil-sul, america-sul, all)"
+        required: false
+        default: "brasil-operacional"
+      regions:
+        description: "Lista CSV de regiões específicas (sobrescreve region_set)"
+        required: false
+        default: ""
 
 permissions:
   id-token: write
@@ -67,12 +75,19 @@ jobs:
           set -euo pipefail
           UPLOAD_CV="${{ github.event_name == 'schedule' && 'true' || github.event.inputs.upload_cv_jpg }}"
           DATA="${{ github.event.inputs.data }}"
+          REGION_SET="${{ github.event_name == 'schedule' && 'brasil-operacional' || github.event.inputs.region_set }}"
+          REGIONS="${{ github.event.inputs.regions }}"
           ARGS=""
           if [ "$UPLOAD_CV" != "true" ]; then
             ARGS="$ARGS --no-cv-jpg"
           fi
           if [ -n "$DATA" ]; then
             ARGS="$ARGS --data $DATA"
+          fi
+          if [ -n "$REGIONS" ]; then
+            ARGS="$ARGS --regions $REGIONS"
+          elif [ -n "$REGION_SET" ]; then
+            ARGS="$ARGS --region-set $REGION_SET"
           fi
           echo "Executando: python scripts/capture_nasa_to_s3.py $ARGS"
           python scripts/capture_nasa_to_s3.py $ARGS | tee nasa-capture.log
@@ -105,6 +120,7 @@ jobs:
           echo "- Bucket: \`${{ env.S3_BUCKET_IMAGES }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- PNG prefix: \`${{ env.NASA_S3_PREFIX }}/\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- CV trigger: \`${{ env.NASA_CV_S3_PREFIX }}/*.jpg\` → Lambda \`gs2-api\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Region set: \`${{ github.event_name == 'schedule' && 'brasil-operacional' || github.event.inputs.region_set }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- PNGs enviados para a galeria: **${{ steps.capture.outputs.recent_png_count }}**" >> "$GITHUB_STEP_SUMMARY"
           echo "- JPGs enviados para trigger YOLO: **${{ steps.capture.outputs.recent_jpg_count }}**" >> "$GITHUB_STEP_SUMMARY"
           if [ -f nasa-capture.log ]; then

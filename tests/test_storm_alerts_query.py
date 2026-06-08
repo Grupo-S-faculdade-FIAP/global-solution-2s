@@ -22,6 +22,10 @@ def test_coords_from_s3_key_regions():
     assert lat2 == pytest.approx(-15.0)
     assert lon2 == pytest.approx(-60.0)
 
+    assert coords_from_s3_key("screenshots/nasa_norte_20260608_1200.jpg")[0] == pytest.approx(-3.5)
+    assert coords_from_s3_key("screenshots/nasa_centro_oeste_20260608_1200.jpg")[1] == pytest.approx(-54.0)
+    assert coords_from_s3_key("screenshots/nasa_oeste_20260608_1200.jpg")[1] == pytest.approx(-67.0)
+
 
 def test_confidence_from_detection_count():
     assert confidence_from_item({"detection_count": 0}) == 0.75
