@@ -80,6 +80,21 @@ REGIOES = [
         "descricao": "Sul do Brasil (RS, SC, PR) — GOES-East IR C13",
     },
     {
+        "nome":      "nasa_centro_oeste",
+        "bbox":      "-62,-24,-45,-7",
+        "descricao": "Centro-Oeste do Brasil (MT, MS, GO, DF) — GOES-East IR C13",
+    },
+    {
+        "nome":      "nasa_leste_litoral",
+        "bbox":      "-44,-24,-34,0",
+        "descricao": "Leste e litoral do Brasil — GOES-East IR C13",
+    },
+    {
+        "nome":      "nasa_oeste",
+        "bbox":      "-74,-22,-58,2",
+        "descricao": "Oeste do Brasil (Acre, Rondônia, oeste do Amazonas/MT) — GOES-East IR C13",
+    },
+    {
         "nome":      "nasa_argentina",
         "bbox":      "-70,-55,-50,-30",
         "descricao": "Argentina e Uruguai — GOES-East IR C13",
@@ -96,8 +111,34 @@ REGIOES = [
     },
 ]
 
+REGIOES_BY_NAME = {regiao["nome"]: regiao for regiao in REGIOES}
+REGION_SETS = {
+    # Cobertura operacional do Brasil: visão geral + macro-regiões.
+    "brasil-operacional": [
+        "nasa_brasil",
+        "nasa_norte",
+        "nasa_nordeste",
+        "nasa_centro_oeste",
+        "nasa_brasil_sudeste",
+        "nasa_sul",
+        "nasa_leste_litoral",
+        "nasa_oeste",
+    ],
+    # Lotes menores para workflow_dispatch quando precisar testar sem rodar tudo.
+    "brasil-norte": ["nasa_norte", "nasa_nordeste", "nasa_oeste"],
+    "brasil-centro": ["nasa_brasil", "nasa_centro_oeste", "nasa_leste_litoral"],
+    "brasil-sul": ["nasa_brasil_sudeste", "nasa_sul"],
+    "america-sul": [
+        "nasa_americas",
+        "nasa_argentina",
+        "nasa_colombia",
+        "nasa_peru_bolivia",
+    ],
+    "all": [regiao["nome"] for regiao in REGIOES],
+}
+
 VIEWPORT   = {"width": 1920, "height": 1080}
-WAIT_MS    = 15_000   # ms aguardando renderização dos tiles
+WAIT_MS    = 10_000   # ms aguardando renderização dos tiles
 
 
 # ── Captura ────────────────────────────────────────────────────────────────────
@@ -158,7 +199,8 @@ def capturar_regiao(regiao: dict, data: str) -> Path:
         )
         page = browser.new_context(viewport=VIEWPORT).new_page()
         try:
-            page.goto(url, wait_until="networkidle", timeout=90_000)
+            page.set_default_timeout(30_000)
+            page.goto(url, wait_until="domcontentloaded", timeout=60_000)
             page.wait_for_timeout(WAIT_MS)
 
             # Fecha modal de boas-vindas se aparecer
@@ -280,13 +322,14 @@ def capturar_todas(
     *,
     upload_cv_jpg: bool = False,
     trigger_cv_local: bool = False,
+    regioes: list[dict] | None = None,
 ) -> list[dict]:
     """Captura todas as regiões para uma data."""
     if data is None:
         data = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     resultados = []
-    for regiao in REGIOES:
+    for regiao in regioes or REGIOES:
         try:
             caminho  = capturar_regiao(regiao, data)
             tamanho_kb = caminho.stat().st_size // 1024
@@ -320,22 +363,40 @@ def capturar_todas(
     return resultados
 
 
-def capturar_historico(dias: int = 30) -> list[dict]:
+def selecionar_regioes(region_set: str | None = None, regions: str | None = None) -> list[dict]:
+    """Seleciona regiões por conjunto nomeado ou lista CSV de nomes."""
+    if regions:
+        nomes = [item.strip() for item in regions.split(",") if item.strip()]
+    else:
+        nomes = REGION_SETS.get(region_set or "brasil-operacional")
+        if nomes is None:
+            valid = ", ".join(sorted(REGION_SETS))
+            raise ValueError(f"region_set inválido: {region_set}. Use um de: {valid}")
+
+    desconhecidas = [nome for nome in nomes if nome not in REGIOES_BY_NAME]
+    if desconhecidas:
+        valid = ", ".join(sorted(REGIOES_BY_NAME))
+        raise ValueError(f"Região inválida: {', '.join(desconhecidas)}. Use uma de: {valid}")
+    return [REGIOES_BY_NAME[nome] for nome in nomes]
+
+
+def capturar_historico(dias: int = 30, regioes: list[dict] | None = None) -> list[dict]:
     """
     Baixa imagens retroativas do NASA Worldview (até 90 dias).
 
     Ideal para montar o dataset sem esperar capturas em tempo real.
     """
     dias = min(dias, 90)
+    selected = regioes or REGIOES
     hoje = datetime.now(timezone.utc)
     todos = []
 
-    print(f"\nCapturando {dias} dias × {len(REGIOES)} regiões...\n")
+    print(f"\nCapturando {dias} dias × {len(selected)} regiões...\n")
 
     for d in range(dias):
         data = (hoje - timedelta(days=d + 1)).strftime("%Y-%m-%d")
         print(f"  [{d+1}/{dias}] {data}")
-        for regiao in REGIOES:
+        for regiao in selected:
             if s3_has_capture(regiao["nome"], data):
                 print(f"    [SKIP] {regiao['nome']} (já no S3)")
                 continue
@@ -369,6 +430,17 @@ if __name__ == "__main__":
     parser.add_argument("--historico", action="store_true", help="Baixar retroativamente")
     parser.add_argument("--dias",      type=int, default=30, help="Dias para trás (--historico)")
     parser.add_argument(
+        "--region-set",
+        default="brasil-operacional",
+        choices=sorted(REGION_SETS),
+        help="Conjunto de regiões para captura operacional",
+    )
+    parser.add_argument(
+        "--regions",
+        default=None,
+        help="Lista CSV de regiões específicas (sobrescreve --region-set)",
+    )
+    parser.add_argument(
         "--upload-cv-jpg",
         action="store_true",
         help="Envia JPG em screenshots/ (dispara pipeline CV na Lambda via S3)",
@@ -380,13 +452,15 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    regioes = selecionar_regioes(region_set=args.region_set, regions=args.regions)
     if args.historico:
-        capturar_historico(dias=args.dias)
+        capturar_historico(dias=args.dias, regioes=regioes)
     else:
         resultados = capturar_todas(
             data=args.data,
             upload_cv_jpg=args.upload_cv_jpg or args.trigger_cv,
             trigger_cv_local=args.trigger_cv,
+            regioes=regioes,
         )
         ok = sum(1 for r in resultados if r["status"] == "ok")
         print(f"\n✓ {ok}/{len(resultados)} regiões capturadas → {CAPTURES_DIR}")

@@ -17,6 +17,12 @@ logger = logging.getLogger(__name__)
 REGION_COORDS: dict[str, tuple[float, float]] = {
     "nasa_americas": (-15.0, -60.0),
     "nasa_brasil_sudeste": (-23.55, -46.63),
+    "nasa_nordeste": (-8.5, -39.5),
+    "nasa_norte": (-3.5, -60.0),
+    "nasa_sul": (-29.5, -52.0),
+    "nasa_centro_oeste": (-15.8, -54.0),
+    "nasa_leste_litoral": (-12.5, -38.5),
+    "nasa_oeste": (-9.0, -67.0),
     "nasa_brasil": (-14.5, -52.0),
 }
 
@@ -48,6 +54,18 @@ def _region_key(s3_key: str) -> str:
     name = s3_key.lower()
     if "nasa_brasil_sudeste" in name or "brasil_sudeste" in name:
         return "nasa_brasil_sudeste"
+    if "nasa_centro_oeste" in name or "centro_oeste" in name:
+        return "nasa_centro_oeste"
+    if "nasa_leste_litoral" in name or "leste_litoral" in name:
+        return "nasa_leste_litoral"
+    if "nasa_nordeste" in name or "nordeste" in name:
+        return "nasa_nordeste"
+    if "nasa_norte" in name or "norte" in name:
+        return "nasa_norte"
+    if "nasa_sul" in name or "_sul" in name:
+        return "nasa_sul"
+    if "nasa_oeste" in name or "_oeste" in name:
+        return "nasa_oeste"
     if "nasa_brasil" in name or "brasil" in name:
         return "nasa_brasil"
     if "nasa_americas" in name or "americas" in name:

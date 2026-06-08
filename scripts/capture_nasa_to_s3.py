@@ -19,7 +19,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from app.core.config import settings  # noqa: E402
-from app.cron.capture_nasa_data import capturar_todas  # noqa: E402
+from app.cron.capture_nasa_data import REGION_SETS, capturar_todas, selecionar_regioes  # noqa: E402
 
 
 def main() -> int:
@@ -27,6 +27,17 @@ def main() -> int:
         description="Captura NASA Worldview GOES-East IR C13 e sobe para S3.",
     )
     parser.add_argument("--data", default=None, help="Data YYYY-MM-DD (default: hoje UTC)")
+    parser.add_argument(
+        "--region-set",
+        default="brasil-operacional",
+        choices=sorted(REGION_SETS),
+        help="Conjunto de regiões para capturar",
+    )
+    parser.add_argument(
+        "--regions",
+        default=None,
+        help="Lista CSV de regiões específicas (sobrescreve --region-set)",
+    )
     parser.add_argument(
         "--no-cv-jpg",
         action="store_true",
@@ -39,10 +50,12 @@ def main() -> int:
         print("ERRO: configure S3_BUCKET_IMAGES no ambiente/.env", file=sys.stderr)
         return 1
 
+    regioes = selecionar_regioes(region_set=args.region_set, regions=args.regions)
     resultados = capturar_todas(
         data=args.data,
         upload_cv_jpg=not args.no_cv_jpg,
         trigger_cv_local=False,
+        regioes=regioes,
     )
 
     ok = [item for item in resultados if item.get("status") == "ok"]
@@ -52,6 +65,8 @@ def main() -> int:
         "bucket": bucket,
         "png_prefix": settings.NASA_S3_PREFIX,
         "cv_jpg_prefix": None if args.no_cv_jpg else settings.NASA_CV_S3_PREFIX,
+        "region_set": args.region_set,
+        "regions": [item["regiao"] for item in resultados],
         "capturas_ok": len(ok),
         "capturas_falha": len(falhas),
         "png_s3_keys": [item.get("s3_key") for item in ok if item.get("s3_key")],

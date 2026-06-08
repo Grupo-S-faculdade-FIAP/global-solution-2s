@@ -29,6 +29,8 @@ def test_parse_ts_formats():
 
 def test_region_key_and_coords():
     assert _region_key("nasa_brasil_sudeste_01.png") == "nasa_brasil_sudeste"
+    assert _region_key("screenshots/nasa_centro_oeste_01.jpg") == "nasa_centro_oeste"
+    assert _region_key("screenshots/nasa_leste_litoral_01.jpg") == "nasa_leste_litoral"
     lat, lon = coords_from_s3_key("nasa_americas_2026.png")
     assert lat == -15.0
     assert lon == -60.0
