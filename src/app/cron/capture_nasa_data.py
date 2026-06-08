@@ -182,13 +182,13 @@ def capturar_regiao(regiao: dict, data: str) -> Path:
     return destino
 
 
-def _finalize_capture(caminho: Path, data: str) -> str | None:
+def _finalize_capture(caminho: Path, data: str, *, remove_local: bool = True) -> str | None:
     """Envia para S3 e remove do disco local quando NASA_KEEP_LOCAL=false."""
     s3_key = upload_s3(caminho, data)
-    if s3_key and not settings.NASA_KEEP_LOCAL:
+    if remove_local and s3_key and not settings.NASA_KEEP_LOCAL:
         caminho.unlink(missing_ok=True)
         logger.info("✓ Removido do disco local: %s", caminho.name)
-    elif not s3_key and not settings.NASA_KEEP_LOCAL:
+    elif remove_local and not s3_key and not settings.NASA_KEEP_LOCAL:
         logger.warning(
             "Upload S3 falhou — %s mantido localmente até novo upload",
             caminho.name,
@@ -289,11 +289,15 @@ def capturar_todas(
     for regiao in REGIOES:
         try:
             caminho  = capturar_regiao(regiao, data)
-            s3_key   = _finalize_capture(caminho, data)
+            tamanho_kb = caminho.stat().st_size // 1024
+            s3_key   = _finalize_capture(caminho, data, remove_local=False)
             cv_key   = upload_s3_cv_jpg(caminho) if (upload_cv_jpg or trigger_cv_local) else None
             cv_result = None
             if trigger_cv_local and cv_key and settings.S3_BUCKET_IMAGES:
                 cv_result = trigger_cv_pipeline(settings.S3_BUCKET_IMAGES, cv_key)
+            if s3_key and not settings.NASA_KEEP_LOCAL:
+                caminho.unlink(missing_ok=True)
+                logger.info("✓ Removido do disco local: %s", caminho.name)
             resultados.append({
                 "regiao":    regiao["nome"],
                 "arquivo":   caminho.name,
@@ -303,7 +307,7 @@ def capturar_todas(
                 "cv_result": cv_result,
                 "data":      data,
                 "status":    "ok",
-                "tamanho_kb": caminho.stat().st_size // 1024,
+                "tamanho_kb": tamanho_kb,
             })
         except Exception as e:
             logger.error("Erro em %s: %s", regiao["nome"], e)
