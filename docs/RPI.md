@@ -194,7 +194,7 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 
 | Módulo | % estimado | Status | Resumo factual |
 |--------|------------|--------|----------------|
-| **Visão computacional (YOLO)** | ~95% | Concluído (MVP) | 79 capturas NASA; dataset tiled (1033 val). `storm70-l-tiled`: mAP@0.5 **56,5%** (TTA 57,1%); precisão **73,5%** em conf=0,55 (critério G1). Pesos em `src/models/weights/best.pt`. Retreino: [YOLO-RETREINO.md](YOLO-RETREINO.md). |
+| **Visão computacional (YOLO)** | ~95% | Concluído (MVP) | 79 capturas NASA; dataset tiled (1033 val). `storm70-l-tiled`: mAP@0.5 **56,5%** (TTA 57,1%); precisão **73,5%** em conf=0,55 (critério G1). Pesos em `src/models/weights/best.pt` (+ S3). Retreino: `make train-yolo`. |
 | **ML risco agrícola** | ~95% | Concluído (MVP+) | LightGBM + limiares AG (DEAP); ensemble em `RiskAssessmentService`; breakdown na UI (`sections/ml.js`); artefatos em `models/` (model, scaler, meta, thresholds). |
 | **Ingestão clima (Open-Meteo)** | ~95% | Concluído | `WeatherService`, `GET /weather/current`, Lambda `ingest_weather.py` + testes. |
 | **Dashboard / UX produtor** | ~98% | Concluído | Tema claro/escuro, ES modules, event bus, location-bar com grid, três mapas (região, radar Windy, picker), seção IoT, skeleton KPIs, a11y básica. |
@@ -425,7 +425,7 @@ make verify-agri-models
 make fetch-inmet
 make train-ml-inmet
 
-# Retreino YOLO (pipeline canônico — ver docs/YOLO-RETREINO.md)
+# Retreino YOLO (pipeline canônico)
 make train-yolo
 
 # Detecção local YOLO
@@ -495,7 +495,6 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 05/06/2026)
 | Guia rubrica FIAP | `docs/GUIA-DE-AVALIACAO.md` |
 | Índice documentação | `docs/README.md` |
 | RPI (este documento) | `docs/RPI.md` |
-| Instruções Claude Code | `CLAUDE.md` (referencia `.cursor/rules/tlc-spec-driven.mdc`) |
 
 ---
 

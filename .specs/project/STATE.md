@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-08 (aplicação práticas rules Cursor — non-YOLO)
+**Last updated:** 2026-06-08 (fix pytest SNS alerts)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -12,7 +12,7 @@
 ## Current Focus
 
 **Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
-**Last task completed:** Aplicação práticas rules Cursor (non-YOLO): DI `get_sns_dlq_manager()` no container; router `dashboard_alerts` via `Depends`; PROJECT.md G1 atualizado (P≥70% conf=0,55); docstring `storm_detector` sem `print`; testes container + alerts router
+**Last task completed:** Quick fix SNS alerts pytest: `/alerts/metrics` resiliente a CloudWatch indisponível, e-mail SNS normalizado lowercase, `detector_status()` via lazy loader; `pytest tests/ -q -m "not e2e"` local passou (436 passed)
 **Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); republicar `best.pt` na Lambda; B7 screenshots opcional
 **Blockers:** nenhum
 **Branch status:** `chore/dataset-gitignore-yolo-stack` — commit `afbf61c` pushed (`refactor: apply cursor rules practices (non-yolo)`)
@@ -90,6 +90,7 @@
 - 2026-06-08 — Limpeza docs rodada 5: runbook/plano saíram da raiz; `data/training-dataset-1000/` e `data/model-dataset-tiled/` mantidos (augmentação/treino ativos); único `labels_backup_*` mantido; regra `.cursor/rules/document-organization.mdc` referenciada em `CLAUDE.md`.
 - 2026-06-08 — Rollout rules/skills: commit de `clean-architecture-solid`, `data-ml-python`, skills `agri-risk-ml-workflow` e `clean-architecture-review`; índices `.cursor/rules/README.md` e `.cursor/skills/README.md`; carve-out YOLO G1 (conf=0.55, storm70-l-tiled) em `data-ml-python.mdc` — sem alterar pesos, config ou scripts de treino.
 - 2026-06-08 — Auditoria rules (non-YOLO): AgriRiskModel/GA já usam `logging`; prints restantes são CLI (`capture_nasa_data`, `yolo_training`, `goes_pipeline`) — fora de paths de produção API; métricas 0,14/84/259 testes só em changelog histórico RPI (OK).
+- 2026-06-08 — CI pytest SNS alerts: `/alerts/metrics` não deve falhar com credenciais AWS inválidas; retorna envelope com datapoints vazios. `email_validator` preserva casing do local-part, então normalizar explicitamente com `.lower()`. `detector_status()` precisa consultar `_get_storm_detector()` para refletir lazy loader/patches.
 
 ---
 
@@ -124,6 +125,7 @@
 - [x] Limpeza docs rodada 4 — artefatos SNS, contagem 440 testes, features arquivadas (06/06)
 - [x] Limpeza docs rodada 5 — runbook/plano, índices GPU, pastas vazias (08/06)
 - [x] Aplicar práticas rules Cursor (non-YOLO): DI SNS DLQ, docs G1, STATE deferred (08/06)
+- [x] Corrigir falhas pytest SNS alerts (`/alerts/metrics`, lowercase email, detector status) (08/06)
 - [ ] B0: Verificar prazo exato na plataforma FIAP
 - [ ] B3: Definir nome do produto (D-001)
 - [ ] B1: Vídeo ≤ 5 min — Enzo (`tasks.md`)
