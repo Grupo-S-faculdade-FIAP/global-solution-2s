@@ -3,8 +3,8 @@ name: NASA Capture
 # Captura GOES-East IR C13 (NASA Worldview) → S3 → Lambda YOLO (via screenshots/*.jpg)
 on:
   schedule:
-    # A cada 6 h (UTC). Ajuste conforme necessidade operacional.
-    - cron: "0 */6 * * *"
+    # A cada 15 min (UTC) — todas as regiões operacionais do Brasil.
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       upload_cv_jpg:
