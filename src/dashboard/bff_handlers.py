@@ -399,11 +399,13 @@ def detector_status() -> tuple[Any, str, int]:
     from app.core.config import settings
 
     model_path = Path(__file__).resolve().parent.parent / "models" / "weights" / "best.pt"
+    s3_model_configured = bool(settings.S3_BUCKET_IMAGES and settings.YOLO_MODEL_S3_KEY)
     return _ok({
         "available": _storm_detector is not None,
-        "model_exists": model_path.exists(),
+        "model_exists": model_path.exists() or s3_model_configured,
         "confidence_threshold": settings.YOLO_CONFIDENCE_THRESHOLD,
         "model_path": str(model_path),
+        "model_s3_key": settings.YOLO_MODEL_S3_KEY if s3_model_configured else None,
     }, "live")
 
 
