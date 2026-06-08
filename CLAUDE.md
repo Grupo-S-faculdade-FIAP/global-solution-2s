@@ -18,9 +18,11 @@ Plataforma de inteligência ambiental e agrícola (FIAP GS 2026.1): satélite, Y
 
 **Skills do agente** (índice: `.cursor/skills/README.md`):
 
-- `document-organization` — organizar docs e artefatos de entrega
-- `agri-risk-ml-workflow` — treino/avaliação AgriRiskModel e thresholds DEAP
-- `clean-architecture-review` — ports/adapters e revisão SOLID no backend
+| Contexto | Skill |
+| --- | --- |
+| Organizar / revisar docs, specs, RPI, entrega FIAP | `document-organization` |
+| Treinar/avaliar AgriRiskModel, thresholds DEAP, INMET/FAOSTAT | `agri-risk-ml-workflow` |
+| Feature/refactor backend, ports/adapters, revisão SOLID | `clean-architecture-review` |
 
 > **YOLO G1 congelado:** conf=0.55, pesos `storm70-l-tiled` em `best.pt` — ver carve-out em `data-ml-python.mdc` e D-027/D-028 em `STATE.md`. Rules/skills **não** alteram inferência/deploy YOLO sem decisão explícita.
 
