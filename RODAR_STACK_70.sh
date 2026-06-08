@@ -16,6 +16,9 @@ cd "$(dirname "$0")"
 META=0.70
 IMG=1280
 DEV=0
+# YOLOv5 grava em ROOT/runs/ (ROOT=yolov5/) quando --project não é passado
+RUNS_TRAIN="yolov5/runs/train"
+RUNS_VAL="yolov5/runs/val"
 
 echo "==========================================================="
 echo " STACK >70%  |  $(date '+%F %H:%M')  |  device=$DEV"
@@ -76,8 +79,8 @@ python yolov5/train.py --weights yolov5l.pt \
   --img 640 --batch 16 --epochs 200 --cos-lr --patience 60 \
   --multi-scale --name storm70-l-tiled --device $DEV
 
-BEST="runs/train/storm70-l-tiled/weights/best.pt"
-MAP=$(read_map runs/train/storm70-l-tiled/results.csv)
+BEST="$RUNS_TRAIN/storm70-l-tiled/weights/best.pt"
+MAP=$(read_map "$RUNS_TRAIN/storm70-l-tiled/results.csv")
 echo ">> mAP@0.5 (treino tiles) = $MAP"
 
 # --- 4. Validação com TTA (de graça, +1-3 mAP) ------------------------------
@@ -103,18 +106,19 @@ else
 
   echo "--- [5b] Ensemble nativo YOLOv5 (vários --weights) + TTA ---"
   python yolov5/val.py \
-    --weights runs/train/storm70-l-tiled/weights/best.pt \
-              runs/train/storm70-l6-tiled/weights/best.pt \
-              runs/train/storm70-p2-tiled/weights/best.pt \
+    --weights "$RUNS_TRAIN/storm70-l-tiled/weights/best.pt" \
+              "$RUNS_TRAIN/storm70-l6-tiled/weights/best.pt" \
+              "$RUNS_TRAIN/storm70-p2-tiled/weights/best.pt" \
     --data "$TILED_YAML" --img 640 --augment --task val --name storm70-ensemble
 fi
 
 # --- 6. Consolidar ----------------------------------------------------------
 echo "--- [6] Consolidando melhor peso ---"
-BESTPT=$(ls -t runs/train/storm70-*/weights/best.pt | head -1)
+BESTPT=$(ls -t "$RUNS_TRAIN"/storm70-*/weights/best.pt | head -1)
+mkdir -p src/models/weights
 cp "$BESTPT" src/models/weights/best.pt
 echo "best.pt publicado -> src/models/weights/best.pt  (de $BESTPT)"
-echo "Curvas/relatórios em: runs/train/storm70-*/  e  runs/val/storm70-*/"
+echo "Curvas/relatórios em: $RUNS_TRAIN/storm70-*/  e  $RUNS_VAL/storm70-*/"
 echo "==========================================================="
 echo " FIM. Verifique o mAP@0.5 final nos logs acima."
 echo "==========================================================="

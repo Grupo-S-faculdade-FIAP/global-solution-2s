@@ -18,6 +18,9 @@ set -euo pipefail
 WORKDIR="/workspace/global-solutions"
 LOG="/workspace/runbook_train.log"
 SKIP_DOWNLOAD=false
+# YOLOv5 grava em ROOT/runs/ (ROOT=yolov5/) quando --project não é passado
+RUNS_TRAIN="yolov5/runs/train"
+RUNS_VAL="yolov5/runs/val"
 
 for arg in "$@"; do
   case $arg in --skip-download) SKIP_DOWNLOAD=true ;; esac
@@ -125,7 +128,7 @@ python yolov5/train.py \
 
 # ── 5. Resultado ──────────────────────────────────────────────────────────────
 banner "[5/5] Resultado"
-BEST=$(ls -t runs/train/storm-v4-m-1280/weights/best.pt 2>/dev/null | head -1 || true)
+BEST=$(ls -t "$RUNS_TRAIN"/storm-v4-m-1280/weights/best.pt 2>/dev/null | head -1 || true)
 
 if [ -n "$BEST" ] && [ -f "$BEST" ]; then
   SIZE=$(du -sh "$BEST" | cut -f1)
