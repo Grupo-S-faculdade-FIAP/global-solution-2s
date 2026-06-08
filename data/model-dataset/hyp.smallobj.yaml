@@ -1,0 +1,35 @@
+# Hiperparâmetros — TINY OBJECT (storm cells em satélite NASA)
+# ============================================================
+# Por que diferente do hyp.v3.yaml:
+#   - Caixas têm média 3.8% da imagem (muitas <1% / ~5px).
+#   - mosaic=1.0 + scale=0.6 ENCOLHIAM o alvo já minúsculo -> some na P3.
+#   - mixup/copy_paste fabricam blobs que não batem com a label determinística.
+# Use SEMPRE com --img 1280 (resolução é a maior alavanca aqui).
+lr0: 0.01
+lrf: 0.1
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+warmup_momentum: 0.8
+warmup_bias_lr: 0.1
+box: 0.05          # volta a 0.05: caixas minúsculas, não super-penalizar bbox
+cls: 0.5
+cls_pw: 1.0
+obj: 0.7          # 1.0 -> 0.7: reduz dominância do obj-loss (fonte da oscilação)
+obj_pw: 1.0
+iou_t: 0.20
+anchor_t: 4.0
+fl_gamma: 0.0     # opcional: testar 1.5 se recall ficar baixo (foco em hard examples)
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 0.0      # satélite é nadir; rotação atrapalha
+translate: 0.10
+scale: 0.2        # 0.6 -> 0.2: NÃO encolher objetos pequenos
+shear: 0.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+mosaic: 0.5       # 1.0 -> 0.5: menos tiling que reduz tamanho do alvo
+mixup: 0.0        # desligado: ruído em alvo pequeno + label heurístico
+copy_paste: 0.0   # desligado: blobs fantasma não batem com threshold-label

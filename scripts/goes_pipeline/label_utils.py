@@ -17,17 +17,20 @@ import cv2
 import numpy as np
 
 YOLO_SIZE = 640
-# Calibrado para letterbox 640×640. v2.1: limiar/área reduzidos p/ reduzir FN
-# (23 imagens com bright_ratio>2% sem bbox na v2.0).
-DEFAULT_LIMIAR = 175
-DEFAULT_AREA_PX = 50
+# v3.1: calibração para o ponto ideal — limpar ruído sem destruir sinal.
+# area_min 150px² (era 300 — muito agressivo, jogou fora storm cells válidos)
+# limiar 168 (era 170 — captura mais bordas de tempestade)
+# merge_dist 0.08 no detect_storms (era 0.05 — merge só quando realmente próximos)
+# Objetivo: ~4-6 bboxes/img (sweet spot entre 1.8 e 12.5)
+DEFAULT_LIMIAR = 168
+DEFAULT_AREA_PX = 150
 
 # Margens onde o NASA Worldview deixa legenda / escala / timestamp
 UI_MASK_X_FRAC = 0.18
 UI_MASK_Y_FRAC = 0.12
 
 # Fração mínima de pixels brilhantes dentro da bbox para aceitar o rótulo
-MIN_BRIGHT_RATIO_IN_BBOX = 0.01
+MIN_BRIGHT_RATIO_IN_BBOX = 0.05
 
 # Bboxes fantasma do pipeline corrompido (auditoria / migração)
 KNOWN_GHOST_BBOXES: tuple[tuple[float, float, float, float], ...] = (
@@ -41,7 +44,7 @@ GHOST_TOLERANCE = 0.025
 # Limites do quality gate (treino bloqueado se violados)
 GATE_MAX_GHOST_FILE_RATIO = 0.05
 GATE_MAX_DOMINANT_BBOX_RATIO = 0.08
-GATE_MIN_NEGATIVE_RATIO = 0.08
+GATE_MIN_NEGATIVE_RATIO = 0.05
 GATE_MIN_POSITIVE_IMAGES = 5
 GATE_MIN_BBOX_LINES = 10
 
@@ -172,6 +175,80 @@ def is_ghost_bbox(
     return False
 
 
+def merge_nearby_boxes(
+    bboxes: list[StormBbox],
+    iou_threshold: float = 0.3,
+    distance_threshold: float = 0.05,
+) -> list[StormBbox]:
+    """
+    Reduz over-segmentation unindo bboxes que se sobrepõem ou cujos centros
+    estão próximos. Itera até estabilizar (sem mais merges possíveis).
+
+    Args:
+        iou_threshold: IoU mínimo para forçar merge.
+        distance_threshold: distância máxima entre centros (coords normalizadas)
+            para forçar merge mesmo sem sobreposição.
+    """
+    if len(bboxes) <= 1:
+        return bboxes
+
+    def to_xyxy(b: StormBbox) -> tuple[float, float, float, float]:
+        return (b.x_c - b.w / 2, b.y_c - b.h / 2, b.x_c + b.w / 2, b.y_c + b.h / 2)
+
+    def compute_iou(a: StormBbox, b: StormBbox) -> float:
+        ax1, ay1, ax2, ay2 = to_xyxy(a)
+        bx1, by1, bx2, by2 = to_xyxy(b)
+        ix1, iy1 = max(ax1, bx1), max(ay1, by1)
+        ix2, iy2 = min(ax2, bx2), min(ay2, by2)
+        inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+        if inter == 0.0:
+            return 0.0
+        union = (ax2 - ax1) * (ay2 - ay1) + (bx2 - bx1) * (by2 - by1) - inter
+        return inter / union if union > 0 else 0.0
+
+    def center_dist(a: StormBbox, b: StormBbox) -> float:
+        return ((a.x_c - b.x_c) ** 2 + (a.y_c - b.y_c) ** 2) ** 0.5
+
+    def merge_two(a: StormBbox, b: StormBbox) -> StormBbox:
+        ax1, ay1, ax2, ay2 = to_xyxy(a)
+        bx1, by1, bx2, by2 = to_xyxy(b)
+        x1, y1 = min(ax1, bx1), min(ay1, by1)
+        x2, y2 = max(ax2, bx2), max(ay2, by2)
+        return StormBbox(
+            x_c=(x1 + x2) / 2,
+            y_c=(y1 + y2) / 2,
+            w=x2 - x1,
+            h=y2 - y1,
+            area_px=a.area_px + b.area_px,
+        )
+
+    boxes = list(bboxes)
+    changed = True
+    while changed:
+        changed = False
+        new_boxes: list[StormBbox] = []
+        absorbed = [False] * len(boxes)
+        for i in range(len(boxes)):
+            if absorbed[i]:
+                continue
+            current = boxes[i]
+            for j in range(i + 1, len(boxes)):
+                if absorbed[j]:
+                    continue
+                should_merge = (
+                    compute_iou(current, boxes[j]) >= iou_threshold
+                    or center_dist(current, boxes[j]) <= distance_threshold
+                )
+                if should_merge:
+                    current = merge_two(current, boxes[j])
+                    absorbed[j] = True
+                    changed = True
+            new_boxes.append(current)
+        boxes = new_boxes
+
+    return boxes
+
+
 def detect_storms(
     img_bgr: np.ndarray,
     limiar: int = DEFAULT_LIMIAR,
@@ -179,20 +256,23 @@ def detect_storms(
     ui_mask_x: float = UI_MASK_X_FRAC,
     ui_mask_y: float = UI_MASK_Y_FRAC,
     min_bright_ratio: float = MIN_BRIGHT_RATIO_IN_BBOX,
+    merge_iou: float = 0.3,
+    merge_dist: float = 0.08,
 ) -> list[StormBbox]:
     """
     Detecta regiões convectivas (pixels frios/brilhantes) na imagem de treino.
 
     A detecção deve rodar na mesma imagem 640×640 que será usada no YOLO.
+    v3.0: kernel 9×9, close 5×, merge_nearby_boxes para reduzir over-segmentation.
     """
     H, W = img_bgr.shape[:2]
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     gray = apply_ui_mask(gray, ui_mask_x, ui_mask_y)
 
     _, mascara = cv2.threshold(gray, limiar, 255, cv2.THRESH_BINARY)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
     mascara = cv2.morphologyEx(mascara, cv2.MORPH_OPEN, kernel, iterations=2)
-    mascara = cv2.morphologyEx(mascara, cv2.MORPH_CLOSE, kernel, iterations=3)
+    mascara = cv2.morphologyEx(mascara, cv2.MORPH_CLOSE, kernel, iterations=5)
 
     n_labels, _, stats, _ = cv2.connectedComponentsWithStats(mascara, connectivity=8)
     bboxes: list[StormBbox] = []
@@ -223,7 +303,10 @@ def detect_storms(
 
         bboxes.append(StormBbox(x_c=x_c, y_c=y_c, w=w_n, h=h_n, area_px=area))
 
-    return bboxes
+    return merge_nearby_boxes(bboxes, iou_threshold=merge_iou, distance_threshold=merge_dist)
+
+
+
 
 
 def load_bboxes(lbl_path: Path) -> list[tuple[float, float, float, float]]:

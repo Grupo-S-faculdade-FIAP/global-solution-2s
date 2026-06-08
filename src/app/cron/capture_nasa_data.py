@@ -64,6 +64,36 @@ REGIOES = [
         "bbox":      "-55,-26,-38,-18",
         "descricao": "Sudeste do Brasil (SP / RJ / MG) — GOES-East IR C13",
     },
+    {
+        "nome":      "nasa_nordeste",
+        "bbox":      "-45,-15,-34,0",
+        "descricao": "Nordeste do Brasil (BA, PE, CE) — GOES-East IR C13",
+    },
+    {
+        "nome":      "nasa_norte",
+        "bbox":      "-70,-5,-48,5",
+        "descricao": "Norte do Brasil (Amazônia, Pará) — GOES-East IR C13",
+    },
+    {
+        "nome":      "nasa_sul",
+        "bbox":      "-56,-34,-48,-26",
+        "descricao": "Sul do Brasil (RS, SC, PR) — GOES-East IR C13",
+    },
+    {
+        "nome":      "nasa_argentina",
+        "bbox":      "-70,-55,-50,-30",
+        "descricao": "Argentina e Uruguai — GOES-East IR C13",
+    },
+    {
+        "nome":      "nasa_colombia",
+        "bbox":      "-80,0,-60,15",
+        "descricao": "Colômbia e Venezuela — GOES-East IR C13",
+    },
+    {
+        "nome":      "nasa_peru_bolivia",
+        "bbox":      "-80,-20,-60,-5",
+        "descricao": "Peru e Bolívia — GOES-East IR C13",
+    },
 ]
 
 VIEWPORT   = {"width": 1920, "height": 1080}

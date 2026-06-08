@@ -1,4 +1,4 @@
-.PHONY: install demo test test-coverage test-e2e test-frontend test-api test-storms nasa-capture nasa-capture-aws upload-s3 smoke-aws fetch-inmet train-ml-inmet export-faostat export-faostat-offline train-yolo build-agri build-agri-ci verify-agri-models
+.PHONY: install demo test test-coverage test-e2e test-frontend test-api test-storms nasa-capture nasa-capture-aws upload-s3 smoke-aws fetch-inmet train-ml-inmet export-faostat export-faostat-offline train-yolo build-agri build-agri-ci verify-agri-models download-gibs augment-dataset build-dataset-full
 
 VENV_PYTHON := .venv/bin/python
 
@@ -78,3 +78,27 @@ verify-agri-models:
 
 train-yolo:
 	$(VENV_PYTHON) src/yolo_training.py --epochs 40 --batch 8 --recall-focus --validate
+
+# Treino com yolov5m + MPS (Apple Silicon) — mais lento mas mais preciso
+train-yolo-medium:
+	$(VENV_PYTHON) src/yolo_training.py --model yolov5m --epochs 100 --batch 16 \
+		--device mps --patience 40 --recall-focus --validate
+
+# ── Dataset YOLO ────────────────────────────────────────────────────────────────
+
+# Baixa ~1620 imagens do NASA GIBS WMS (9 regiões × 90 dias × 2 horários)
+# Sem Playwright — download HTTP paralelo (~10–15 min)
+download-gibs:
+	$(VENV_PYTHON) scripts/goes_pipeline/00_download_gibs.py --limpar --dias 90 --workers 8
+
+# Gera versões augmentadas do dataset base (target: ≥300 imgs em data/training-dataset-1000/)
+augment-dataset:
+	$(VENV_PYTHON) scripts/goes_pipeline/07_augment_dataset.py --target 300
+
+# Pipeline completo: download GIBS → YOLO labels → augmentação → treino
+build-dataset-full:
+	$(VENV_PYTHON) scripts/goes_pipeline/00_download_gibs.py --limpar --dias 90 --workers 8
+	$(VENV_PYTHON) scripts/goes_pipeline/04_nasa_to_yolo.py --clean --limiar 175 --area 50
+	$(VENV_PYTHON) scripts/goes_pipeline/06_audit_labels.py --strict
+	$(VENV_PYTHON) scripts/goes_pipeline/07_augment_dataset.py
+	$(VENV_PYTHON) src/yolo_training.py --epochs 100 --batch 16 --recall-focus --validate

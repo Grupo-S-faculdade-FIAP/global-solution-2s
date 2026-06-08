@@ -11,6 +11,22 @@ docs/AWS-STATE.md
 
 # YOLO generated
 data/model-dataset/storm.resolved.yaml
+
+# YOLO dataset bulk (local only — regenerate via goes_pipeline)
+data/model-dataset/images/train/
+data/model-dataset/images/val/
+data/model-dataset/labels/train/
+data/model-dataset/labels/val/
+data/model-dataset/labels_backup_*/
+data/model-dataset-tiled/
+data/model-dataset/storm.v4.yaml
+
+# Keep small tracked assets
+!data/model-dataset/images/test/
+!data/model-dataset/images/test/test-storm.png
+!data/model-dataset/hyp*.yaml
+!data/model-dataset/storm.yaml
+
 data/label_review/
 *.cache
 results.csv.bak

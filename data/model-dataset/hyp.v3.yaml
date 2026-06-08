@@ -1,0 +1,35 @@
+# Hyperparâmetros v3.0 — otimizados para labels limpas (v3 pipeline)
+# Mudanças em relação ao hyp.recall.yaml:
+#   box: 0.05 → 0.10  (penaliza mais bbox imprecisa, labels mais limpas permitem)
+#   obj: 1.2  → 1.0   (sem bias de recall; confia nas labels)
+#   iou_t: 0.15 → 0.20 (matching mais rigoroso com labels de qualidade)
+#   mixup: 0.1 → 0.3   (mais regularização para dataset maior)
+#   copy_paste: 0.1 → 0.3
+lr0: 0.01
+lrf: 0.1
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+warmup_momentum: 0.8
+warmup_bias_lr: 0.1
+box: 0.10
+cls: 0.5
+cls_pw: 1.0
+obj: 1.0
+obj_pw: 1.0
+iou_t: 0.20
+anchor_t: 4.0
+fl_gamma: 0.0
+hsv_h: 0.02
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 5.0
+translate: 0.15
+scale: 0.6
+shear: 2.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+mosaic: 1.0
+mixup: 0.3
+copy_paste: 0.3
