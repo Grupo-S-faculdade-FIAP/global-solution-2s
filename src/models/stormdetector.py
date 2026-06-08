@@ -36,7 +36,7 @@ model = torch.hub.load(
     weights_path,
     trust_repo=True,
 )
-# G1 operating point (storm70-l-tiled val): conf=0.55 → P=73.5%
+# Operating point (storm70-l-tiled val): conf=0.55 → P=73.5%
 model.conf = 0.55
 
 print(f"Weights: {weights_path}")

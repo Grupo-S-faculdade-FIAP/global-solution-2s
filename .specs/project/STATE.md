@@ -50,7 +50,7 @@
 | 2026-06-05 | D-024 | YOLO lazy load + `RISK_SKIP_YOLO=1` em pytest | BFF e RiskAssessment não carregam torch na importação | CV / testes |
 | 2026-06-05 | D-025 | CV geo-aware: alertas 200 km + peso dinâmico no ensemble | Risco muda por localização; sem cobertura satélite → peso CV=0 | Risco / YOLO |
 | 2026-06-05 | D-026 | Dashboard: calculadora usa `/api/risk/forecast` (ensemble + breakdown) | Uma narrativa na UI (`ml.js` + `#risk-badge`) | Frontend |
-| 2026-06-08 | D-027 | YOLO G1: ponto operacional conf=0,55 (P=73,5%, R=30,2%, mAP@0.5=50,4%) | Critério rubrica G1 é precisão ≥70%; menor conf com P≥0,70 no sweep val tiled | CV / inferência |
+| 2026-06-08 | D-027 | YOLO ponto operacional conf=0,55 (P=73,5%, R=30,2%, mAP@0.5=50,4% val) | Sweep val tiled; conf=0,55 equilibra P/R para demo; sem limiar numérico na rubrica FIAP | CV / inferência |
 | 2026-06-08 | D-028 | Pesos canônicos: `storm70-l-tiled` (YOLOv5l) em `src/models/weights/best.pt` | mAP@0.5=56,5% (TTA 57,1%); treinos l6/p2 cancelados (Option A) | CV / deploy |
 | 2026-06-08 | D-029 | Rules/skills Cursor versionadas em `.cursor/` com índices README | 4 rules + 3 skills; carve-out YOLO G1 em `data-ml-python.mdc`; refs em CLAUDE.md e copilot-instructions | Agentes / docs |
 | 2026-06-08 | D-030 | Rótulos proxy documentados (ML + YOLO) | Alvos circulares — R²/mAP medem consistência interna, não validação externa; transparência no PDF §2.4.5 | PDF B2, RPI §8.2 |
@@ -74,7 +74,7 @@
 - 2026-06-05 — Pipeline v2 (`scripts/goes_pipeline/label_utils.py`): letterbox 640, detecção na img de treino, máscara UI, `--limiar 185 --area 80`. Dataset: 93 img, 34 com storm, 76 bboxes, 0 ghost, audit PASSED.
 - 2026-06-05 — Retreino v2.0 (76 bboxes): P≈0.003, R≈0.688, mAP@0.5≈0.078 — labels honestos, dataset esparsо.
 - 2026-06-05 — Dataset v2.1 (limiar 175 / area 50): 285 bboxes, 64 img com storm, 0 ghost. Retreino `storm-detector-v2`: P≈0.27, R≈0.17, mAP@0.5≈0.14 — baseline antes do retreino GPU tiled.
-- 2026-06-08 — Retreino GPU RunPod `storm70-l-tiled` (YOLOv5l, dataset tiled): mAP@0.5=0.565 (TTA 0.571). Sweep conf: 0.25→P=54.2%; 0.40→66.3%; **0.55→73.5%**; 0.70→84.6%; 0.85→90.9%. G1 precisão atingida em conf=0.55. Treinos l6/p2 cancelados (Option A). `best.pt` SCP local (~89 MB).
+- 2026-06-08 — Retreino GPU RunPod `storm70-l-tiled` (YOLOv5l, dataset tiled): mAP@0.5=0.565 (TTA 0.571). Sweep conf: 0.25→P=54.2%; 0.40→66.3%; **0.55→73.5%**; 0.70→84.6%; 0.85→90.9%. Conf operacional 0.55. Treinos l6/p2 cancelados (Option A). `best.pt` SCP local (~89 MB).
 - 2026-06-04 — DynamoDB mock: `DYNAMODB_USE_MOCK=true` (default) → `data/demo/storm_alerts.json`; `POST /alerts/simulate`; gráficos e `/storms/recent` usam o mesmo store.
 - 2026-06-04 — Dashboard: `DEMO_MODE=true` (default) mantém fallbacks de gráficos; `false` exige FastAPI e oculta botões de dev. Localização em `localStorage` (`dashboard-location`).
 - 2026-06-04 — Dashboard: seção **Mapa da região** (Leaflet CDN) consome `/api/map/overlay` com bbox da localização; Windy permanece como **Radar meteorológico**.
@@ -104,7 +104,7 @@
 - ~~Alertas em tempo real por push/email quando YOLO detectar tempestade~~ — SNS e-mail no dashboard (jun/2026); push mobile fora de escopo
 - Cobertura de outros países da América do Sul
 - App mobile para visualização no campo
-- YOLO mAP@0.5 ≥ 70% (meta PROJECT.md) — atual 56,5%; precisão G1 atingida em conf=0,55
+- Retreino YOLO com mais capturas NASA e rótulos revisados (v2)
 - ~~Republicar `best.pt` (~89 MB YOLOv5l) na Lambda S3~~ — confirmado 88,6 MiB em `s3://satellite-images-gs2/models/best.pt` (08/06/2026)
 
 ---

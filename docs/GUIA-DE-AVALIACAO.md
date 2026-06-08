@@ -50,7 +50,7 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
   - **Rodrigo** — *Sensores:* ESP32 + DHT22 → API → dashboard
   - **Lucas / Caroline** — *Aplicações cognitivas:* APIs de predição, recomendação e analytics integradas ao dashboard
 - [x] Aplicação prática de conceitos vistos em aula (redes neurais, YOLO, pipelines, AWS, serverless, ESP32, APIs cognitivas, SQL/NoSQL, análise em tempo real);
-  - **Lucas** — *YOLO:* treino GPU `storm70-l-tiled` + `best.pt` (~89 MB) + inferência no dashboard (conf=0,55 para G1)
+  - **Lucas** — *YOLO:* treino GPU `storm70-l-tiled` + `best.pt` (~89 MB) + inferência no dashboard (conf=0,55)
   - **Lucas** — *Pipeline de dados:* captura NASA, rotulagem v2, treino
   - **Lucas / Tiago** — *AWS serverless:* S3 → Lambda → DynamoDB + SNS
   - **Rodrigo** — *ESP32:* firmware e integração HTTP

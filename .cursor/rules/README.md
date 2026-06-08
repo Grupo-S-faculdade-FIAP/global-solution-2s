@@ -13,7 +13,7 @@ Indice das rules do projeto. Fonte espelhada em `CLAUDE.md` e `.github/copilot-i
 
 - **Sempre:** `tlc-spec-driven` — fluxo SPECIFY → DESIGN → TASKS → EXECUTE, STATE.md, commits.
 - **Markdown:** `document-organization` — destino de docs, indices, PT-BR, sem inventar metricas.
-- **Python/ML:** `data-ml-python` — pandas/sklearn/LightGBM/DEAP, versionamento de modelos; **carve-out YOLO G1** (conf=0.55, `storm70-l-tiled`) congelado.
+- **Python/ML:** `data-ml-python` — pandas/sklearn/LightGBM/DEAP, versionamento de modelos; **carve-out YOLO operacional** (conf=0.55, `storm70-l-tiled`) congelado.
 - **Backend FastAPI:** `clean-architecture-solid` — domain/application/infrastructure, ports & adapters, `container.py`.
 
 ## Skills complementares

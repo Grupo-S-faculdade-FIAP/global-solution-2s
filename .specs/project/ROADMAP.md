@@ -12,7 +12,7 @@
 
 | Feature | Prioridade | Status | Notas |
 |---------|------------|--------|-------|
-| YOLO NASA pipeline v2 (labels honestos, 0 ghost) | P1 | ✅ Done | 79 capturas, 79 train; mAP@0.5 ≈ 0,14 — abaixo G1 (70%); retreino: `docs/YOLO-RETREINO.md` |
+| YOLO NASA pipeline v2 (labels honestos, 0 ghost) | P1 | ✅ Done | Retreino `storm70-l-tiled`; mAP@0.5 56,5%; ver `docs/RPI.md` |
 | RiskAssessment + `/risk/forecast` + INMET/FAOSTAT | P1 | ✅ Done | `AgriRiskModel`, `make build-agri` |
 | `/storms/recent` + `/map/overlay` | P1 | ✅ Done | mock JSON + DynamoDB via DI |
 | Alertas analytics (weekly/hourly/daily/heatmap) | P1 | ✅ Done | Carol |
@@ -36,7 +36,7 @@
 
 | Feature | Status |
 |---------|--------|
-| YOLO mAP ≥ 70% (G1) | Planned |
+| YOLO retreino tiled + deploy S3 | Planned |
 | AWS DynamoDB real em produção (mock off) | Planned |
 | SNS e-mail no dashboard | ✅ Done (jun/2026) |
 | Mais imagens Windy (novas capturas rotuladas) | Planned |

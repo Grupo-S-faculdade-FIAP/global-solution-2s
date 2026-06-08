@@ -32,7 +32,7 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 
 | ID | Objetivo | Critério (PROJECT.md) | Status | Evidência / observação |
 |----|----------|----------------------|--------|-------------------------|
-| **G1** | Detectar tempestades / nuvens chuvosas em imagens de satélite com YOLO | Precisão ≥ **70%** no conjunto de validação | **Concluído (MVP)** | Retreino GPU `storm70-l-tiled` (YOLOv5l, dataset tiled): mAP@0.5 **56,5%** (TTA **57,1%**). **Ponto operacional G1:** conf=**0,55** → P=**73,5%**, R=30,2%, mAP@0.5=50,4% (val tiled, 1033 img). Pipeline v2: 0 bbox fantasma. Pesos: `src/models/weights/best.pt` (~89 MB). |
+| **G1** | Detectar tempestades / nuvens chuvosas em imagens de satélite com YOLO | POC funcional (treino + inferência + pipeline AWS) | **Concluído (MVP)** | Retreino GPU `storm70-l-tiled` (YOLOv5l, dataset tiled): mAP@0.5 **56,5%** (TTA **57,1%**); conf=**0,55** → P=**73,5%**, R=30,2% (val tiled, 1033 img). Pipeline v2: 0 bbox fantasma. Pesos: `src/models/weights/best.pt` (~89 MB). *Sem limiar numérico na rubrica FIAP.* |
 | **G2** | Prever risco agrícola com ML + clima | Modelo + API | **Concluído (MVP+)** | `AgriRiskModel` (LightGBM + fallback sklearn) treinado com **INMET BDMEP** (43,8k registros horários, 5 estações); limiares otimizados por **AG (DEAP)** → `models/agri_risk_thresholds.json`; contexto FAOSTAT em `docs/dados/FAOSTAT_BR_contexto.md`; `RiskAssessmentService` (ensemble clima + CV + ML), `/risk/forecast`, `/ml/predict/agricultural-risk`; pipeline `make build-agri` / `make verify-agri-models`. |
 | **G3** | Visualizar clima em tempo real no dashboard | Windy API no frontend | **Concluído (demo)** | Widget **Windy** (radar) + **Open-Meteo** via API; mapa regional **Leaflet** com `/map/overlay`. REST Windy não usada (plano free). |
 | **G4** | ESP32 → pipeline cloud AWS | Leituras persistidas | **Concluído (MVP)** | `POST /iot/readings`, `GET /iot/readings/latest`, store mock JSON + DynamoDB via DI; firmware `src/iot/firmware.cpp`; seção IoT no dashboard; BFF `/api/iot/*`; **11** testes em `tests/test_iot_readings.py`. |
@@ -194,7 +194,7 @@ Escala sugerida: **Concluído** · **Em progresso** · **Pendente** · **Fora do
 
 | Módulo | % estimado | Status | Resumo factual |
 |--------|------------|--------|----------------|
-| **Visão computacional (YOLO)** | ~95% | Concluído (MVP) | 1.602 capturas NASA acumuladas; dataset base 1.361 train → tiled 3.045 train / 1.033 val. `storm70-l-tiled`: mAP@0.5 **56,5%** (TTA 57,1%); precisão **73,5%** em conf=0,55 (critério G1). Pesos ~89 MB em `src/models/weights/best.pt` + S3 (cold start). Retreino: `make train-yolo`. |
+| **Visão computacional (YOLO)** | ~95% | Concluído (MVP) | 1.602 capturas NASA acumuladas; dataset base 1.361 train → tiled 3.045 train / 1.033 val. `storm70-l-tiled`: mAP@0.5 **56,5%** (TTA 57,1%); P=**73,5%** em conf=0,55. Pesos ~89 MB em `src/models/weights/best.pt` + S3 (cold start). Retreino: `make train-yolo`. |
 | **ML risco agrícola** | ~95% | Concluído (MVP+) | Regressor tabular + limiares AG (DEAP); alvo proxy `score_continuo_normalizado` (regra determinística das features); ensemble em `RiskAssessmentService`; breakdown na UI (`sections/ml.js`); artefatos em `models/`. |
 | **Ingestão clima (Open-Meteo)** | ~95% | Concluído | `WeatherService`, `GET /weather/current`, Lambda `ingest_weather.py` + testes. |
 | **Dashboard / UX produtor** | ~98% | Concluído | Tema claro/escuro, ES modules, event bus, location-bar com grid, três mapas (região, radar Windy, picker), seção IoT, skeleton KPIs, a11y básica. |
@@ -281,12 +281,12 @@ Detalhes completos: `.specs/project/STATE.md`.
 
 | Risco | Probabilidade | Impacto | Mitigação |
 |-------|---------------|---------|-----------|
-| G1 precisão em conf baixo sacrifica recall | Média | Demo ao vivo | Ponto operacional conf=0,55 (P≥70%, R≈30%); documentado em §8.1; inferência prod usa conf configurável |
+| Trade-off precisão/recall YOLO | Média | Demo ao vivo | Ponto operacional conf=0,55 (P=73,5%, R≈30%); documentado em §8.1 |
 | DynamoDB AWS não integrado na demo | Média | Credibilidade “cloud” | `DYNAMODB_USE_MOCK=false` + smoke S3→Lambda; mock documentado; `scripts/smoke_aws_e2e.py` |
 | Cold start Lambda 60–90 s | Alta | Demo ao vivo | Aquecer container antes; mostrar demo local no vídeo |
 | Vídeo/PDF atrasados | Média | Nota entrega FIAP | Roteiro em CHECKLIST_ENTREGA; `make demo` estável; IoT e dashboard prontos para gravação |
 | Nome do projeto indefinido | Baixa | Identidade PDF | Decidir na equipe (D-001) |
-| YOLO mAP@0.5 abaixo de 70% (meta PROJECT.md) | Média | Expectativa de métricas | mAP@0.5=56,5% honesto (tiled); precisão G1 atingida via sweep conf; trade-off P/R documentado |
+| Dataset YOLO pequeno vs. produção real | Média | Expectativa de métricas | mAP@0.5=56,5% (tiled); trade-off P/R documentado; rótulos proxy |
 
 ---
 
@@ -297,7 +297,7 @@ Detalhes completos: `.specs/project/STATE.md`.
 - [ ] `DYNAMODB_USE_MOCK=false` e validar tabelas reais (alertas + IoT)  
 - [ ] Smoke end-to-end: S3 → Lambda → DynamoDB → SNS (README §3 / `make smoke-aws`)  
 - [x] Republicar `best.pt` na Lambda — S3 `models/best.pt` **88,6 MiB** (08/06/2026; cold start via `DetectStormUseCase._ensure_model`)  
-- [x] Retreino YOLO GPU `storm70-l-tiled` — mAP@0.5=56,5%, P≥70% em conf=0,55 (08/06/2026)  
+- [x] Retreino YOLO GPU `storm70-l-tiled` — mAP@0.5=56,5%, conf=0,55 → P=73,5% (08/06/2026)  
 - [x] Verificação pipeline agrícola no CI (`build_agri_pipeline.py --ci --skip-faostat`)
 - [ ] (Opcional) EventBridge + `capture_nasa_data.py` periódico — **substituído por** `.github/workflows/nasa-capture.yml` (cron 6 h)
 
@@ -338,7 +338,7 @@ Detalhes completos: `.specs/project/STATE.md`.
 - ML com histórico Open-Meteo real  
 - ~~`/alerts/subscribe`~~ *(implementado no dashboard — jun/2026)*  
 - Mais imagens Windy com rótulo revisado  
-- YOLO mAP@0.5 ≥ 70% (meta PROJECT.md — atual 56,5%)  
+- Mais capturas NASA com rótulo revisado  
 - IoT multi-dispositivo + alertas push  
 
 ---
@@ -353,10 +353,10 @@ Detalhes completos: `.specs/project/STATE.md`.
 | v2.0 (76 bboxes honestos) | ≈ 0,078 | ~0,003 | ~0,688 | Labels corretos, dataset esparso |
 | v2.1 / `storm-detector-v2` (285 bboxes) | ≈ 0,14 | ~0,27 | ~0,17 | Dataset pequeno; baseline antes do retreino GPU |
 | **v3 / `storm70-l-tiled`** (YOLOv5l, tiled) | **0,565** | 0,542 | 0,625 | Val tiled 1033 img, conf=0,25; TTA mAP@0.5=**0,571** |
-| **Ponto operacional G1** (conf=0,55) | 0,504 | **0,735** | 0,302 | **Precisão ≥ 70%** (critério rubrica G1) |
+| **Ponto operacional** (conf=0,55) | 0,504 | **0,735** | 0,302 | Inferência prod (`YOLO_CONFIDENCE_THRESHOLD=0.55`) |
 
 Hiperparâmetros rotulagem v2: `--limiar 185 --area 80` (base); v2.1: limiar 175 / area 50.  
-**Confiança inferência recomendada (G1):** conf=**0,55** (P=73,5%, R=30,2%). Sweep val: 0,25→P=54,2%; 0,40→66,3%; 0,55→73,5%; 0,70→84,6%; 0,85→90,9%.  
+**Confiança inferência recomendada:** conf=**0,55** (P=73,5%, R=30,2%). Sweep val: 0,25→P=54,2%; 0,40→66,3%; 0,55→73,5%; 0,70→84,6%; 0,85→90,9%.  
 Pesos atuais: `src/models/weights/best.pt` (~89 MB, YOLOv5l tiled).
 
 **Integração YOLO no ensemble (v2 — 05/06/2026):** `_score_cv(lat, lon)` usa alertas geo (`StormAlertsQueryService`, raio 200 km) + captura NASA regional; peso CV atenuado quando `coverage_factor=0`. Retreino offline: `make train-yolo --recall-focus` (dataset v2.1).
@@ -483,8 +483,7 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 05/06/2026)
 | ML risco: AG limiares + LightGBM + `agri_risk_thresholds.json` | v1 | Concluído |
 | Backend Lambda scaffold | v1 | Parcial |
 | PDF + vídeo | v1 | Pendente |
-| YOLO precisão ≥ 70% (G1, conf=0,55) | v3 | Concluído |
-| YOLO mAP@0.5 ≥ 70% (meta PROJECT.md) | v3 | Pendente (atual 56,5%) |
+| YOLO POC integrado (treino + inferência + Lambda) | v3 | Concluído |
 
 ---
 

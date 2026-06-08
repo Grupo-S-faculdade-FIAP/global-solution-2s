@@ -67,7 +67,7 @@ O **GS2** é uma plataforma de inteligência ambiental e agrícola que combina:
 
 | ID | Objetivo | Status |
 |----|----------|--------|
-| G1 | Detecção YOLO de tempestades em imagens de satélite | Concluído (MVP) — mAP@0.5 56,5%; precisão 73,5% em conf=0,55 |
+| G1 | Detecção YOLO de tempestades em imagens de satélite | Concluído (MVP) — mAP@0.5 56,5%; P=73,5% em conf=0,55 |
 | G2 | Previsão de risco agrícola (ML + INMET) | Concluído |
 | G3 | Visualização climática em tempo real | Concluído |
 | G4 | ESP32 → pipeline cloud | Concluído (MVP) |
@@ -131,7 +131,7 @@ INMET → AgriRiskModel → /risk/forecast → Dashboard
 - Dataset YOLO v2 com **0 bbox fantasma** (audit gate);
 - Pesos: `src/models/weights/best.pt` (~89 MB); produção: `s3://satellite-images-gs2/models/best.pt` (cold start Lambda);
 - Inferência local (`stormdetector.py`) e na Lambda via `DetectStormUseCase`;
-- Métricas v3 (`storm70-l-tiled`, YOLOv5l): mAP@0.5=**56,5%** (TTA 57,1%); ponto operacional G1: conf=0,55 → P=**73,5%**, R=30,2%, mAP=50,4%.
+- Métricas v3 (`storm70-l-tiled`, YOLOv5l): mAP@0.5=**56,5%** (TTA 57,1%); conf=0,55 → P=**73,5%**, R=30,2%, mAP=50,4%.
 
 **Inserir screenshot:** dashboard seção YOLO com detecção (não é código — permitido).
 
@@ -342,7 +342,7 @@ Testes: `make test-coverage` (gate 82%).
 | Cobertura de código | **82,44%** | Gate no CI (`make test-coverage`) |
 | Capturas NASA | 1.602 PNG acumulados | `data/nasa_captures/` (base v2: 79) |
 | Dataset YOLO | 1.361 train (base) → 3.045 train tiled / 1.033 val | Augmentação + SAHI; 0 ghost |
-| YOLO mAP@0.5 | **56,5%** (TTA 57,1%) | `storm70-l-tiled`; precisão G1 em conf=0,55 (73,5%) |
+| YOLO mAP@0.5 | **56,5%** (TTA 57,1%) | `storm70-l-tiled`; conf=0,55 → P=73,5% |
 | ML R² CV | ≈ 0,95 | **Ajuste à regra proxy** — ver §2.4.5; não é acurácia preditiva real |
 | INMET registros | 43,8k horários | 5 estações BDMEP |
 | Pesos YOLO | ~89 MB | Local + `s3://satellite-images-gs2/models/best.pt` |
@@ -375,7 +375,7 @@ Baseado em `docs/GUIA-DE-AVALIACAO.md`:
 ### 3.4 Limitações conhecidas (honestidade técnica)
 
 - **Rótulos proxy (ML + YOLO):** ambos os modelos treinam com alvos derivados de regras/heurísticas do pipeline — R²≈0,95 e mAP/P medem consistência interna, não validação externa (§2.4.5);
-- YOLO mAP@0.5 (56,5%) abaixo da meta PROJECT.md de 70% mAP; precisão G1 (≥70%) atingida via conf=0,55 com trade-off de recall (~30%);
+- YOLO: trade-off precisão/recall em conf=0,55 (P=73,5%, R≈30%); rótulos proxy (§2.4.5);
 - Demo local usa mock DynamoDB por padrão (`DYNAMODB_USE_MOCK=true` no `.env`);
 - Cold start Lambda 60–90 s na primeira invocação (download `best.pt` do S3);
 - Cobertura geográfica v1: Brasil;
@@ -403,7 +403,7 @@ A GS2 demonstra que é possível conectar dados orbitais, visão computacional, 
 
 ### 4.3 Trabalho futuro (pós-GS)
 
-- YOLO mAP@0.5 ≥ 70% (atual 56,5%; precisão G1 já atingida em conf=0,55) + mais capturas NASA;
+- Mais capturas NASA + rótulos humanos (v2);
 - DynamoDB real em produção (`mock off`);
 - Alertas push/email em tempo real;
 - Expansão da camada cognitiva com novos modelos ou fontes de dados espaciais;

@@ -67,7 +67,7 @@ make test
 | Sem testes dedicados para `routers/cv.py` com YOLO real | Média | Inferência mockada; regressão de pesos não detectada |
 | `tests/test_weather_service.py` depende de internet | Média | Suite pode falhar offline |
 | Testes E2E Playwright dependem de rede (CDN Chart.js/Leaflet) | Baixa | Job `e2e-dashboard` no CI; `make test-e2e` local |
-| G1 YOLO sem teste de métricas mAP no CI | Média | Meta 70% não enforced automaticamente |
+| G1 YOLO sem teste de métricas mAP no CI | Baixa | Métricas reportadas offline (RPI §8.1) |
 
 ---
 

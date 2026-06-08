@@ -249,7 +249,7 @@ Step 5: Flag as uncertain → "I'm not certain about X — here's my reasoning, 
 | Python / ML / dados | `.cursor/rules/data-ml-python.mdc` + skill `agri-risk-ml-workflow` |
 | Backend `src/app` | `.cursor/rules/clean-architecture-solid.mdc` + skill `clean-architecture-review` |
 
-**YOLO G1 congelado:** `YOLO_CONFIDENCE_THRESHOLD=0.55`, pesos `storm70-l-tiled` — não alterar em tarefas gerais; ver carve-out em `data-ml-python.mdc`.
+**YOLO operacional congelado:** `YOLO_CONFIDENCE_THRESHOLD=0.55`, pesos `storm70-l-tiled` — não alterar em tarefas gerais; ver carve-out em `data-ml-python.mdc`.
 
 ---
 

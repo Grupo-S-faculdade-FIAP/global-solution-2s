@@ -82,13 +82,13 @@ um estilo novo quando ja existe um padrao no codebase.
   "0 bbox fantasma") → treino YOLOv5 → `best.pt` → S3 → Lambda
   (`DetectStormUseCase`). Preserve a integridade dessa cadeia ao editar qualquer etapa.
 
-### YOLO G1 — configuracao congelada (carve-out)
+### YOLO operacional — configuracao congelada (carve-out)
 
 > Esta rule orienta **trabalho futuro** (retreino, pipelines, refatoracao de codigo).
-> **Nao altere** os defaults de inferencia/deploy G1 sem decisao explicita em
+> **Nao altere** os defaults de inferencia/deploy sem decisao explicita em
 > `.specs/project/STATE.md` (D-027, D-028).
 
-| Artefato | Valor canonico G1 | Nao alterar em tarefas gerais |
+| Artefato | Valor canonico | Nao alterar em tarefas gerais |
 | --- | --- | --- |
 | Pesos | `src/models/weights/best.pt` (`storm70-l-tiled`, YOLOv5l) | sobrescrever, trocar path ou checksum sem versionar |
 | Conf inferencia | `YOLO_CONFIDENCE_THRESHOLD=0.55` (`config.py`, `.env.example`) | reduzir/aumentar conf para "melhorar metrica" ad hoc |
@@ -96,7 +96,7 @@ um estilo novo quando ja existe um padrao no codebase.
 | Scripts/runbooks | `RODAR_STACK_70.sh`, hyp yaml, `label_utils.py` | mudar limiares de treino sem spec |
 
 - Skills/rules de ML tabular (`agri-risk-ml-workflow`) e Clean Architecture **nao**
-  autorizam mudanca nos itens acima — escopo YOLO G1 e independente do AgriRiskModel.
+  autorizam mudanca nos itens acima — escopo YOLO operacional e independente do AgriRiskModel.
 
 ## Qualidade, testes e reprodutibilidade
 

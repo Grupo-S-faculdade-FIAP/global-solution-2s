@@ -110,7 +110,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 | Testes E2E Playwright | **53** (`make test-e2e`) |
 | Capturas NASA | 1.602 PNG acumulados em `data/nasa_captures/` (base v2: 79) |
 | Dataset YOLO | base **1.361** train (`model-dataset/`) → tiled **3.045** train / **1.033** val (`model-dataset-tiled/`, retreino `storm70-l-tiled`) |
-| Pipeline labels | v2 — letterbox 640, pseudo-rótulos por threshold OpenCV, 0 bbox fantasma; mAP@0.5 **56,5%** (TTA 57,1%); **precisão ≥ 70%** em conf=0,55 (P=73,5%, R=30,2%) |
+| Pipeline labels | v2 — letterbox 640, pseudo-rótulos por threshold OpenCV, 0 bbox fantasma; mAP@0.5 **56,5%** (TTA 57,1%); P=**73,5%** em conf=0,55 (R=30,2%) |
 | Retreino YOLO | `make train-yolo` · pesos **~89 MB** em `src/models/weights/best.pt` + `s3://satellite-images-gs2/models/best.pt` (cold start Lambda) |
 | Rótulos proxy | ML e YOLO treinam com alvos derivados de regras do pipeline — ver [docs/RPI.md](docs/RPI.md) §8.2 |
 | ML risco | INMET + AG limiares + ensemble geo-aware — `make build-agri` |

@@ -75,7 +75,7 @@ class Settings(BaseSettings):
     # ─── Computer Vision (YOLOv5) ──────────────────────────────────────────
     YOLO_MODEL_PATH: str = "s3://satellite-images-gs2/models/best.pt"
     YOLO_MODEL_S3_KEY: str = "models/best.pt"
-    # G1 operating point: conf=0.55 → P=73.5% (storm70-l-tiled val)
+    # Operating point: conf=0.55 → P=73.5% (storm70-l-tiled val)
     YOLO_CONFIDENCE_THRESHOLD: float = 0.55
     YOLO_IOU_THRESHOLD: float = 0.45
     YOLO_INPUT_SIZE: int = 640
