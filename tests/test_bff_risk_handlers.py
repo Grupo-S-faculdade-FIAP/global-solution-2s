@@ -55,6 +55,20 @@ def test_detector_status_reflects_availability(monkeypatch):
     assert data["available"] is True
 
 
+def test_detect_storm_sample_does_not_load_yolo_in_production(monkeypatch):
+    from dashboard import bff_handlers as bff
+
+    monkeypatch.setattr(bff, "_demo_mode", lambda: False)
+    with patch("dashboard.bff_handlers._get_storm_detector") as mock_detector:
+        data, source, status = bff.detect_storm_sample()
+
+    assert status == 200
+    assert source == "live"
+    assert data["success"] is False
+    assert "S3" in data["message"]
+    mock_detector.assert_not_called()
+
+
 @patch("dashboard.bff_handlers.backend_get", return_value=(503, {}))
 @patch("dashboard.bff_handlers.use_inprocess_backend", return_value=False)
 def test_risk_forecast_demo_fallback(mock_inprocess, _mock_get):

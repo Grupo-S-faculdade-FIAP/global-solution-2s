@@ -712,6 +712,13 @@ def _default_nasa_sample_path() -> Path | None:
 
 
 def detect_storm_sample() -> tuple[Any, str, int]:
+    if not _is_demo():
+        return _ok({
+            "success": False,
+            "error": "Teste local de amostra desativado em produção.",
+            "message": "Pipeline YOLO de produção: upload JPG no S3 → Lambda → DynamoDB/SNS.",
+        }, "live")
+
     detector = _get_storm_detector()
     if not detector:
         return _ok({
