@@ -89,22 +89,26 @@ async def get_alerts_metrics() -> dict[str, Any]:
     - AlertsSkipped
     - DLQMessagesReprocessed
     """
+    metric_names = [
+        "StormAlertsSent",
+        "StormAlertsFailed",
+        "AlertsSkipped",
+        "DLQMessagesReprocessed",
+        "DLQReprocessingFailed",
+        "DLQPurged",
+    ]
+
     try:
         cloudwatch = __import__("boto3").client("cloudwatch", region_name=settings.AWS_REGION)
+    except Exception as exc:
+        logger.warning(f"CloudWatch client unavailable for alert metrics: {exc}")
+        cloudwatch = None
 
-        metrics_response = cloudwatch.list_metrics(Namespace="GlobalSolutions")
-        metrics = []
+    metrics = []
+    for metric_name in metric_names:
+        datapoints = []
 
-        metric_names = [
-            "StormAlertsSent",
-            "StormAlertsFailed",
-            "AlertsSkipped",
-            "DLQMessagesReprocessed",
-            "DLQReprocessingFailed",
-            "DLQPurged",
-        ]
-
-        for metric_name in metric_names:
+        if cloudwatch is not None:
             try:
                 stats = cloudwatch.get_metric_statistics(
                     Namespace="GlobalSolutions",
@@ -114,26 +118,23 @@ async def get_alerts_metrics() -> dict[str, Any]:
                     Period=3600,  # 1 hour
                     Statistics=["Sum", "Average"],
                 )
-
-                metric_data = {
-                    "name": metric_name,
-                    "datapoints": stats.get("Datapoints", []),
-                    "unit": "Count",
-                }
-                metrics.append(metric_data)
-
+                datapoints = stats.get("Datapoints", [])
             except Exception as exc:
                 logger.warning(f"Failed to get metric {metric_name}: {exc}")
 
-        return {
-            "namespace": "GlobalSolutions",
-            "metrics": metrics,
-            "time_range_hours": 24,
-        }
+        metrics.append(
+            {
+                "name": metric_name,
+                "datapoints": datapoints,
+                "unit": "Count",
+            }
+        )
 
-    except Exception as exc:
-        logger.error(f"Failed to get metrics: {exc}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve CloudWatch metrics")
+    return {
+        "namespace": "GlobalSolutions",
+        "metrics": metrics,
+        "time_range_hours": 24,
+    }
 
 
 @router.get("/dlq", response_model=DLQStatsResponse)

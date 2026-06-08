@@ -7,10 +7,6 @@
 | [RPI.md](RPI.md) | Tutor / equipe | Relatório de progresso e integração — status técnico formal |
 | [GUIA-DE-AVALIACAO.md](GUIA-DE-AVALIACAO.md) | Tutor | Cobertura da rubrica FIAP (temas + responsáveis) |
 | [PDF-ENTREGA-ESQUELETO.md](PDF-ENTREGA-ESQUELETO.md) | Equipe | Base para montar o PDF de entrega |
-| [YOLO-RETREINO.md](YOLO-RETREINO.md) | ML / CV | Pipeline canônico de retreino YOLO (meta G1 70%) |
-| [RUNBOOK-YOLO-70.md](RUNBOOK-YOLO-70.md) | ML / GPU | Runbook passo a passo para cruzar mAP@0.5 ≥ 70% |
-| [RUNPOD-TREINO.md](RUNPOD-TREINO.md) | ML / GPU | Guia rápido de treino YOLO no RunPod |
-| [VAST-AI-TREINO.md](VAST-AI-TREINO.md) | ML / GPU | Guia rápido de treino YOLO no Vast.ai |
 | [CI-CD.md](CI-CD.md) | DevOps | GitHub Actions, OIDC, jobs pytest + E2E + deploy Lambda |
 | [DEPLOY-LAMBDA.md](DEPLOY-LAMBDA.md) | DevOps | Deploy manual da Lambda `gs2-api` |
 | [dados/FAOSTAT_BR_contexto.md](dados/FAOSTAT_BR_contexto.md) | PDF / contexto | Dados agrícolas Brasil (FAOSTAT) para seção de resultados |

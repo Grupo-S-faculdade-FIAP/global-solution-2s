@@ -398,7 +398,7 @@ def _normalize_email(email: str) -> str:
         # Validate and normalize using email_validator
         # check_deliverability=False to avoid DNS lookups in tests
         email_obj = validate_email(email_clean, check_deliverability=False)
-        return email_obj.normalized
+        return email_obj.normalized.lower()
     except EmailNotValidError as exc:
         raise ValueError(f"E-mail inválido: {str(exc)}")
 
