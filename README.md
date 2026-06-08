@@ -51,6 +51,11 @@ Coleta de temperatura e umidade via sensor **DHT22** no ESP32, com envio para a 
 
 **Código e documentação:** [`src/iot/firmware.cpp`](src/iot/firmware.cpp) · [`src/iot/README.md`](src/iot/README.md)
 
+### Fluxo principal
+
+Playwright captura imagens da NASA → upload `.jpg` no S3 → trigger Lambda → inferência YOLOv5 → alertas DynamoDB + SNS → dashboard no frontend com as análises com os dados da tabela alerts.
+
+
 ---
 
 ## 📁 Estrutura de pastas
