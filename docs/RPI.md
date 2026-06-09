@@ -36,7 +36,7 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 | **G2** | Prever risco agrícola com ML + clima | Modelo + API | **Concluído (MVP+)** | `AgriRiskModel` (LightGBM + fallback sklearn) treinado com **INMET BDMEP** (43,8k registros horários, 5 estações); limiares otimizados por **AG (DEAP)** → `models/agri_risk_thresholds.json`; contexto FAOSTAT em `docs/dados/FAOSTAT_BR_contexto.md`; `RiskAssessmentService` (ensemble clima + CV + ML), `/risk/forecast`, `/ml/predict/agricultural-risk`; pipeline `make build-agri` / `make verify-agri-models`. |
 | **G3** | Visualizar clima em tempo real no dashboard | Windy API no frontend | **Concluído (demo)** | Widget **Windy** (radar) + **Open-Meteo** via API; mapa regional **Leaflet** com `/map/overlay`. REST Windy não usada (plano free). |
 | **G4** | ESP32 → pipeline cloud AWS | Leituras persistidas | **Concluído (MVP)** | `POST /iot/readings`, `GET /iot/readings/latest`, store mock JSON + DynamoDB via DI; firmware `src/iot/firmware.cpp`; seção IoT no dashboard; BFF `/api/iot/*`; **11** testes em `tests/test_iot_readings.py`. |
-| **G5** | MVP documentado + vídeo ≤ 5 min | Entrega FIAP | **Parcial** | Código MVP ~95% (CHECKLIST); **PDF** e **vídeo** pendentes (ação humana). |
+| **G5** | MVP documentado + vídeo ≤ 5 min | Entrega FIAP | **Parcial** | Código MVP ~95%; **vídeo** publicado ([YouTube](https://www.youtube.com/watch?v=W67760WVado), link no README); **PDF** pendente. |
 
 **Nome comercial do produto:** ainda **não definido** (decisão D-001 em STATE.md).
 
@@ -57,7 +57,7 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 | CI/CD GitHub Actions + OIDC (sem access keys) + cobertura 82% + E2E Playwright | Concluído |
 | Deploy AWS: API Gateway + Lambda Docker + S3 trigger + SNS | Parcial (documentado, smoke manual) |
 | README + estrutura template TIAO-2026 | Parcial (faltam screenshot/diagrama no README) |
-| PDF FIAP + vídeo YouTube não listado | Pendente |
+| PDF FIAP + vídeo YouTube não listado | Vídeo concluído; PDF pendente |
 
 ### 2.2 Fora do escopo (v1)
 
@@ -78,7 +78,7 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 | CI/CD GitHub Actions | `docs/CI-CD.md` | Existe |
 | Wiki AWS (time) | link no README | Externo |
 | PDF estruturado (Intro, Desenvolvimento, Resultados, Conclusão) | — | Pendente |
-| Vídeo ≤ 5 min | link no README | Pendente |
+| Vídeo ≤ 5 min | [README.md](../README.md) · [YouTube](https://www.youtube.com/watch?v=W67760WVado) | Concluído |
 
 **Template RPI FIAP:** este arquivo (`docs/RPI.md`) consolida status, arquitetura e evidências. A estrutura do repo segue o template **TIAO-2026** (pastas `docs/`, `data/`, `assets/`, `src/`).
 
@@ -284,7 +284,7 @@ Detalhes completos: `.specs/project/STATE.md`.
 | Trade-off precisão/recall YOLO | Média | Demo ao vivo | Ponto operacional conf=0,55 (P=73,5%, R≈30%); documentado em §8.1 |
 | DynamoDB AWS não integrado na demo | Média | Credibilidade “cloud” | `DYNAMODB_USE_MOCK=false` + smoke S3→Lambda; mock documentado; `scripts/smoke_aws_e2e.py` |
 | Cold start Lambda 60–90 s | Alta | Demo ao vivo | Aquecer container antes; mostrar demo local no vídeo |
-| Vídeo/PDF atrasados | Média | Nota entrega FIAP | Roteiro em CHECKLIST_ENTREGA; `make demo` estável; IoT e dashboard prontos para gravação |
+| PDF atrasado | Média | Nota entrega FIAP | Vídeo concluído (09/06); montar PDF a partir de `docs/PDF-ENTREGA-ESQUELETO.md` |
 | Nome do projeto indefinido | Baixa | Identidade PDF | Decidir na equipe (D-001) |
 | Dataset YOLO pequeno vs. produção real | Média | Expectativa de métricas | mAP@0.5=56,5% (tiled); trade-off P/R documentado; rótulos proxy |
 
@@ -328,9 +328,9 @@ Detalhes completos: `.specs/project/STATE.md`.
 
 ### 7.3 Entrega FIAP (ação humana)
 
-- [ ] Vídeo ≤ 5 min (Enzo) — roteiro em `.specs/project/CHECKLIST_ENTREGA.md`  
+- [x] Vídeo ≤ 5 min (Enzo) — [YouTube](https://www.youtube.com/watch?v=W67760WVado)  
 - [ ] PDF (Intro, Desenvolvimento, Resultados, Conclusão)  
-- [ ] Link do vídeo no README  
+- [x] Link do vídeo no README  
 - [ ] Verificar prazo exato na plataforma FIAP (**incerto** em STATE todos)  
 
 ### 7.4 Pós-MVP (v2 — ROADMAP)
@@ -459,11 +459,11 @@ curl https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health
 | Área | % |
 |------|---|
 | Código MVP | ~95% |
-| Entrega FIAP completa (código + vídeo + PDF) | ~72% |
+| Entrega FIAP completa (código + vídeo + PDF) | ~85% |
 | Lucas (código) | ~90% |
 | Carol (código) | ~98% |
 | Rodrigo (IoT) | ~75% |
-| Enzo (vídeo) | 0% |
+| Enzo (vídeo) | 100% |
 
 ---
 
@@ -482,7 +482,7 @@ Fonte: `.specs/project/ROADMAP.md` (atualizado 05/06/2026)
 | Cobertura pytest 82% + E2E Playwright dashboard | v1 | Concluído |
 | ML risco: AG limiares + LightGBM + `agri_risk_thresholds.json` | v1 | Concluído |
 | Backend Lambda scaffold | v1 | Parcial |
-| PDF + vídeo | v1 | Pendente |
+| PDF + vídeo | v1 | Parcial (vídeo concluído; PDF pendente) |
 | YOLO POC integrado (treino + inferência + Lambda) | v3 | Concluído |
 
 ---

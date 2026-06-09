@@ -24,7 +24,7 @@
 - [x] **G2** — Prever risco agrícola com ML + clima — `AgriRiskModel` (INMET BDMEP), AG limiares (DEAP), `RiskAssessmentService` ensemble geo-aware, `/risk/forecast`
 - [x] **G3** — Visualizar dados climáticos em tempo real via Windy widget + Open-Meteo em dashboard web integrado
 - [x] **G4** — Coletar dados de ambiente em campo com ESP32 (DHT22) e enviar ao pipeline cloud (`POST /iot/readings`, mock + DynamoDB)
-- [ ] **G5** — Entregar MVP funcional documentado com vídeo de até 5 min dentro do prazo da GS — **parcial:** código ~95%; PDF e vídeo pendentes
+- [ ] **G5** — Entregar MVP funcional documentado com vídeo de até 5 min dentro do prazo da GS — **parcial:** código ~95%; vídeo publicado; PDF pendente
 
 ---
 
@@ -77,7 +77,8 @@
 - [x] Avaliador consegue rodar demo integrada com `make demo` em uma única URL (http://127.0.0.1:8000)
 - [x] Suite de testes passa (`make test` — 440 testes; cobertura **~82%**, jun/2026)
 - [x] Dashboard exibe clima, alertas, risco agrícola (ensemble), mapas e seção IoT com fallback demo documentado
-- [ ] Vídeo ≤ 5 min no YouTube (não listado) + PDF estruturado entregues na plataforma FIAP
+- [x] Vídeo ≤ 5 min no YouTube (não listado) — https://www.youtube.com/watch?v=W67760WVado
+- [ ] PDF estruturado entregue na plataforma FIAP
 - [x] G1 YOLO: detecção integrada ao pipeline (modelo treinado, demo e Lambda — D-027/D-028)
 
 ---

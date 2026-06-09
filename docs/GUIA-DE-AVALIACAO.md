@@ -37,7 +37,7 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
 
 - [x] Aplicabilidade e clareza na resolução do problema proposto;
   - **Lucas** — README.md (`README.md`, `docs/RPI.md`)
-  - **Enzo** — vídeo de 5 minutos *(pendente gravação)*
+  - **Enzo** — [vídeo de 5 minutos](https://www.youtube.com/watch?v=W67760WVado) (link também em `README.md`)
 - [x] Uso criativo e coerente de *Inteligência Artificial*, *computação em nuvem* e *análise de dados*;
   - **Lucas** — *IA:* YOLO para padrões de nuvens chuvosas em imagens de satélite (NASA GOES)
   - **Lucas / Tiago** — *Cloud:* AWS Lambda, S3 trigger, SNS, DynamoDB
@@ -60,15 +60,15 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
   - **Caroline** — *Análise em tempo real:* dashboard consome BFF `/api/*` com clima, alertas e risco
 - [x] Planejamento e documentação organizada da solução;
   - **Lucas** — README, `docs/RPI.md`, `docs/PDF-ENTREGA-ESQUELETO.md`, `.specs/`
-- [ ] Comunicação visual clara e apresentação estruturada;
-  - **Enzo** — vídeo de 5 minutos *(pendente)*
+- [x] Comunicação visual clara e apresentação estruturada;
+  - **Enzo** — [vídeo de 5 minutos](https://www.youtube.com/watch?v=W67760WVado)
 - [x] Trabalho colaborativo e interdisciplinar.
 
 ### Integrantes
 
 | Integrante | Contribuição principal |
 |------------|------------------------|
-| **Enzo França Sader** | Vídeo demonstrativo (≤ 5 min) |
+| **Enzo França Sader** | [Vídeo demonstrativo](https://www.youtube.com/watch?v=W67760WVado) (≤ 5 min) |
 | **Caroline de Castro Corrêa** | Dashboard, analytics, gráficos, code review |
 | **Rodrigo Dias Figueiroa** | ESP32, firmware, integração IoT |
 | **Lucas Hideki Oliveira Koyama** | YOLO, pipeline NASA, ML, AWS, README |

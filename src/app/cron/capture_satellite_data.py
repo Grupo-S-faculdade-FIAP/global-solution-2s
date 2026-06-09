@@ -14,7 +14,7 @@ from app.core.config import settings
 # URL do Windy + camada satélite INFRA+
 gondorTown = "https://www.windy.com/pt/-Sat%C3%A9lite-satellite?satellite,6.868,-10.667,9,p:cams"
 saoPaulo = "https://www.windy.com/pt/-Sat%C3%A9lite-satellite?satellite,-24.104,-46.633,8,p:cams"
-URL = saoPaulo
+URL = gondorTown
 
 def capture():
     ts = datetime.now(timezone.utc)

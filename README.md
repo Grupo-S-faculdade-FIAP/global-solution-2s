@@ -85,7 +85,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 ## 📎 Links e Observações
 
 - **Repositório GitHub:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s
-- **Vídeo de demonstração (5min):** *(link a ser adicionado após gravação)*
+- **Vídeo de demonstração (5min):** https://www.youtube.com/watch?v=W67760WVado
 - **Dashboard (HTML/JS):** demo local em http://127.0.0.1:8000 (`make demo`; tema claro/escuro na topbar) · produção AWS abaixo
 - **Dashboard (AWS):** https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/ (`MOUNT_DASHBOARD=false` na Lambda)
 - **API Backend (AWS):** https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com

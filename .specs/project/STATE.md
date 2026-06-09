@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-08 (docs honestidade proxy labels + contagens dataset)
+**Last updated:** 2026-06-09 (link vídeo demonstrativo no README e docs de entrega)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -11,9 +11,9 @@
 
 ## Current Focus
 
-**Active feature:** gs-closure (entrega FIAP — PDF + vídeo)
-**Last task completed:** Seção dashboard `#sec-sobre` (Metodologia): rótulos proxy, links GitHub/RPI/API, nav + footer
-**Next task:** B0 prazo FIAP → B3 nome → B1 vídeo (Enzo) + B2 PDF (equipe); B7 screenshots opcional
+**Active feature:** gs-closure (entrega FIAP — PDF)
+**Last task completed:** B1 vídeo (Enzo) + B5 link no README — https://www.youtube.com/watch?v=W67760WVado
+**Next task:** B0 prazo FIAP → B3 nome → B2 PDF (equipe); B7 screenshots opcional
 **Blockers:** nenhum
 **Branch status:** `chore/dataset-gitignore-yolo-stack` — commit `afbf61c` pushed (`refactor: apply cursor rules practices (non-yolo)`)
 **RPI (status formal):** [docs/RPI.md](../../docs/RPI.md) — v1.7 (2026-06-06)
@@ -129,9 +129,9 @@
 - [x] Corrigir falhas pytest SNS alerts (`/alerts/metrics`, lowercase email, detector status) (08/06)
 - [ ] B0: Verificar prazo exato na plataforma FIAP
 - [ ] B3: Definir nome do produto (D-001)
-- [ ] B1: Vídeo ≤ 5 min — Enzo (`tasks.md`)
+- [x] B1: Vídeo ≤ 5 min — Enzo — https://www.youtube.com/watch?v=W67760WVado
 - [ ] B2: PDF FIAP — usar `docs/PDF-ENTREGA-ESQUELETO.md`
-- [ ] B5–B6: Link vídeo no README + revisão final
+- [x] B5–B6: Link vídeo no README + revisão final
 - [ ] BEY-05: Merge → `main` + smoke AWS (`make smoke-aws`)
 
 ---

@@ -424,7 +424,7 @@ FIAP, tutor(a) Sabrina Otoni, coordenador Andre Godoi, APIs abertas (NASA, Open-
 | Repositório GitHub | https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s |
 | Licença | CC BY 4.0 — ver `LICENSE` na raiz do repositório |
 | API produção (health) | https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health |
-| **Vídeo demonstrativo (YouTube não listado)** | [INSERIR LINK APÓS GRAVAÇÃO — tarefa B1] |
+| **Vídeo demonstrativo (YouTube não listado)** | https://www.youtube.com/watch?v=W67760WVado |
 | Wiki AWS (time) | https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki |
 
 ### B. Referências internas
@@ -443,7 +443,7 @@ FIAP, tutor(a) Sabrina Otoni, coordenador Andre Godoi, APIs abertas (NASA, Open-
 - [ ] Nomes completos na 1ª página
 - [ ] "QUERO CONCORRER" (se pódio)
 - [ ] Código em texto, não screenshot
-- [ ] Link do vídeo no final
+- [x] Link do vídeo no final
 - [ ] Link do repositório no corpo
-- [ ] Vídeo ≤ 5 min, YouTube não listado
+- [x] Vídeo ≤ 5 min, YouTube não listado
 - [ ] `make demo` testado
