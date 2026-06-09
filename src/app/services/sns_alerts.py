@@ -259,6 +259,62 @@ def _clear_stale_subscription_arn(email: str, reason: str) -> None:
     )
 
 
+def _subscription_attributes_indicate_deleted(attrs: dict[str, Any]) -> bool:
+    """True when SNS attributes mark the subscription as deleted."""
+    arn = str(attrs.get("SubscriptionArn", "")).strip()
+    return _subscription_arn_is_deleted(arn)
+
+
+def _recover_stale_subscription(
+    sns_client: Any,
+    email: str,
+    topic_arn: str,
+    reason: str,
+) -> dict[str, Any] | None:
+    """Clear a dead ARN, re-subscribe on SNS, and persist the new pending ARN."""
+    endpoint = email.strip().lower()
+    _clear_stale_subscription_arn(endpoint, reason)
+
+    try:
+        response = sns_client.subscribe(
+            TopicArn=topic_arn,
+            Protocol="email",
+            Endpoint=endpoint,
+            ReturnSubscriptionArn=True,
+        )
+    except (ClientError, BotoCoreError) as exc:
+        logger.error("SNS re-subscribe failed for %s: %s", endpoint, exc)
+        return None
+
+    subscription_arn = _normalize_subscription_arn(response.get("SubscriptionArn", ""))
+    location = get_subscriber_location(endpoint)
+    lat = float(location["lat"]) if location else None
+    lon = float(location["lon"]) if location else None
+
+    if subscription_arn.lower().startswith("arn:"):
+        save_subscriber_location(
+            endpoint,
+            lat=lat,
+            lon=lon,
+            subscription_arn=subscription_arn,
+        )
+    elif lat is not None and lon is not None:
+        save_subscriber_location(endpoint, lat=lat, lon=lon)
+
+    logger.warning(
+        "Re-subscribed %s after stale ARN (%s). "
+        "Confirme o novo e-mail da AWS (Confirm subscription) para reativar alertas.",
+        endpoint,
+        reason,
+    )
+    return {
+        "email": endpoint,
+        "subscription_arn": subscription_arn or None,
+        "pending_confirmation": True,
+        "recovered": True,
+    }
+
+
 def _subscription_arn_is_publishable(
     sns_client: Any,
     subscription_arn: str,
@@ -287,10 +343,15 @@ def _subscription_arn_is_publishable(
         return False
 
     attrs = response.get("Attributes", {})
+    if _subscription_attributes_indicate_deleted(attrs):
+        if clear_on_stale and email:
+            _clear_stale_subscription_arn(email, "subscription marked deleted")
+        return False
     if str(attrs.get("PendingConfirmation", "true")).lower() == "true":
         return False
-    if str(attrs.get("ConfirmationWasAuthenticated", "true")).lower() == "false":
-        return False
+    # PendingConfirmation=false is sufficient; ConfirmationWasAuthenticated=false
+    # often appears on tombstoned/stale ARNs that list as Deleted but still respond
+    # to get_subscription_attributes — publish may still fail and trigger recovery.
     return True
 
 
@@ -480,6 +541,8 @@ def _publish_alert_message(
 
     sent_ids: list[str] = []
     skipped = 0
+    resubscribed: list[str] = []
+    sns_client = boto3.client("sns", region_name=settings.AWS_REGION)
     for sub in confirmed:
         email = sub["email"]
         subscription_arn = sub.get("subscription_arn")
@@ -496,16 +559,25 @@ def _publish_alert_message(
                 settings.SNS_MAX_ALERTS_PER_EMAIL_DAY,
             )
             continue
-        sns_client = boto3.client("sns", region_name=settings.AWS_REGION)
         if not _subscription_arn_is_publishable(
             sns_client,
             subscription_arn,
             email=email,
             clear_on_stale=True,
         ):
+            if get_subscriber_location(email):
+                recovery = _recover_stale_subscription(
+                    sns_client,
+                    email,
+                    topic_arn,
+                    "subscription ARN is not publishable",
+                )
+                if recovery:
+                    resubscribed.append(email)
             skipped += 1
             logger.info(
-                "SNS alert skipped for %s — subscription ARN is not publishable; re-subscribe required",
+                "SNS alert skipped for %s — subscription ARN is not publishable; "
+                "confirmation e-mail sent if re-subscribe succeeded",
                 email,
             )
             continue
@@ -520,13 +592,27 @@ def _publish_alert_message(
             if isinstance(exc, RetryError) and exc.last_attempt is not None:
                 root_exc = exc.last_attempt.exception() or exc
             if _is_stale_subscription_error(root_exc):
-                _clear_stale_subscription_arn(email, "publish rejected invalid TargetArn")
+                recovery = _recover_stale_subscription(
+                    sns_client,
+                    email,
+                    topic_arn,
+                    "publish rejected invalid TargetArn",
+                )
+                if recovery:
+                    resubscribed.append(email)
             else:
                 logger.error("SNS publish failed for %s: %s", email, exc)
             continue
         if message_id:
             record_alert_sent(email)
             sent_ids.append(message_id)
+
+    if resubscribed:
+        logger.warning(
+            "SNS re-subscribed %d stale subscriber(s); awaiting e-mail confirmation: %s",
+            len(resubscribed),
+            ", ".join(sorted(set(resubscribed))),
+        )
 
     if not sent_ids:
         if skipped:

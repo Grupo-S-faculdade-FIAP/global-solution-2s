@@ -566,6 +566,94 @@ def test_tombstone_merge_skips_stale_dynamodb_arn(sns_settings, monkeypatch, tmp
     assert record["lat"] == pytest.approx(-23.55)
 
 
+def test_subscription_arn_publishable_ignores_false_auth_when_not_pending(
+    sns_settings, monkeypatch,
+):
+    """Tombstone ARNs may show PendingConfirmation=false and ConfirmationWasAuthenticated=false."""
+    stale_arn = "arn:aws:sns:us-east-1:123456789012:rain-alerts:tombstone-sub"
+
+    class FakeSNS:
+        def get_subscription_attributes(self, **kwargs):
+            return {
+                "Attributes": {
+                    "PendingConfirmation": "false",
+                    "ConfirmationWasAuthenticated": "false",
+                    "SubscriptionArn": stale_arn,
+                }
+            }
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    assert sns_alerts._subscription_arn_is_publishable(
+        FakeSNS(),
+        stale_arn,
+        email="tombstone@example.com",
+        clear_on_stale=False,
+    )
+
+
+def test_tombstone_merge_includes_false_auth_confirmed_arn(sns_settings, monkeypatch, tmp_path):
+    from app.services import sns_subscriber_store
+
+    monkeypatch.setattr(
+        sns_subscriber_store.settings,
+        "SNS_SUBSCRIBER_STORE_PATH",
+        str(tmp_path / "sns_subscribers.json"),
+    )
+    sns_subscriber_store.reset_store_for_tests()
+
+    tombstone_arn = "arn:aws:sns:us-east-1:123456789012:rain-alerts:tombstone-sub"
+    sns_subscriber_store.save_subscriber_location(
+        "tombstone@example.com",
+        lat=-23.55,
+        lon=-46.63,
+        subscription_arn=tombstone_arn,
+    )
+
+    class FakeSNS:
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [
+                        {
+                            "Subscriptions": [
+                                {
+                                    "Protocol": "email",
+                                    "Endpoint": "tombstone@example.com",
+                                    "SubscriptionArn": "Deleted",
+                                }
+                            ]
+                        }
+                    ]
+
+            return Paginator()
+
+        def get_subscription_attributes(self, **kwargs):
+            return {
+                "Attributes": {
+                    "PendingConfirmation": "false",
+                    "ConfirmationWasAuthenticated": "false",
+                    "SubscriptionArn": tombstone_arn,
+                }
+            }
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    subs = sns_alerts._list_email_subscriptions(sns_alerts.settings.SNS_TOPIC_ARN)
+    assert len(subs) == 1
+    assert subs[0]["email"] == "tombstone@example.com"
+    assert subs[0]["confirmed"] is True
+    assert subs[0]["subscription_arn"] == tombstone_arn
+
+
 def test_publish_clears_stale_arn_on_invalid_parameter(sns_settings, monkeypatch, tmp_path):
     from app.services import sns_subscriber_store
 
@@ -583,6 +671,9 @@ def test_publish_clears_stale_arn_on_invalid_parameter(sns_settings, monkeypatch
         lon=-46.63,
         subscription_arn=stale_arn,
     )
+
+    new_arn = "arn:aws:sns:us-east-1:123456789012:rain-alerts:recovered-sub"
+    subscribe_calls: list[dict] = []
 
     class FakeSNS:
         def get_paginator(self, operation_name):
@@ -603,7 +694,13 @@ def test_publish_clears_stale_arn_on_invalid_parameter(sns_settings, monkeypatch
             return Paginator()
 
         def get_subscription_attributes(self, **kwargs):
-            return {"Attributes": {"PendingConfirmation": "false"}}
+            return {
+                "Attributes": {
+                    "PendingConfirmation": "false",
+                    "ConfirmationWasAuthenticated": "false",
+                    "SubscriptionArn": stale_arn,
+                }
+            }
 
         def publish(self, **kwargs):
             from botocore.exceptions import ClientError
@@ -618,6 +715,10 @@ def test_publish_clears_stale_arn_on_invalid_parameter(sns_settings, monkeypatch
                 "Publish",
             )
 
+        def subscribe(self, **kwargs):
+            subscribe_calls.append(kwargs)
+            return {"SubscriptionArn": new_arn}
+
     monkeypatch.setattr(
         sns_alerts.boto3,
         "client",
@@ -626,10 +727,14 @@ def test_publish_clears_stale_arn_on_invalid_parameter(sns_settings, monkeypatch
 
     result = sns_alerts.publish_simulated_alert(-23.55, -46.63, 0.85)
     assert result is None
+    assert len(subscribe_calls) == 1
+    assert subscribe_calls[0]["ReturnSubscriptionArn"] is True
+    assert subscribe_calls[0]["Endpoint"] == "invalid@example.com"
 
     record = sns_subscriber_store.get_subscriber_record("invalid@example.com")
     assert record is not None
-    assert "subscription_arn" not in record
+    assert record["subscription_arn"] == new_arn
+    assert record["lat"] == pytest.approx(-23.55)
 
 
 def test_subscribe_persists_pending_arn(sns_settings, monkeypatch, tmp_path):
