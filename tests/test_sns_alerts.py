@@ -344,6 +344,73 @@ def test_subscribe_email_deleted_only_calls_subscribe_with_return_arn(sns_settin
     assert captured["Endpoint"] == "deleted@example.com"
 
 
+def test_subscribe_email_warns_on_deleted_tombstone(sns_settings, monkeypatch):
+    """Deleted-only tombstone must return Portuguese warning with alias hint."""
+    captured: dict = {}
+    pending_arn = "arn:aws:sns:us-east-1:123456789012:rain-alerts:pending-sub"
+
+    class FakeSNS:
+        def subscribe(self, **kwargs):
+            captured.update(kwargs)
+            return {"SubscriptionArn": pending_arn}
+
+        def get_subscription_attributes(self, **kwargs):
+            return {"Attributes": {"PendingConfirmation": "true"}}
+
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [
+                        {
+                            "Subscriptions": [
+                                {
+                                    "Protocol": "email",
+                                    "Endpoint": "castrocaroline11@gmail.com",
+                                    "SubscriptionArn": "Deleted",
+                                }
+                            ]
+                        }
+                    ]
+
+            return Paginator()
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    result = sns_alerts.subscribe_email("castrocaroline11@gmail.com")
+    assert result["success"] is True
+    assert "warning" in result
+    assert "tombstone" in result["warning"].lower()
+    assert "castrocaroline11+gs2@gmail.com" in result["warning"]
+    assert "48" in result["warning"]
+
+
+def test_subscribe_email_no_warning_without_tombstone(sns_settings, monkeypatch):
+    class FakeSNS:
+        def subscribe(self, **kwargs):
+            return {"SubscriptionArn": "pending confirmation"}
+
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [{"Subscriptions": []}]
+
+            return Paginator()
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    result = sns_alerts.subscribe_email("fresh@example.com")
+    assert result["success"] is True
+    assert "warning" not in result
+
+
 def test_subscribe_email_already_subscribed(sns_settings, monkeypatch):
     class FakeSNS:
         def get_paginator(self, operation_name):

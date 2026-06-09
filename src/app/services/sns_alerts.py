@@ -481,6 +481,47 @@ def _email_is_subscribed(topic_arn: str, email: str) -> bool:
     )
 
 
+def _endpoint_has_deleted_tombstone_only(topic_arn: str, email: str) -> bool:
+    """True when ListSubscriptionsByTopic only shows Deleted for this endpoint."""
+    endpoint = email.strip().lower()
+    has_deleted = False
+    has_active = False
+    try:
+        sns = boto3.client("sns", region_name=settings.AWS_REGION)
+        paginator = sns.get_paginator("list_subscriptions_by_topic")
+        for page in paginator.paginate(TopicArn=topic_arn):
+            for sub in page.get("Subscriptions", []):
+                if sub.get("Protocol") != "email":
+                    continue
+                sub_endpoint = (sub.get("Endpoint") or "").strip().lower()
+                if sub_endpoint != endpoint:
+                    continue
+                subscription_arn = _normalize_subscription_arn(sub.get("SubscriptionArn", ""))
+                if _subscription_arn_is_deleted(subscription_arn):
+                    has_deleted = True
+                elif _subscription_arn_is_pending(subscription_arn) or _subscription_arn_is_confirmed(
+                    subscription_arn
+                ):
+                    has_active = True
+    except (ClientError, BotoCoreError, AttributeError) as exc:
+        logger.warning("Failed to check SNS tombstone for %s: %s", endpoint, exc)
+        return False
+    return has_deleted and not has_active
+
+
+def _tombstone_warning_message(email: str) -> str:
+    """Mensagem em português explicando tombstone SNS e workaround com alias Gmail."""
+    local, _, domain = email.partition("@")
+    alias_hint = f"{local}+gs2@{domain}" if local and domain else "seuemail+gs2@gmail.com"
+    return (
+        "A AWS mantém um registro 'Deleted' (tombstone) para este e-mail. "
+        "Mesmo após confirmar um novo link, o envio por TargetArn pode falhar por até ~48 h. "
+        f"Solução imediata: inscreva-se com um alias Gmail (ex.: {alias_hint}) — "
+        "a mensagem chega na mesma caixa de entrada. "
+        "Alternativa: aguarde ~48 h para a AWS remover o tombstone."
+    )
+
+
 def _subscriber_eligible_for_geo_alert(
     email: str,
     storm_lat: float | None,
@@ -830,6 +871,10 @@ def subscribe_email(
             "subscriber_limit_reached": True,
         }
 
+    tombstone_warning: str | None = None
+    if _endpoint_has_deleted_tombstone_only(topic_arn, endpoint):
+        tombstone_warning = _tombstone_warning_message(endpoint)
+
     try:
         sns = boto3.client("sns", region_name=settings.AWS_REGION)
         response = sns.subscribe(
@@ -864,7 +909,7 @@ def subscribe_email(
     pending = _subscription_pending_confirmation(sns, subscription_arn)
     if not pending and not _email_is_subscribed(topic_arn, endpoint):
         pending = True
-    return {
+    result: dict[str, Any] = {
         "success": True,
         "configured": True,
         "email": endpoint,
@@ -876,6 +921,9 @@ def subscribe_email(
             "Abra o link \"Confirm subscription\" para ativar os alertas."
         ),
     }
+    if tombstone_warning:
+        result["warning"] = tombstone_warning
+    return result
 
 
 def publish_simulated_alert(lat: float, lon: float, confidence: float) -> str | None:

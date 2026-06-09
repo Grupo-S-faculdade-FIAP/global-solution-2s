@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-09 (SNS geo-targeted alerts)
+**Last updated:** 2026-06-09 (SNS tombstone + alias +gs2)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -12,7 +12,7 @@
 ## Current Focus
 
 **Active feature:** gs-closure (entrega FIAP — PDF)
-**Last task completed:** B1 vídeo (Enzo) + B5 link no README — https://www.youtube.com/watch?v=W67760WVado
+**Last task completed:** fix(sns) tombstone warning + inscrição `castrocaroline11+gs2@gmail.com` (aguarda confirmação e-mail AWS)
 **Next task:** B0 prazo FIAP → B3 nome → B2 PDF (equipe); B7 screenshots opcional
 **Blockers:** nenhum
 **Branch status:** `chore/dataset-gitignore-yolo-stack` — commit `afbf61c` pushed (`refactor: apply cursor rules practices (non-yolo)`)
@@ -56,6 +56,8 @@
 | 2026-06-08 | D-030 | Rótulos proxy documentados (ML + YOLO) | Alvos circulares — R²/mAP medem consistência interna, não validação externa; transparência no PDF §2.4.5 | PDF B2, RPI §8.2 |
 | 2026-06-09 | D-031 | SNS rate limit + cooldown regional em DynamoDB (`sns_rate_limits`) | JSON local não persiste em Lambda; PK `EMAIL#…#DAY#…` e `REGION#…`; cooldown 60 min por região NASA | SNS / Lambda |
 | 2026-06-09 | D-032 | SNS alertas geo-targeted (raio 200 km) | Inscrição salva lat/lon do dashboard; publish filtra por `SNS_ALERT_RADIUS_KM`; legados sem coords não recebem (re-inscrição) | SNS / dashboard |
+| 2026-06-09 | D-033 | SNS publishable: `PendingConfirmation=false` basta; recovery auto em `InvalidParameter` | Tombstone `Deleted` + ARN stale retorna false/false em attrs mas publish falha; re-subscribe automático persiste novo ARN | SNS / Lambda |
+| 2026-06-09 | D-034 | Tombstone SNS: alias Gmail (+gs2) contorna endpoint bloqueado ~48 h | `castrocaroline11@gmail.com` tombstone; `+gs2` entrega na mesma inbox; warning PT em `subscribe_email` | SNS / Caroline |
 
 ---
 
