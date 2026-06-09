@@ -1,4 +1,5 @@
 import { sns } from "../core/api/endpoints.js";
+import { state } from "../core/state.js";
 
 function setBadge(el, configured) {
   if (!el) return;
@@ -32,7 +33,9 @@ export async function loadSnsStatus() {
       hint.hidden = false;
       const maxSubs = data.max_subscribers ?? 20;
       const maxAlerts = data.max_alerts_per_email_day ?? 3;
+      const radiusKm = data.alert_radius_km ?? 200;
       const baseHint =
+        `Alertas apenas para tempestades dentro de ~${radiusKm} km da localização definida no mapa. ` +
         `Limite: até ${maxSubs} e-mails cadastrados e ${maxAlerts} alertas por e-mail por dia. ` +
         "A AWS envia um e-mail de confirmação após a inscrição. Só recebe alertas quem clicar em " +
         "Confirm subscription no e-mail da Amazon SNS.";
@@ -66,7 +69,11 @@ async function subscribeEmail() {
   setFeedback("Inscrevendo…");
 
   try {
-    const r = await sns.subscribe({ email });
+    const r = await sns.subscribe({
+      email,
+      lat: state.userLocation.lat,
+      lon: state.userLocation.lon,
+    });
     const data = await r.json();
     if (data.success) {
       setFeedback(data.message || "Inscrição enviada — confirme o e-mail da AWS.");

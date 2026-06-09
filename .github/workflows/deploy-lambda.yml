@@ -134,7 +134,7 @@ jobs:
           aws lambda update-function-configuration \
             --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
             --region "${{ env.AWS_REGION }}" \
-            --environment "Variables={ENVIRONMENT=production,MOUNT_DASHBOARD=false,DEMO_MODE=false,DYNAMODB_USE_MOCK=false,DYNAMODB_TABLE_ALERTS=alerts,DYNAMODB_TABLE_SNS_RATE_LIMIT=sns_rate_limits,S3_BUCKET_IMAGES=satellite-images-gs2,IOT_USE_MOCK=true,SNS_TOPIC_ARN=${{ env.SNS_TOPIC_ARN }},SNS_ENABLED=true,SNS_ALERT_SUBJECT=Rain Alert — Storm Detected,SNS_MAX_ALERTS_PER_EMAIL_DAY=3,SNS_REGION_COOLDOWN_MINUTES=60,YOLO_MODEL_S3_KEY=models/best.pt,YOLO_MODEL_PATH=s3://satellite-images-gs2/models/best.pt,YOLO_CONFIDENCE_THRESHOLD=0.55}"
+            --environment "Variables={ENVIRONMENT=production,MOUNT_DASHBOARD=false,DEMO_MODE=false,DYNAMODB_USE_MOCK=false,DYNAMODB_TABLE_ALERTS=alerts,DYNAMODB_TABLE_SNS_RATE_LIMIT=sns_rate_limits,S3_BUCKET_IMAGES=satellite-images-gs2,IOT_USE_MOCK=true,SNS_TOPIC_ARN=${{ env.SNS_TOPIC_ARN }},SNS_ENABLED=true,SNS_ALERT_SUBJECT=Rain Alert — Storm Detected,SNS_MAX_ALERTS_PER_EMAIL_DAY=3,SNS_REGION_COOLDOWN_MINUTES=60,SNS_ALERT_RADIUS_KM=200,YOLO_MODEL_S3_KEY=models/best.pt,YOLO_MODEL_PATH=s3://satellite-images-gs2/models/best.pt,YOLO_CONFIDENCE_THRESHOLD=0.55}"
 
       - name: Wait for Lambda to become active
         run: |

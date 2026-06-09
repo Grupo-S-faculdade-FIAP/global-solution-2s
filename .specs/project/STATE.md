@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-09 (SNS rate limit DynamoDB + cooldown regional)
+**Last updated:** 2026-06-09 (SNS geo-targeted alerts)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -55,6 +55,7 @@
 | 2026-06-08 | D-029 | Rules/skills Cursor versionadas em `.cursor/` com índices README | 4 rules + 3 skills; carve-out YOLO G1 em `data-ml-python.mdc`; refs em CLAUDE.md e copilot-instructions | Agentes / docs |
 | 2026-06-08 | D-030 | Rótulos proxy documentados (ML + YOLO) | Alvos circulares — R²/mAP medem consistência interna, não validação externa; transparência no PDF §2.4.5 | PDF B2, RPI §8.2 |
 | 2026-06-09 | D-031 | SNS rate limit + cooldown regional em DynamoDB (`sns_rate_limits`) | JSON local não persiste em Lambda; PK `EMAIL#…#DAY#…` e `REGION#…`; cooldown 60 min por região NASA | SNS / Lambda |
+| 2026-06-09 | D-032 | SNS alertas geo-targeted (raio 200 km) | Inscrição salva lat/lon do dashboard; publish filtra por `SNS_ALERT_RADIUS_KM`; legados sem coords não recebem (re-inscrição) | SNS / dashboard |
 
 ---
 

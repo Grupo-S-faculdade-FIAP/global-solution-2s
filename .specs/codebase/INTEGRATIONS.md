@@ -22,7 +22,7 @@ Header de resposta: **`X-Data-Source`** — `live` (DynamoDB/backend real), `dem
 | alerts | GET | `/api/alerts/heatmap` | `days` (opc.) | heatmap 7×24 |
 | alerts | POST | `/api/alerts/simulate-detection` | `{ confidence, lat, lon }` | simular alerta YOLO (publica no SNS se ativo) |
 | sns | GET | `/api/alerts/sns/status` | — | status SNS: configurado / não configurado |
-| sns | POST | `/api/alerts/subscribe` | `{ email }` | inscrição de e-mail no tópico SNS |
+| sns | POST | `/api/alerts/subscribe` | `{ email, lat?, lon? }` | inscrição SNS com localização do mapa (~200 km) |
 | weather | GET | `/api/weather/current` | `lat`, `lon` | clima atual |
 | risk | GET | `/api/risk/forecast` | `lat`, `lon` | ensemble clima + CV geo + ML (breakdown em `detalhes`) |
 | storms | GET | `/api/storms/detector-status` | — | status YOLO |
@@ -57,6 +57,7 @@ Implementação em [`src/app/services/sns_alerts.py`](../../src/app/services/sns
 | Alerta automático | S3 upload `.jpg` → Lambda `gs2-api` → `DetectStormUseCase` → SNS publish |
 | Rate limit | DynamoDB `sns_rate_limits` (ou JSON local em dev) — máx. `SNS_MAX_ALERTS_PER_EMAIL_DAY` por e-mail/dia (UTC) |
 | Cooldown regional | `sns_region_cooldown.py` — `SNS_REGION_COOLDOWN_MINUTES` entre alertas da mesma região NASA (prefixo da chave S3) |
+| Geo-filter | `sns_geo.py` + `sns_subscriber_store.py` — alertas só para inscritos dentro de `SNS_ALERT_RADIUS_KM` (default 200) da tempestade ou localização salva na inscrição |
 
 Seção do dashboard: `src/dashboard/static/js/sections/sns.js` — status, form de inscrição, botão simular.
 

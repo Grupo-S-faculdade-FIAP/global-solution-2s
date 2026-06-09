@@ -579,17 +579,25 @@ def sns_subscribe(body: dict) -> tuple[Any, str, int]:
     if not email:
         return {"success": False, "error": "E-mail obrigatório"}, "live", 400
 
+    lat = body.get("lat")
+    lon = body.get("lon")
+    json_body: dict[str, Any] = {"email": email}
+    if lat is not None:
+        json_body["lat"] = lat
+    if lon is not None:
+        json_body["lon"] = lon
+
     if use_inprocess_backend():
         try:
             from app.services.sns_alerts import subscribe_email
 
-            result = subscribe_email(email)
+            result = subscribe_email(email, lat=lat, lon=lon)
             code = 200 if result.get("success") else 400
             return result, "live", code
         except Exception as exc:
             return {"success": False, "error": str(exc)}, "live", 500
 
-    status, payload = backend_post("/alerts/subscribe", json_body={"email": email})
+    status, payload = backend_post("/alerts/subscribe", json_body=json_body)
     if isinstance(payload, dict):
         return payload, "live", status if status != 200 else (200 if payload.get("success") else 400)
     return {"success": False, "error": "Falha ao inscrever e-mail"}, "unavailable", 503

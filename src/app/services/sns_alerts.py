@@ -24,12 +24,14 @@ except ImportError:
     EmailNotValidError = ValueError
 
 from app.core.config import settings
+from app.services.sns_geo import is_within_radius, storm_location_from_s3_key
 from app.services.sns_rate_limit import can_send_alert, record_alert_sent
 from app.services.sns_region_cooldown import (
     can_send_region_alert,
     extract_region_from_s3_key,
     record_region_alert,
 )
+from app.services.sns_subscriber_store import get_subscriber_location, save_subscriber_location
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +86,8 @@ def sns_status() -> dict[str, Any]:
         "max_subscribers": settings.SNS_MAX_SUBSCRIBERS,
         "max_alerts_per_email_day": settings.SNS_MAX_ALERTS_PER_EMAIL_DAY,
         "region_cooldown_minutes": settings.SNS_REGION_COOLDOWN_MINUTES,
+        "alert_radius_km": settings.SNS_ALERT_RADIUS_KM,
+        "geo_filtering_enabled": True,
     }
     if sns_is_configured():
         status["subscriber_count"] = _count_email_subscriptions(topic)
@@ -246,8 +250,46 @@ def _email_is_subscribed(topic_arn: str, email: str) -> bool:
     return any(sub["email"] == endpoint for sub in _list_email_subscriptions(topic_arn))
 
 
-def _publish_alert_message(subject: str, message: str) -> str | None:
-    """Publica alerta respeitando limite diário por e-mail.
+def _subscriber_eligible_for_geo_alert(
+    email: str,
+    storm_lat: float | None,
+    storm_lon: float | None,
+) -> bool:
+    """True se o inscrito deve receber alerta (geo + coords salvas)."""
+    if storm_lat is None or storm_lon is None:
+        return True
+
+    location = get_subscriber_location(email)
+    if not location:
+        logger.info(
+            "SNS alert skipped for %s — sem localização salva; reinscreva com o mapa do dashboard",
+            email,
+        )
+        return False
+
+    sub_lat = float(location["lat"])
+    sub_lon = float(location["lon"])
+    if not is_within_radius(sub_lat, sub_lon, storm_lat, storm_lon):
+        logger.info(
+            "SNS alert skipped for %s — fora do raio de %.0f km (sub %.4f,%.4f storm %.4f,%.4f)",
+            email,
+            settings.SNS_ALERT_RADIUS_KM,
+            sub_lat,
+            sub_lon,
+            storm_lat,
+            storm_lon,
+        )
+        return False
+    return True
+
+
+def _publish_alert_message(
+    subject: str,
+    message: str,
+    storm_lat: float | None = None,
+    storm_lon: float | None = None,
+) -> str | None:
+    """Publica alerta respeitando limite diário por e-mail e filtro geográfico.
 
     Com inscritos confirmados, envia individualmente por subscription ARN.
     Sem inscritos confirmados, publica no tópico (compatível com testes e tópico vazio).
@@ -272,6 +314,9 @@ def _publish_alert_message(subject: str, message: str) -> str | None:
         email = sub["email"]
         subscription_arn = sub.get("subscription_arn")
         if not subscription_arn:
+            continue
+        if not _subscriber_eligible_for_geo_alert(email, storm_lat, storm_lon):
+            skipped += 1
             continue
         if not can_send_alert(email):
             skipped += 1
@@ -364,9 +409,16 @@ def publish_storm_alert(
         return None
 
     subject, message = _build_storm_message(bucket, key, detections)
+    storm_coords = storm_location_from_s3_key(key)
+    storm_lat, storm_lon = storm_coords if storm_coords else (None, None)
 
     try:
-        message_id = _publish_alert_message(subject, message)
+        message_id = _publish_alert_message(
+            subject,
+            message,
+            storm_lat=storm_lat,
+            storm_lon=storm_lon,
+        )
         if message_id:
             if region:
                 record_region_alert(region)
@@ -424,7 +476,23 @@ def _normalize_email(email: str) -> str:
         raise ValueError(f"E-mail inválido: {str(exc)}")
 
 
-def subscribe_email(email: str) -> dict[str, Any]:
+def _validate_subscriber_coords(lat: float | None, lon: float | None) -> tuple[float, float] | None:
+    if lat is None and lon is None:
+        return None
+    if lat is None or lon is None:
+        raise ValueError("Informe latitude e longitude juntas para alertas por região")
+    if not (-35.0 <= lat <= 5.0):
+        raise ValueError("Latitude inválida para o Brasil (use entre -35 e 5)")
+    if not (-75.0 <= lon <= -30.0):
+        raise ValueError("Longitude inválida para o Brasil (use entre -75 e -30)")
+    return float(lat), float(lon)
+
+
+def subscribe_email(
+    email: str,
+    lat: float | None = None,
+    lon: float | None = None,
+) -> dict[str, Any]:
     """Subscribe email to SNS topic for storm alerts.
 
     Subscribes an email address to the configured SNS topic using the email protocol.
@@ -453,6 +521,7 @@ def subscribe_email(email: str) -> dict[str, Any]:
 
     try:
         endpoint = _normalize_email(email)
+        coords = _validate_subscriber_coords(lat, lon)
     except ValueError as exc:
         return {"success": False, "configured": True, "error": str(exc)}
 
@@ -460,11 +529,14 @@ def subscribe_email(email: str) -> dict[str, Any]:
     max_subscribers = max(1, int(settings.SNS_MAX_SUBSCRIBERS))
 
     if _email_is_subscribed(topic_arn, endpoint):
+        if coords:
+            save_subscriber_location(endpoint, coords[0], coords[1])
         return {
             "success": True,
             "configured": True,
             "email": endpoint,
             "already_subscribed": True,
+            "location_saved": coords is not None,
             "message": "Este e-mail já está inscrito (ou aguardando confirmação da AWS).",
         }
 
@@ -496,12 +568,15 @@ def subscribe_email(email: str) -> dict[str, Any]:
 
     subscription_arn = response.get("SubscriptionArn", "")
     pending = subscription_arn == "pending confirmation"
+    if coords:
+        save_subscriber_location(endpoint, coords[0], coords[1])
     return {
         "success": True,
         "configured": True,
         "email": endpoint,
         "subscription_arn": subscription_arn or None,
         "pending_confirmation": pending,
+        "location_saved": coords is not None,
         "message": (
             "Enviamos um e-mail de confirmação da AWS. "
             "Abra o link \"Confirm subscription\" para ativar os alertas."
@@ -534,7 +609,12 @@ def publish_simulated_alert(lat: float, lon: float, confidence: float) -> str | 
         f"Project: {settings.PROJECT_NAME}"
     ).rstrip()
     try:
-        message_id = _publish_alert_message(subject, message)
+        message_id = _publish_alert_message(
+            subject,
+            message,
+            storm_lat=lat,
+            storm_lon=lon,
+        )
         if message_id:
             logger.info(
                 "SNS simulated alert published: MessageId=%s lat=%.4f lon=%.4f",

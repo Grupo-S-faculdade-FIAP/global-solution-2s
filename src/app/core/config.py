@@ -41,8 +41,10 @@ class Settings(BaseSettings):
     SNS_MAX_SUBSCRIBERS: int = 20
     SNS_MAX_ALERTS_PER_EMAIL_DAY: int = 3
     SNS_REGION_COOLDOWN_MINUTES: int = 60
+    SNS_ALERT_RADIUS_KM: float = 200.0
     SNS_RATE_LIMIT_STORE_PATH: str = ""
     SNS_REGION_COOLDOWN_STORE_PATH: str = ""
+    SNS_SUBSCRIBER_STORE_PATH: str = ""
 
     # ─── DynamoDB ─────────────────────────────────────────────────────────
     DYNAMODB_WEATHER_TABLE: str = "weather_metrics"

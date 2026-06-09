@@ -256,6 +256,8 @@ class SimulateAlertRequest(BaseModel):
 class SubscribeAlertRequest(BaseModel):
     """Inscrição de e-mail no tópico SNS de alertas."""
     email: str = Field(..., min_length=3, max_length=254)
+    lat: float | None = Field(None, ge=-35.0, le=5.0)
+    lon: float | None = Field(None, ge=-75.0, le=-30.0)
 
 
 @router.get(
@@ -273,7 +275,7 @@ def get_sns_alert_status() -> dict:
     summary="Subscribe email to storm alert SNS topic",
 )
 def post_subscribe_alert(body: SubscribeAlertRequest = Body(...)) -> dict:
-    return subscribe_email(body.email)
+    return subscribe_email(body.email, lat=body.lat, lon=body.lon)
 
 
 @router.post(
