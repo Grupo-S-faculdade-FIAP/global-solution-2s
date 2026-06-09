@@ -55,7 +55,8 @@ Implementação em [`src/app/services/sns_alerts.py`](../../src/app/services/sns
 | Inscrição | `POST /api/alerts/subscribe` → `sns.subscribe(Protocol=email)` → AWS envia link de confirmação |
 | Alerta manual | `POST /api/alerts/simulate-detection` → grava no store + publica no SNS se ativo e inscrito |
 | Alerta automático | S3 upload `.jpg` → Lambda `gs2-api` → `DetectStormUseCase` → SNS publish |
-| Rate limit | `sns_rate_limit.py` — máx. `SNS_MAX_ALERTS_PER_EMAIL_DAY` por destinatário/dia |
+| Rate limit | DynamoDB `sns_rate_limits` (ou JSON local em dev) — máx. `SNS_MAX_ALERTS_PER_EMAIL_DAY` por e-mail/dia (UTC) |
+| Cooldown regional | `sns_region_cooldown.py` — `SNS_REGION_COOLDOWN_MINUTES` entre alertas da mesma região NASA (prefixo da chave S3) |
 
 Seção do dashboard: `src/dashboard/static/js/sections/sns.js` — status, form de inscrição, botão simular.
 

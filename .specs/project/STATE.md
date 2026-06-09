@@ -1,7 +1,7 @@
 # State — Persistent Memory
 
 **Project:** GS2 — global-solution-2s
-**Last updated:** 2026-06-09 (link vídeo demonstrativo no README e docs de entrega)
+**Last updated:** 2026-06-09 (SNS rate limit DynamoDB + cooldown regional)
 
 > Este arquivo é a memória persistente do agente entre sessões.
 > Sempre carregar no início de cada sessão.
@@ -54,6 +54,7 @@
 | 2026-06-08 | D-028 | Pesos canônicos: `storm70-l-tiled` (YOLOv5l) em `src/models/weights/best.pt` | mAP@0.5=56,5% (TTA 57,1%); treinos l6/p2 cancelados (Option A) | CV / deploy |
 | 2026-06-08 | D-029 | Rules/skills Cursor versionadas em `.cursor/` com índices README | 4 rules + 3 skills; carve-out YOLO G1 em `data-ml-python.mdc`; refs em CLAUDE.md e copilot-instructions | Agentes / docs |
 | 2026-06-08 | D-030 | Rótulos proxy documentados (ML + YOLO) | Alvos circulares — R²/mAP medem consistência interna, não validação externa; transparência no PDF §2.4.5 | PDF B2, RPI §8.2 |
+| 2026-06-09 | D-031 | SNS rate limit + cooldown regional em DynamoDB (`sns_rate_limits`) | JSON local não persiste em Lambda; PK `EMAIL#…#DAY#…` e `REGION#…`; cooldown 60 min por região NASA | SNS / Lambda |
 
 ---
 

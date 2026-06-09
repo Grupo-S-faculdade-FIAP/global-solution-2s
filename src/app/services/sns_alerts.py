@@ -25,6 +25,11 @@ except ImportError:
 
 from app.core.config import settings
 from app.services.sns_rate_limit import can_send_alert, record_alert_sent
+from app.services.sns_region_cooldown import (
+    can_send_region_alert,
+    extract_region_from_s3_key,
+    record_region_alert,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +83,7 @@ def sns_status() -> dict[str, Any]:
         "region": settings.AWS_REGION,
         "max_subscribers": settings.SNS_MAX_SUBSCRIBERS,
         "max_alerts_per_email_day": settings.SNS_MAX_ALERTS_PER_EMAIL_DAY,
+        "region_cooldown_minutes": settings.SNS_REGION_COOLDOWN_MINUTES,
     }
     if sns_is_configured():
         status["subscriber_count"] = _count_email_subscriptions(topic)
@@ -252,6 +258,9 @@ def _publish_alert_message(subject: str, message: str) -> str | None:
     ]
 
     if not confirmed:
+        logger.warning(
+            "SNS topic publish without confirmed subscribers — per-email rate limit not enforced"
+        )
         message_id = _publish_to_sns_with_retry(topic_arn, subject, message)
         if message_id:
             _put_cloudwatch_metric("StormAlertsSent")
@@ -344,11 +353,23 @@ def publish_storm_alert(
         _put_cloudwatch_metric("AlertsSkipped")
         return None
 
+    region = extract_region_from_s3_key(key)
+    if region and not can_send_region_alert(region):
+        logger.info(
+            "SNS alert skipped for region %s — cooldown of %d minutes active",
+            region,
+            settings.SNS_REGION_COOLDOWN_MINUTES,
+        )
+        _put_cloudwatch_metric("AlertsSkipped")
+        return None
+
     subject, message = _build_storm_message(bucket, key, detections)
 
     try:
         message_id = _publish_alert_message(subject, message)
         if message_id:
+            if region:
+                record_region_alert(region)
             logger.info(
                 "SNS alert published: MessageId=%s s3://%s/%s",
                 message_id,

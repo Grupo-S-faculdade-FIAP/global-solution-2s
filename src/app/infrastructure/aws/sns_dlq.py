@@ -11,6 +11,7 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
 from app.core.config import settings
+from app.services.sns_alerts import _publish_alert_message
 
 logger = logging.getLogger(__name__)
 
@@ -245,9 +246,8 @@ class SNSDLQManager:
             return False, None
 
         body = message["Body"]
-        topic_arn = settings.SNS_TOPIC_ARN
 
-        if not topic_arn:
+        if not settings.SNS_TOPIC_ARN:
             logger.error("SNS_TOPIC_ARN not configured")
             return False, None
 
@@ -255,13 +255,12 @@ class SNSDLQManager:
             subject = body.get("Subject", "Reprocessed Storm Alert")
             message_text = body.get("Message", "")
 
-            response = self.sns_client.publish(
-                TopicArn=topic_arn,
-                Subject=subject,
-                Message=message_text,
-            )
+            message_id = _publish_alert_message(subject, message_text)
+            if not message_id:
+                logger.warning("DLQ reprocess skipped — rate limit or no eligible subscribers")
+                self._put_cloudwatch_metric("DLQReprocessingSkipped")
+                return False, None
 
-            message_id = response.get("MessageId")
             logger.info(f"Reprocessed message to SNS: {message_id}")
 
             # Delete from DLQ only after successful reprocessing

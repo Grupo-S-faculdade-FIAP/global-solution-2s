@@ -40,7 +40,9 @@ class Settings(BaseSettings):
     SNS_ALERT_SUBJECT: str = "Rain Alert — Storm Detected"
     SNS_MAX_SUBSCRIBERS: int = 20
     SNS_MAX_ALERTS_PER_EMAIL_DAY: int = 3
+    SNS_REGION_COOLDOWN_MINUTES: int = 60
     SNS_RATE_LIMIT_STORE_PATH: str = ""
+    SNS_REGION_COOLDOWN_STORE_PATH: str = ""
 
     # ─── DynamoDB ─────────────────────────────────────────────────────────
     DYNAMODB_WEATHER_TABLE: str = "weather_metrics"
@@ -85,6 +87,7 @@ class Settings(BaseSettings):
 
     # ─── DynamoDB — Alertas (CV pipeline) ─────────────────────────────────
     DYNAMODB_TABLE_ALERTS: str = "alerts"
+    DYNAMODB_TABLE_SNS_RATE_LIMIT: str = "sns_rate_limits"
     # Apenas CI/testes locais sem AWS (não expor em produção/UI).
     DYNAMODB_USE_MOCK: bool = False
     DYNAMODB_MOCK_STORE_PATH: str = ""

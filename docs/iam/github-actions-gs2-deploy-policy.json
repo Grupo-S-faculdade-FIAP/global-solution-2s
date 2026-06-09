@@ -47,6 +47,17 @@
         "arn:aws:s3:::satellite-images-gs2/nasa-satellite/*",
         "arn:aws:s3:::satellite-images-gs2/screenshots/*"
       ]
+    },
+    {
+      "Sid": "DynamoDBSnsRateLimitsTable",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:DescribeTable",
+        "dynamodb:CreateTable",
+        "dynamodb:DescribeTimeToLive",
+        "dynamodb:UpdateTimeToLive"
+      ],
+      "Resource": "arn:aws:dynamodb:us-east-1:544785076353:table/sns_rate_limits"
     }
   ]
 }

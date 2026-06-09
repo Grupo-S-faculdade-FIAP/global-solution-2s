@@ -154,6 +154,25 @@ Sem `sns:Subscribe`, o dashboard retorna erro ao inscrever e-mail. Sem `sns:Publ
 
 ---
 
+## Permissões IAM — DynamoDB `sns_rate_limits`
+
+Limite diário por e-mail (`SNS_MAX_ALERTS_PER_EMAIL_DAY`) e cooldown regional (`SNS_REGION_COOLDOWN_MINUTES`) persistem na tabela **`sns_rate_limits`** (PK `pk`, TTL em `ttl`).
+
+Policy de referência: [`docs/iam/lambda-execution-dynamodb-sns-rate-limits-policy.json`](iam/lambda-execution-dynamodb-sns-rate-limits-policy.json)
+
+```powershell
+aws iam put-role-policy `
+  --role-name gs2-lambda-role `
+  --policy-name gs2-dynamodb-sns-rate-limits `
+  --policy-document file://docs/iam/lambda-execution-dynamodb-sns-rate-limits-policy.json
+```
+
+O workflow `.github/workflows/deploy-lambda.yml` cria a tabela automaticamente (se ainda não existir) e habilita TTL. A role do GitHub Actions precisa de `dynamodb:CreateTable` — ver [`docs/iam/github-actions-gs2-deploy-policy.json`](iam/github-actions-gs2-deploy-policy.json).
+
+Sem `dynamodb:GetItem`/`UpdateItem` na Lambda, o limite por pessoa e o cooldown regional **não funcionam** em produção (contadores falham silenciosamente).
+
+---
+
 ## Atualizar só variáveis de ambiente (sem rebuild)
 
 Use quando mudou configuração, mas **não** mudou código em `src/app/`:
@@ -162,7 +181,7 @@ Use quando mudou configuração, mas **não** mudou código em `src/app/`:
 aws lambda update-function-configuration `
   --function-name gs2-api `
   --region us-east-1 `
-  --environment "Variables={ENVIRONMENT=production,S3_BUCKET_IMAGES=satellite-images-gs2,DYNAMODB_TABLE_ALERTS=alerts,DYNAMODB_USE_MOCK=false,SNS_TOPIC_ARN=arn:aws:sns:us-east-1:544785076353:rain-alerts,SNS_ENABLED=true,SNS_ALERT_SUBJECT=Rain Alert — Storm Detected}"
+  --environment "Variables={ENVIRONMENT=production,S3_BUCKET_IMAGES=satellite-images-gs2,DYNAMODB_TABLE_ALERTS=alerts,DYNAMODB_TABLE_SNS_RATE_LIMIT=sns_rate_limits,DYNAMODB_USE_MOCK=false,SNS_TOPIC_ARN=arn:aws:sns:us-east-1:544785076353:rain-alerts,SNS_ENABLED=true,SNS_ALERT_SUBJECT=Rain Alert — Storm Detected,SNS_MAX_ALERTS_PER_EMAIL_DAY=3,SNS_REGION_COOLDOWN_MINUTES=60}"
 ```
 
 ---

@@ -321,3 +321,85 @@ def test_publish_respects_per_email_daily_limit(sns_settings, monkeypatch, tmp_p
     assert len(published_targets) == 3
     assert sns_alerts.publish_storm_alert("bucket", "img.jpg", detections) is None
     assert len(published_targets) == 3
+
+
+def test_extract_region_from_s3_key():
+    from app.services.sns_region_cooldown import extract_region_from_s3_key
+
+    assert extract_region_from_s3_key("screenshots/brasil_sudeste_20260609_1530.jpg") == "brasil_sudeste"
+    assert extract_region_from_s3_key("nasa_brasil_20260604_1534.png") == "nasa_brasil"
+    assert extract_region_from_s3_key("screenshots/a.jpg") is None
+
+
+def test_region_cooldown_blocks_second_alert(sns_settings, monkeypatch, tmp_path):
+    from app.services import sns_region_cooldown
+
+    store_file = tmp_path / "sns_region_cooldown.json"
+    monkeypatch.setattr(
+        sns_region_cooldown.settings,
+        "SNS_REGION_COOLDOWN_STORE_PATH",
+        str(store_file),
+    )
+    monkeypatch.setattr(sns_region_cooldown.settings, "SNS_REGION_COOLDOWN_MINUTES", 60)
+
+    metrics: list[str] = []
+    monkeypatch.setattr(
+        sns_alerts,
+        "_put_cloudwatch_metric",
+        lambda name, *args, **kwargs: metrics.append(name),
+    )
+
+    class FakeSNS:
+        def publish(self, **kwargs):
+            return {"MessageId": "msg-cooldown-1"}
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    detections = [{"class": "storm", "confidence": 0.9}]
+    key = "screenshots/brasil_sudeste_20260609_1530.jpg"
+
+    assert sns_alerts.publish_storm_alert("bucket", key, detections) == "msg-cooldown-1"
+    assert sns_alerts.publish_storm_alert("bucket", key, detections) is None
+    assert metrics.count("AlertsSkipped") == 1
+
+
+def test_dynamodb_rate_limit_increment(sns_settings, monkeypatch):
+    from app.services import sns_rate_limit
+
+    monkeypatch.setattr(sns_rate_limit, "use_mock_store", lambda: False)
+
+    stored: dict = {}
+
+    class FakeTable:
+        def get_item(self, Key):
+            item = stored.get(Key["pk"])
+            return {"Item": item} if item else {}
+
+        def update_item(self, Key, UpdateExpression, ExpressionAttributeNames, ExpressionAttributeValues, ReturnValues):
+            pk = Key["pk"]
+            item = stored.setdefault(pk, {"pk": pk, "alert_count": 0})
+            item["alert_count"] = int(item.get("alert_count", 0)) + int(
+                ExpressionAttributeValues[":inc"]
+            )
+            item["ttl"] = ExpressionAttributeValues[":ttl"]
+            return {"Attributes": {"alert_count": item["alert_count"]}}
+
+    class FakeDynamo:
+        def Table(self, name):
+            return FakeTable()
+
+    monkeypatch.setattr(sns_rate_limit.boto3, "resource", lambda service, region_name: FakeDynamo())
+    monkeypatch.setattr(sns_rate_limit.settings, "SNS_MAX_ALERTS_PER_EMAIL_DAY", 3)
+
+    assert sns_rate_limit.get_daily_alert_count("user@example.com") == 0
+    assert sns_rate_limit.can_send_alert("user@example.com") is True
+    assert sns_rate_limit.record_alert_sent("user@example.com") == 1
+    assert sns_rate_limit.get_daily_alert_count("user@example.com") == 1
+    assert sns_rate_limit.record_alert_sent("user@example.com") == 2
+    assert sns_rate_limit.can_send_alert("user@example.com") is True
+    assert sns_rate_limit.record_alert_sent("user@example.com") == 3
+    assert sns_rate_limit.can_send_alert("user@example.com") is False
