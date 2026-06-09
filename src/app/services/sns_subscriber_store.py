@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,16 @@ def _dynamodb_table():
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _to_decimal(value: float) -> Decimal:
+    return Decimal(str(value))
+
+
+def _to_float(value: Any) -> float:
+    if isinstance(value, Decimal):
+        return float(value)
+    return float(value)
 
 
 def _load_store() -> dict[str, Any]:
@@ -86,8 +97,8 @@ def save_subscriber_location(email: str, lat: float, lon: float) -> None:
             Item={
                 "pk": _subscriber_pk(normalized),
                 "email": normalized,
-                "lat": record["lat"],
-                "lon": record["lon"],
+                "lat": _to_decimal(record["lat"]),
+                "lon": _to_decimal(record["lon"]),
                 "updated_at": record["updated_at"],
             }
         )
@@ -121,8 +132,8 @@ def get_subscriber_location(email: str) -> dict[str, Any] | None:
             return None
         return {
             "email": normalized,
-            "lat": float(lat),
-            "lon": float(lon),
+            "lat": _to_float(lat),
+            "lon": _to_float(lon),
             "updated_at": item.get("updated_at"),
         }
     except (ClientError, BotoCoreError) as exc:
@@ -157,8 +168,8 @@ def list_subscriber_locations() -> list[dict[str, Any]]:
                 results.append(
                     {
                         "email": str(email).strip().lower(),
-                        "lat": float(lat),
-                        "lon": float(lon),
+                        "lat": _to_float(lat),
+                        "lon": _to_float(lon),
                         "updated_at": item.get("updated_at"),
                     }
                 )

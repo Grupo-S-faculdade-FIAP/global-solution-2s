@@ -316,6 +316,56 @@ def test_simulated_alert_geo_filter(sns_settings, monkeypatch):
     assert published_emails == ["near"]
 
 
+def test_subscriber_location_dynamodb_uses_decimal_not_float(monkeypatch):
+    """DynamoDB rejects Python float; lat/lon must be Decimal on write."""
+    from decimal import Decimal
+
+    monkeypatch.setattr(sns_subscriber_store, "use_mock_store", lambda: False)
+
+    captured_item: dict = {}
+
+    class FakeTable:
+        def put_item(self, Item):
+            captured_item.update(Item)
+
+        def get_item(self, Key):
+            if captured_item.get("pk") == Key["pk"]:
+                return {"Item": dict(captured_item)}
+            return {}
+
+        def scan(self, **kwargs):
+            return {"Items": [dict(captured_item)]} if captured_item else {"Items": []}
+
+    class FakeDynamo:
+        def Table(self, name):
+            return FakeTable()
+
+    monkeypatch.setattr(
+        sns_subscriber_store.boto3,
+        "resource",
+        lambda service, region_name: FakeDynamo(),
+    )
+
+    sns_subscriber_store.save_subscriber_location("decimal@example.com", -23.55, -46.63)
+
+    assert captured_item
+    assert isinstance(captured_item["lat"], Decimal)
+    assert isinstance(captured_item["lon"], Decimal)
+    assert not any(isinstance(captured_item[k], float) for k in ("lat", "lon"))
+
+    stored = sns_subscriber_store.get_subscriber_location("decimal@example.com")
+    assert stored is not None
+    assert stored["lat"] == pytest.approx(-23.55)
+    assert stored["lon"] == pytest.approx(-46.63)
+    assert isinstance(stored["lat"], float)
+    assert isinstance(stored["lon"], float)
+
+    listed = sns_subscriber_store.list_subscriber_locations()
+    assert len(listed) == 1
+    assert listed[0]["lat"] == pytest.approx(-23.55)
+    assert listed[0]["lon"] == pytest.approx(-46.63)
+
+
 def test_legacy_subscriber_without_coords_skipped(sns_settings, monkeypatch):
     published: list[str] = []
 
