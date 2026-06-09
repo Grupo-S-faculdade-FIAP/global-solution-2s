@@ -37,7 +37,7 @@ O projeto endereça a falta de sistemas acessíveis que integrem imagens orbitai
 
 **Principais componentes da solução:**
 
-- **Módulo Computer Vision (CV):** captura **NASA GOES** (Playwright), rotulagem pipeline v2 e modelo **YOLOv5** (`best.pt`) para detectar nuvens convectivas. Upload `.jpg` no S3 dispara inferência na **Lambda** (`DetectStormUseCase`);
+- **Módulo Computer Vision (CV):** captura **NASA GOES** e **Windy** (Playwright), rotulagem pipeline v2 e modelo **YOLOv5** (`best.pt`) para detectar nuvens convectivas. Upload `.jpg` no S3 dispara inferência na **Lambda** (`DetectStormUseCase`);
 - **Módulo ML / Risco agrícola:** `AgriRiskModel` treinado com **INMET BDMEP** + contexto FAOSTAT; limiares otimizados por algoritmo genético (DEAP); **RiskAssessmentService** combina clima (Open-Meteo), sinal CV geo-localizado e ML em `/risk/forecast`;
 - **Módulo Cloud/Backend:** API **FastAPI** + BFF `/api/*`, deploy **AWS Lambda** (Mangum), **DynamoDB**, **SNS** para alertas, **API Gateway**;
 - **Módulo IoT:** **ESP32** + sensor **DHT22** (temperatura e umidade do ar) com envio HTTP para `POST /iot/readings` e exibição no dashboard;
@@ -92,7 +92,7 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 **Decisões técnicas relevantes:**
 - YOLOv5 para detecção de nuvens convectivas; dataset NASA GOES com pipeline de labels v2 (0 bbox fantasma).
-- AWS Lambda processa imagens de satélite (S3 trigger → YOLO → DynamoDB + SNS). Windy é apenas **widget de radar** no frontend (plano free, sem REST API).
+- AWS Lambda processa imagens de satélite (S3 trigger → YOLO → DynamoDB + SNS). Windy: captura de imagens de satélite via Playwright (`capture_satellite_data.py`) e **widget de radar** no frontend (plano free, sem REST API).
 - Ensemble de risco: pesos dinâmicos clima + CV (raio 200 km) + ML; limiares em `models/agri_risk_thresholds.json`.
 - O banco de dados **DynamoDB** (NoSQL) armazena alertas e leituras IoT, alimentando gráficos e mapas no dashboard.
 - Config de segredos via `pydantic-settings` + `.env` — nenhum segredo hard-coded no código.
@@ -128,7 +128,7 @@ make demo
 
 **Alertas / DynamoDB:** alertas persistem na tabela AWS `alerts`. **IoT ESP32:** simulado por padrão (`IOT_USE_MOCK=true` no `.env`); defina `IOT_USE_MOCK=false` quando o hardware estiver enviando para DynamoDB `iot_readings`.
 
-Documentação: [docs/README.md](docs/README.md) · Checklist: `.specs/project/CHECKLIST_ENTREGA.md` · PDF: [docs/PDF-ENTREGA-ESQUELETO.md](docs/PDF-ENTREGA-ESQUELETO.md)
+Documentação: [docs/README.md](docs/README.md) · Checklist: `.specs/project/CHECKLIST_ENTREGA.md` · PDF: [docs/Global-Solutions-2-ENTREGA.pdf](docs/Global-Solutions-2-ENTREGA.pdf)
 
 ### Comandos úteis
 

@@ -20,11 +20,11 @@ Plataforma que combina **imagens de satélite (NASA GOES / capturas)**, **visão
 
 | Nome | E-mail | Foco principal (documentado) |
 |------|--------|------------------------------|
-| Caroline de Castro Corrêa | castrocaroline11@gmail.com | Análise de dados, gráficos de alertas, dashboard frontend, code review |
+| Caroline de Castro Corrêa | castrocaroline11@gmail.com | Análise de dados, dashboard frontend, CI/CD, gráficos, code review |
 | Rodrigo Dias Figueiroa | rdfigueiroa@gmail.com | IoT / ESP32 — firmware, integração API, seção dashboard |
-| Enzo França Sader | efr4nca03@gmail.com | Vídeo de demonstração (≤ 5 min) |
-| Lucas Hideki Oliveira Koyama | lucaskoyamahhh@gmail.com | YOLO, pipeline NASA, AWS, README |
-| Tiago Lindgren Curi | shopper.tiago@gmail.com | Code review, orientação AWS, CI/CD |
+| Enzo França Sader | efr4nca03@gmail.com | Pipeline de dados |
+| Lucas Hideki Oliveira Koyama | lucaskoyamahhh@gmail.com | YOLO, pipeline NASA/Windy, ML, AWS, README, vídeo de demonstração (≤ 5 min) |
+| Tiago Lindgren Curi | shopper.tiago@gmail.com | Code review, orientação AWS, infraestrutura cloud |
 
 **Tutor(a):** Sabrina Otoni · **Coordenador(a):** Andre Godoi
 
@@ -254,7 +254,7 @@ Documentação interativa: `http://127.0.0.1:8000/docs` (local). UI produtor: `h
 | D-002 | FastAPI + Lambda + API Gateway | Serverless, free tier, disciplina cloud | Backend |
 | D-003 / D-012 | Windy como **widget**, não REST | Plano free | Dashboard |
 | D-004 | YOLOv5 via PyTorch Hub | Compatível Lambda, docs | CV |
-| D-005 | Dataset NASA (+ Windy futuro) | Gratuito, cobre Brasil | Treino |
+| D-005 | Dataset NASA GOES + capturas Windy (satélite) | Gratuito, cobre Brasil | Treino |
 | D-008 | Open-Meteo sem API key | Simplicidade MVP | Clima |
 | D-009 | DynamoDB (alertas + IoT time-series) | Serverless, TTL | Persistência |
 | D-010 | Lambda para YOLO (não SageMaker) | Custo POC | CV cloud |
@@ -328,7 +328,7 @@ Detalhes completos: `.specs/project/STATE.md`.
 
 ### 7.3 Entrega FIAP (ação humana)
 
-- [x] Vídeo ≤ 5 min (Enzo) — [YouTube](https://www.youtube.com/watch?v=W67760WVado)  
+- [x] Vídeo ≤ 5 min (Lucas) — [YouTube](https://www.youtube.com/watch?v=W67760WVado)  
 - [ ] PDF (Intro, Desenvolvimento, Resultados, Conclusão)  
 - [x] Link do vídeo no README  
 - [ ] Verificar prazo exato na plataforma FIAP (**incerto** em STATE todos)  
@@ -463,7 +463,7 @@ curl https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health
 | Lucas (código) | ~90% |
 | Carol (código) | ~98% |
 | Rodrigo (IoT) | ~75% |
-| Enzo (vídeo) | 100% |
+| Lucas (vídeo) | 100% |
 
 ---
 

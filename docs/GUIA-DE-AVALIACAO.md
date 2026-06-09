@@ -9,7 +9,7 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
 ## A solução poderá abordar temas como
 
 - [x] Sistemas inteligentes de monitoramento climático utilizando dados espaciais;
-  - **Evidência:** capturas NASA GOES, Open-Meteo, Windy, mapas Leaflet — Lucas / Carol
+  - **Evidência:** capturas NASA GOES + Windy (satélite), Open-Meteo, mapas Leaflet — Lucas / Enzo / Caroline
 - [x] Aplicações de visão computacional para análise de imagens orbitais;
   - **Evidência:** YOLOv5 (`storm70-l-tiled`, mAP@0.5 56,5%, P=73,5% em conf=0,55) + `DetectStormUseCase` + pipeline NASA v2 — Lucas
 - [x] Soluções com redes neurais para previsão de eventos, clima ou produção agrícola;
@@ -37,7 +37,7 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
 
 - [x] Aplicabilidade e clareza na resolução do problema proposto;
   - **Lucas** — README.md (`README.md`, `docs/RPI.md`)
-  - **Enzo** — [vídeo de 5 minutos](https://www.youtube.com/watch?v=W67760WVado) (link também em `README.md`)
+  - **Lucas** — [vídeo de 5 minutos](https://www.youtube.com/watch?v=W67760WVado) (link também em `README.md`)
 - [x] Uso criativo e coerente de *Inteligência Artificial*, *computação em nuvem* e *análise de dados*;
   - **Lucas** — *IA:* YOLO para padrões de nuvens chuvosas em imagens de satélite (NASA GOES)
   - **Lucas / Tiago** — *Cloud:* AWS Lambda, S3 trigger, SNS, DynamoDB
@@ -51,7 +51,8 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
   - **Lucas / Caroline** — *Aplicações cognitivas:* APIs de predição, recomendação e analytics integradas ao dashboard
 - [x] Aplicação prática de conceitos vistos em aula (redes neurais, YOLO, pipelines, AWS, serverless, ESP32, APIs cognitivas, SQL/NoSQL, análise em tempo real);
   - **Lucas** — *YOLO:* treino GPU `storm70-l-tiled` + `best.pt` (~89 MB) + inferência no dashboard (conf=0,55)
-  - **Lucas** — *Pipeline de dados:* captura NASA, rotulagem v2, treino
+  - **Caroline** — *DevOps:* CI/CD GitHub Actions + OIDC
+  - **Lucas / Enzo** — *Pipeline de dados:* captura NASA GOES, imagens de satélite Windy (Playwright), INMET/FAOSTAT
   - **Lucas / Tiago** — *AWS serverless:* S3 → Lambda → DynamoDB + SNS
   - **Rodrigo** — *ESP32:* firmware e integração HTTP
   - **Lucas** — *NoSQL:* DynamoDB (alertas + IoT) e mock JSON local
@@ -61,18 +62,18 @@ Nosso grupo copiou as seções **"A solução poderá abordar temas como"** e **
 - [x] Planejamento e documentação organizada da solução;
   - **Lucas** — README, `docs/RPI.md`, `docs/PDF-ENTREGA-ESQUELETO.md`, `.specs/`
 - [x] Comunicação visual clara e apresentação estruturada;
-  - **Enzo** — [vídeo de 5 minutos](https://www.youtube.com/watch?v=W67760WVado)
+  - **Lucas** — [vídeo de 5 minutos](https://www.youtube.com/watch?v=W67760WVado)
 - [x] Trabalho colaborativo e interdisciplinar.
 
 ### Integrantes
 
 | Integrante | Contribuição principal |
 |------------|------------------------|
-| **Enzo França Sader** | [Vídeo demonstrativo](https://www.youtube.com/watch?v=W67760WVado) (≤ 5 min) |
-| **Caroline de Castro Corrêa** | Dashboard, analytics, gráficos, code review |
+| **Enzo França Sader** | Pipeline de dados |
+| **Caroline de Castro Corrêa** | Dashboard, analytics, gráficos, CI/CD, code review |
 | **Rodrigo Dias Figueiroa** | ESP32, firmware, integração IoT |
-| **Lucas Hideki Oliveira Koyama** | YOLO, pipeline NASA, ML, AWS, README |
-| **Tiago Lindgren Curi** | CI/CD OIDC, review AWS, infraestrutura |
+| **Lucas Hideki Oliveira Koyama** | YOLO, pipeline NASA/Windy, ML, AWS, README, [vídeo demonstrativo](https://www.youtube.com/watch?v=W67760WVado) (≤ 5 min) |
+| **Tiago Lindgren Curi** | Review AWS, infraestrutura cloud, orientação |
 
 ---
 

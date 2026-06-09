@@ -7,6 +7,7 @@
 | [RPI.md](RPI.md) | Tutor / equipe | Relatório de progresso e integração — status técnico formal |
 | [GUIA-DE-AVALIACAO.md](GUIA-DE-AVALIACAO.md) | Tutor | Cobertura da rubrica FIAP (temas + responsáveis) |
 | [PDF-ENTREGA-ESQUELETO.md](PDF-ENTREGA-ESQUELETO.md) | Equipe | Base para montar o PDF de entrega |
+| [Global-Solutions-2-ENTREGA.pdf](Global-Solutions-2-ENTREGA.pdf) | Avaliador | **PDF de entrega FIAP** |
 | [Vídeo demonstrativo](https://www.youtube.com/watch?v=W67760WVado) | Avaliador | Apresentação do projeto (≤ 5 min; link canônico também em [README.md](../README.md)) |
 | [CI-CD.md](CI-CD.md) | DevOps | GitHub Actions, OIDC, jobs pytest + E2E + deploy Lambda |
 | [DEPLOY-LAMBDA.md](DEPLOY-LAMBDA.md) | DevOps | Deploy manual da Lambda `gs2-api` |

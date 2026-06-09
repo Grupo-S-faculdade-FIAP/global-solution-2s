@@ -1,4 +1,4 @@
-# PDF de Entrega — Esqueleto GS 2026.1
+# PDF de Entrega — Global Solutions 2
 
 > **Como usar:** copie cada seção para Word/Google Docs/LaTeX e preencha os campos `[...]`.
 > Exporte como **PDF único** para a plataforma FIAP.
@@ -9,7 +9,7 @@
 
 ## Capa (página 1)
 
-**Global Solution 2026.1 — FIAP Graduação ON em Inteligência Artificial**
+**Global Solutions 2 — FIAP Graduação ON em Inteligência Artificial**
 
 ### Integrantes
 
@@ -24,14 +24,15 @@
 **Tutor(a):** Sabrina Otoni  
 **Coordenador(a):** Andre Godoi
 
-<!-- Se concorrer ao pódio, descomente a linha abaixo: -->
-<!-- **QUERO CONCORRER** -->
+**QUERO CONCORRER**
 
-**Nome do produto:** [DEFINIR — decisão B3, ex.: GS2 Environmental Intelligence]
+**Nome do produto:** Global Solutions 2 — Plataforma de Inteligência Ambiental e Agrícola
 
 **Repositório:** https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s
 
-**Data:** [DD/MM/2026]
+**PDF de entrega:** [docs/Global-Solutions-2-ENTREGA.pdf](Global-Solutions-2-ENTREGA.pdf)
+
+**Data:** 09/06/2026
 
 ---
 
@@ -47,35 +48,32 @@ A FIAP propõe a Global Solution 2026.1 conectando Inteligência Artificial ao u
 
 ### 1.2 Problema
 
-[Preencher 1 parágrafo — usar PROJECT.md]
-
-Dados de satélite existem em abundância (NASA GOES, Open-Meteo), mas não são processados, correlacionados com sensores de campo e apresentados de forma integrada e acessível para produtores rurais e gestores de risco. A demora e a fragmentação impedem decisões preventivas ante eventos climáticos extremos.
+O agronegócio brasileiro depende cada vez mais de dados espaciais — satélites meteorológicos, imagens orbitais e APIs climáticas —, mas esses dados permanecem **fragmentados**: imagens de satélite ficam em portais distintos (NASA, Windy), estações meteorológicas em bases separadas (INMET) e sensores de campo desconectados da nuvem. Produtores rurais e gestores de risco não dispõem de uma visão unificada que correlacione **o que o satélite vê**, **o que o clima prevê** e **o que o sensor mede no solo**, impedindo decisões preventivas ante tempestades e eventos adversos.
 
 ### 1.3 Proposta de solução
 
-[Preencher 1 parágrafo]
+O **Global Solutions 2** é uma plataforma de inteligência ambiental e agrícola que integra, em uma única URL, quatro camadas de valor:
 
-O **GS2** é uma plataforma de inteligência ambiental e agrícola que combina:
+1. **Ingestão espacial** — captura automatizada de imagens NASA GOES e Windy.com (Playwright) + upload S3;
+2. **Inteligência artificial** — YOLOv5 para detecção de nuvens convectivas + LightGBM para risco agrícola (INMET), combinados em ensemble geo-aware;
+3. **Computação serverless** — pipeline AWS (S3 → Lambda → DynamoDB → SNS) com API FastAPI e deploy via CI/CD;
+4. **Experiência do produtor** — dashboard com clima, mapas, analytics de alertas, risco na lavoura e leituras IoT (ESP32).
 
-- **Visão computacional (YOLOv5)** em imagens de satélite para detectar padrões de nuvens convectivas;
-- **Machine Learning** (LightGBM + otimização genética de limiares) para risco agrícola com dados INMET;
-- **IoT (ESP32 + DHT22)** para temperatura e umidade em campo;
-- **Computação em nuvem AWS** (S3, Lambda, DynamoDB, SNS) com CI/CD via GitHub Actions;
-- **Dashboard web** unificado (clima, alertas, mapas, analytics e IoT) em uma única URL.
+A hipótese central: **dados orbitais + IA + sensores de campo, orquestrados em cloud, geram alertas acionáveis para o agronegócio antes do impacto no solo.**
 
-### 1.4 Objetivos (G1–G5)
+### 1.4 Objetivos (G1–G5) — o que se esperava
 
-| ID | Objetivo | Status |
-|----|----------|--------|
-| G1 | Detecção YOLO de tempestades em imagens de satélite | Concluído (MVP) — mAP@0.5 56,5%; P=73,5% em conf=0,55 |
-| G2 | Previsão de risco agrícola (ML + INMET) | Concluído |
-| G3 | Visualização climática em tempo real | Concluído |
-| G4 | ESP32 → pipeline cloud | Concluído (MVP) |
-| G5 | MVP documentado + vídeo | Este documento + vídeo anexo |
+| ID | Objetivo | Critério de sucesso esperado |
+|----|----------|------------------------------|
+| G1 | Detecção YOLO de tempestades em imagens de satélite | Treino + inferência local e na Lambda; pipeline S3 funcional |
+| G2 | Previsão de risco agrícola (ML + INMET) | Modelo treinado + API `/risk/forecast` com ensemble |
+| G3 | Visualização climática em tempo real | Dashboard com Open-Meteo, mapas Leaflet e radar Windy |
+| G4 | ESP32 → pipeline cloud | Firmware + `POST /iot/readings` + exibição no dashboard |
+| G5 | MVP documentado + vídeo ≤ 5 min | Repositório, PDF, vídeo YouTube não listado |
 
 ### 1.5 Público-alvo
 
-Pesquisadores, produtores rurais, órgãos de monitoramento ambiental e gestores de risco no território brasileiro (v1).
+Produtores rurais, pesquisadores agrometeorológicos, órgãos de monitoramento ambiental e gestores de risco no território brasileiro (v1).
 
 ---
 
@@ -83,16 +81,40 @@ Pesquisadores, produtores rurais, órgãos de monitoramento ambiental e gestores
 
 ### 2.1 Arquitetura da solução
 
-**Inserir diagrama** — exportar do mermaid em `docs/RPI.md` §3.1 ou usar ferramenta draw.io.
-
-Fluxo resumido:
+A arquitetura foi desenhada em **quatro fluxos de dados** independentes que convergem no dashboard via BFF (`/api/*`):
 
 ```
-NASA GOES / S3 upload → YOLOv5 → DynamoDB + SNS
-Open-Meteo → FastAPI → Dashboard
-ESP32 → POST /iot/readings → DynamoDB → Dashboard
-INMET → AgriRiskModel → /risk/forecast → Dashboard
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         FONTES DE DADOS                                 │
+├──────────────┬──────────────┬──────────────┬────────────────────────────┤
+│ NASA GOES    │ Windy.com    │ Open-Meteo   │ ESP32 + DHT22              │
+│ (Playwright) │ (Playwright) │ (REST API)   │ (HTTP POST)                │
+└──────┬───────┴──────┬───────┴──────┬───────┴──────────┬─────────────────┘
+       │              │              │                  │
+       ▼              ▼              │                  ▼
+┌──────────────┐ ┌─────────┐        │         POST /iot/readings
+│ Pipeline YOLO│ │ S3 upload│        │                  │
+│ rotulagem v2 │ │  .jpg    │        │                  ▼
+└──────┬───────┘ └────┬─────┘        │         ┌───────────────┐
+       │              │              │         │ DynamoDB IoT  │
+       ▼              ▼              ▼         └───────┬───────┘
+┌──────────────────────────────────────────┐            │
+│         AWS Lambda (gs2-api Docker)       │            │
+│  DetectStormUseCase → YOLOv5 → SNS       │            │
+│  AgriRiskModel → RiskAssessmentService   │            │
+└──────────────────┬───────────────────────┘            │
+                   │                                     │
+                   ▼                                     ▼
+         ┌─────────────────┐              ┌─────────────────────────┐
+         │ DynamoDB alerts │              │  FastAPI + BFF /api/*   │
+         └────────┬────────┘              │  Flask Dashboard UI /   │
+                  └──────────────────────►│  (porta única :8000)    │
+                                          └─────────────────────────┘
 ```
+
+**Clean Architecture (4 camadas):** Domain (ports) → Application (use cases, ex.: `DetectStormUseCase`) → Infrastructure (adapters DynamoDB/JSON mock) → Interfaces (HTTP BFF, trigger S3). A injeção de dependência em `container.py` permite alternar mock local ↔ produção AWS sem alterar regras de negócio.
+
+**Decisão arquitetural-chave:** porta única `:8000` — FastAPI monta o Flask do dashboard, simplificando demo (`make demo`) e deploy na Lambda via Mangum.
 
 ### 2.2 Stack tecnológica
 
@@ -119,14 +141,15 @@ INMET → AgriRiskModel → /risk/forecast → Dashboard
 | Computação em nuvem | Lambda serverless, S3 trigger | `docs/DEPLOY-LAMBDA.md`, Lambda Docker | Lucas, Tiago |
 | Banco NoSQL | DynamoDB time-series | `storm_alerts_store`, `iot_readings_store` | Lucas |
 | IoT / sensores | ESP32 + DHT22 | `src/iot/firmware.cpp`, `/iot/readings` | Rodrigo |
-| DevOps / automação | CI/CD OIDC, captura NASA cron | `.github/workflows/`, `capture_nasa_data.py` | Tiago |
-| Apresentação | Vídeo + PDF | Este documento | Enzo, equipe |
+| DevOps / automação | CI/CD OIDC, captura NASA cron | `.github/workflows/`, `capture_nasa_data.py` | Caroline |
+| Pipeline de dados | NASA GOES + Windy (Playwright), INMET/FAOSTAT | `goes_pipeline/`, `capture_satellite_data.py` | Lucas, Enzo |
+| Apresentação | Vídeo + PDF | Este documento | Lucas, equipe |
 
 ### 2.4 Módulos implementados
 
 #### 2.4.1 Visão computacional (YOLO)
 
-- 1.602 capturas NASA GOES acumuladas (base v2: 79); dataset augmentado **1.361** train → tiled **3.045** train / **1.033** val;
+- 1.602 capturas NASA GOES acumuladas (base v2: 79); imagens de satélite também coletadas via **Windy.com** (camada satélite INFRA+, Playwright em `capture_satellite_data.py`); dataset augmentado **1.361** train → tiled **3.045** train / **1.033** val;
 - Pseudo-rótulos gerados por heurística OpenCV (`detect_storms`, limiar/área) — ver §2.4.5;
 - Dataset YOLO v2 com **0 bbox fantasma** (audit gate);
 - Pesos: `src/models/weights/best.pt` (~89 MB); produção: `s3://satellite-images-gs2/models/best.pt` (cold start Lambda);
@@ -334,6 +357,18 @@ Testes: `make test-coverage` (gate 82%).
 
 ## 3. Resultados Esperados
 
+### 3.0 Meta vs. entrega — objetivos G1–G5
+
+| ID | Esperado | Atingido | Evidência |
+|----|----------|----------|-----------|
+| **G1** | POC YOLO com treino, inferência local e pipeline AWS | **Concluído (MVP)** | mAP@0.5 **56,5%**; conf=0,55 → P=**73,5%**; S3→Lambda→DynamoDB+SNS operacional; 1.602 capturas NASA + Windy |
+| **G2** | Modelo ML + API de risco agrícola | **Concluído (MVP+)** | `AgriRiskModel` (43,8k registros INMET); ensemble clima+CV+ML em `/risk/forecast`; limiares AG (DEAP) |
+| **G3** | Clima em tempo real no dashboard | **Concluído** | Open-Meteo + Leaflet + widget Windy; tema claro/escuro; [dashboard produção](https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/) |
+| **G4** | ESP32 → cloud → dashboard | **Concluído (MVP)** | `firmware.cpp` + `POST /iot/readings` + seção IoT; mock JSON e DynamoDB via DI |
+| **G5** | Documentação + vídeo ≤ 5 min | **Concluído** | README, RPI, este PDF, [vídeo YouTube](https://www.youtube.com/watch?v=W67760WVado) (Lucas) |
+
+**Escopo adicional entregue além do MVP mínimo:** CI/CD GitHub Actions + OIDC (Caroline); 440 testes + 53 E2E Playwright; cobertura **82,44%**; analytics de alertas (heatmap, tendência 30 dias); inscrição SNS pelo dashboard.
+
 ### 3.1 Resultados técnicos
 
 | Métrica | Valor | Observação |
@@ -385,23 +420,35 @@ Baseado em `docs/GUIA-DE-AVALIACAO.md`:
 
 ## 4. Conclusões
 
-### 4.1 Síntese
+### 4.1 Síntese — expectativa vs. realidade
 
-[Preencher 1 parágrafo]
+Ao iniciar o projeto, esperávamos uma POC que **demonstrasse integração real** entre visão computacional, ML, cloud AWS e IoT — não módulos isolados. A Global Solutions 2 **atingiu essa meta**: os quatro fluxos arquiteturais convergem no dashboard de produção, acessível em https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/, e replicável localmente com `make demo`.
 
-A GS2 demonstra que é possível conectar dados orbitais, visão computacional, machine learning, sensores IoT e computação serverless em uma POC integrada e executável. A plataforma transforma volumes de dados espaciais em inteligência acionável para o agronegócio e monitoramento ambiental.
+**O que superou expectativas:** retreino YOLO GPU com dataset tiled (3.045 imagens); ensemble geo-aware com pesos dinâmicos; gate de cobertura 82% no CI; dashboard profissional com tema dia/noite e 53 testes E2E Playwright.
 
-### 4.2 Contribuições do grupo
+**O que ficou dentro do escopo POC (limitações conscientes):** rótulos proxy para treino ML e YOLO (métricas medem consistência interna, não validação científica externa); cold start Lambda de 60–90 s; cobertura geográfica v1 limitada ao Brasil.
+
+### 4.2 Impacto esperado vs. impacto entregue
+
+| Dimensão | Esperado | Entregue |
+|----------|----------|----------|
+| Antecipação climática | Detectar padrões convectivos em imagens orbitais | YOLO operacional com P=73,5% em conf=0,55; alertas SNS |
+| Decisão agrícola | Score de risco integrado | Ensemble clima + CV (raio 200 km) + ML com recomendações LOW/MEDIUM/HIGH |
+| Correlação campo-nuvem | Satélite + sensor no mesmo painel | Dashboard unifica NASA, Windy, Open-Meteo, YOLO e ESP32 |
+| Acessibilidade | Avaliador executa com um comando | `make demo` → http://127.0.0.1:8000 |
+| Qualidade de engenharia | Código testado e documentado | 440 testes, 82,44% cov, Clean Architecture, CI/CD OIDC |
+
+### 4.3 Contribuições do grupo
 
 | Integrante | Contribuição principal |
 |------------|------------------------|
-| Caroline | Dashboard, analytics, gráficos, code review |
+| Caroline | Dashboard, analytics, gráficos, CI/CD, code review |
 | Rodrigo | ESP32, firmware, integração IoT |
-| Enzo | Vídeo demonstrativo, comunicação visual |
-| Lucas | YOLO, ML, AWS, pipeline NASA, README |
-| Tiago | CI/CD, review AWS, infraestrutura |
+| Enzo | Pipeline de dados |
+| Lucas | YOLO, ML, AWS, pipeline NASA/Windy, README, vídeo demonstrativo |
+| Tiago | Review AWS, infraestrutura, orientação cloud |
 
-### 4.3 Trabalho futuro (pós-GS)
+### 4.4 Trabalho futuro (pós-GS)
 
 - Mais capturas NASA + rótulos humanos (v2);
 - DynamoDB real em produção (`mock off`);
@@ -409,7 +456,7 @@ A GS2 demonstra que é possível conectar dados orbitais, visão computacional, 
 - Expansão da camada cognitiva com novos modelos ou fontes de dados espaciais;
 - Cobertura América do Sul.
 
-### 4.4 Agradecimentos
+### 4.5 Agradecimentos
 
 FIAP, tutor(a) Sabrina Otoni, coordenador Andre Godoi, APIs abertas (NASA, Open-Meteo, INMET).
 
@@ -423,6 +470,7 @@ FIAP, tutor(a) Sabrina Otoni, coordenador Andre Godoi, APIs abertas (NASA, Open-
 |------|-----|
 | Repositório GitHub | https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s |
 | Licença | CC BY 4.0 — ver `LICENSE` na raiz do repositório |
+| **Dashboard (frontend produção)** | https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/ |
 | API produção (health) | https://qqnjq8qsmh.execute-api.us-east-1.amazonaws.com/health |
 | **Vídeo demonstrativo (YouTube não listado)** | https://www.youtube.com/watch?v=W67760WVado |
 | Wiki AWS (time) | https://github.com/Grupo-S-faculdade-FIAP/global-solution-2s/wiki |
@@ -441,7 +489,7 @@ FIAP, tutor(a) Sabrina Otoni, coordenador Andre Godoi, APIs abertas (NASA, Open-
 
 - [ ] PDF único (não .zip)
 - [ ] Nomes completos na 1ª página
-- [ ] "QUERO CONCORRER" (se pódio)
+- [x] "QUERO CONCORRER" (pódio)
 - [ ] Código em texto, não screenshot
 - [x] Link do vídeo no final
 - [ ] Link do repositório no corpo
