@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     SNS_RATE_LIMIT_STORE_PATH: str = ""
     SNS_REGION_COOLDOWN_STORE_PATH: str = ""
     SNS_SUBSCRIBER_STORE_PATH: str = ""
+    # Amazon SES — entrega por e-mail com filtro geo/rate limit por destinatário.
+    # Quando vazio, alertas usam sns.publish(TopicArn) (todos os inscritos confirmados recebem).
+    SES_FROM_EMAIL: str = ""
+    SES_ENABLED: bool = True
 
     # ─── DynamoDB ─────────────────────────────────────────────────────────
     DYNAMODB_WEATHER_TABLE: str = "weather_metrics"

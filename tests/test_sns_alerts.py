@@ -17,6 +17,8 @@ def sns_settings(monkeypatch):
     )
     monkeypatch.setattr(sns_alerts.settings, "SNS_ALERT_SUBJECT", "Rain Alert — Storm Detected")
     monkeypatch.setattr(sns_alerts.settings, "AWS_REGION", "us-east-1")
+    monkeypatch.setattr(sns_alerts.settings, "SES_FROM_EMAIL", "")
+    monkeypatch.setattr(sns_alerts.settings, "SES_ENABLED", True)
     monkeypatch.setattr(sns_alerts, "_put_cloudwatch_metric", lambda *args, **kwargs: None)
 
 
@@ -449,7 +451,7 @@ def test_publish_respects_per_email_daily_limit(sns_settings, monkeypatch, tmp_p
     monkeypatch.setattr(sns_rate_limit.settings, "SNS_MAX_ALERTS_PER_EMAIL_DAY", 3)
     monkeypatch.setattr(sns_alerts.settings, "SNS_MAX_ALERTS_PER_EMAIL_DAY", 3)
 
-    published_targets: list[str] = []
+    topic_publish_count = 0
 
     class FakeSNS:
         def get_paginator(self, operation_name):
@@ -473,9 +475,10 @@ def test_publish_respects_per_email_daily_limit(sns_settings, monkeypatch, tmp_p
             return {"Attributes": {"PendingConfirmation": "false"}}
 
         def publish(self, **kwargs):
-            if "TargetArn" in kwargs:
-                published_targets.append(kwargs["TargetArn"])
-            return {"MessageId": f"msg-{len(published_targets)}"}
+            nonlocal topic_publish_count
+            if "TopicArn" in kwargs:
+                topic_publish_count += 1
+            return {"MessageId": f"msg-{topic_publish_count}"}
 
     monkeypatch.setattr(
         sns_alerts.boto3,
@@ -487,9 +490,9 @@ def test_publish_respects_per_email_daily_limit(sns_settings, monkeypatch, tmp_p
     for _ in range(3):
         assert sns_alerts.publish_storm_alert("bucket", "img.jpg", detections) is not None
 
-    assert len(published_targets) == 3
+    assert topic_publish_count == 3
     assert sns_alerts.publish_storm_alert("bucket", "img.jpg", detections) is None
-    assert len(published_targets) == 3
+    assert topic_publish_count == 3
 
 
 def test_extract_region_from_s3_key():
@@ -721,7 +724,63 @@ def test_tombstone_merge_includes_false_auth_confirmed_arn(sns_settings, monkeyp
     assert subs[0]["subscription_arn"] == tombstone_arn
 
 
-def test_publish_clears_stale_arn_on_invalid_parameter(sns_settings, monkeypatch, tmp_path):
+def test_send_email_alert_via_ses(sns_settings, monkeypatch, tmp_path):
+    from app.services import sns_subscriber_store
+
+    monkeypatch.setattr(sns_alerts.settings, "SES_FROM_EMAIL", "alerts@example.com")
+    monkeypatch.setattr(
+        sns_subscriber_store.settings,
+        "SNS_SUBSCRIBER_STORE_PATH",
+        str(tmp_path / "sns_subscribers.json"),
+    )
+    sns_subscriber_store.reset_store_for_tests()
+    sns_subscriber_store.save_subscriber_location("user@example.com", -23.55, -46.63)
+
+    ses_sent: list[dict] = []
+
+    class FakeSNS:
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [
+                        {
+                            "Subscriptions": [
+                                {
+                                    "Protocol": "email",
+                                    "Endpoint": "user@example.com",
+                                    "SubscriptionArn": "arn:aws:sns:us-east-1:123:sub:user",
+                                }
+                            ]
+                        }
+                    ]
+
+            return Paginator()
+
+        def get_subscription_attributes(self, **kwargs):
+            return {"Attributes": {"PendingConfirmation": "false"}}
+
+    class FakeSES:
+        def send_email(self, **kwargs):
+            ses_sent.append(kwargs)
+            return {"MessageId": "ses-msg-1"}
+
+    def client_factory(service, region_name):
+        if service == "ses":
+            return FakeSES()
+        return FakeSNS()
+
+    monkeypatch.setattr(sns_alerts.boto3, "client", client_factory)
+
+    message_id = sns_alerts.publish_simulated_alert(-23.55, -46.63, 0.85)
+    assert message_id == "ses-msg-1"
+    assert len(ses_sent) == 1
+    assert ses_sent[0]["Source"] == "alerts@example.com"
+    assert ses_sent[0]["Destination"]["ToAddresses"] == ["user@example.com"]
+    assert "TargetArn" not in ses_sent[0]
+
+
+def test_publish_sends_via_topic_when_ses_not_configured(sns_settings, monkeypatch, tmp_path):
+    """E-mail protocol cannot use TargetArn; eligible alerts fall back to TopicArn publish."""
     from app.services import sns_subscriber_store
 
     monkeypatch.setattr(
@@ -739,8 +798,7 @@ def test_publish_clears_stale_arn_on_invalid_parameter(sns_settings, monkeypatch
         subscription_arn=stale_arn,
     )
 
-    new_arn = "arn:aws:sns:us-east-1:123456789012:rain-alerts:recovered-sub"
-    subscribe_calls: list[dict] = []
+    captured: dict = {}
 
     class FakeSNS:
         def get_paginator(self, operation_name):
@@ -770,21 +828,8 @@ def test_publish_clears_stale_arn_on_invalid_parameter(sns_settings, monkeypatch
             }
 
         def publish(self, **kwargs):
-            from botocore.exceptions import ClientError
-
-            raise ClientError(
-                {
-                    "Error": {
-                        "Code": "InvalidParameter",
-                        "Message": f"TargetArn {kwargs['TargetArn']} is not valid to publish to",
-                    }
-                },
-                "Publish",
-            )
-
-        def subscribe(self, **kwargs):
-            subscribe_calls.append(kwargs)
-            return {"SubscriptionArn": new_arn}
+            captured.update(kwargs)
+            return {"MessageId": "topic-msg-1"}
 
     monkeypatch.setattr(
         sns_alerts.boto3,
@@ -793,15 +838,9 @@ def test_publish_clears_stale_arn_on_invalid_parameter(sns_settings, monkeypatch
     )
 
     result = sns_alerts.publish_simulated_alert(-23.55, -46.63, 0.85)
-    assert result is None
-    assert len(subscribe_calls) == 1
-    assert subscribe_calls[0]["ReturnSubscriptionArn"] is True
-    assert subscribe_calls[0]["Endpoint"] == "invalid@example.com"
-
-    record = sns_subscriber_store.get_subscriber_record("invalid@example.com")
-    assert record is not None
-    assert record["subscription_arn"] == new_arn
-    assert record["lat"] == pytest.approx(-23.55)
+    assert result == "topic-msg-1"
+    assert captured.get("TopicArn") == sns_alerts.settings.SNS_TOPIC_ARN
+    assert "TargetArn" not in captured
 
 
 def test_subscribe_persists_pending_arn(sns_settings, monkeypatch, tmp_path):

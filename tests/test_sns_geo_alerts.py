@@ -18,6 +18,8 @@ def sns_settings(monkeypatch):
     monkeypatch.setattr(sns_alerts.settings, "SNS_ALERT_SUBJECT", "Rain Alert — Storm Detected")
     monkeypatch.setattr(sns_alerts.settings, "AWS_REGION", "us-east-1")
     monkeypatch.setattr(sns_alerts.settings, "SNS_ALERT_RADIUS_KM", 200.0)
+    monkeypatch.setattr(sns_alerts.settings, "SES_FROM_EMAIL", "alerts@example.com")
+    monkeypatch.setattr(sns_alerts.settings, "SES_ENABLED", True)
     monkeypatch.setattr(sns_alerts, "_put_cloudwatch_metric", lambda *args, **kwargs: None)
 
 
@@ -183,7 +185,8 @@ def test_subscribe_saves_location(sns_settings, monkeypatch):
 def test_publish_skips_subscriber_outside_radius(sns_settings, monkeypatch):
     sns_subscriber_store.save_subscriber_location("far@example.com", -15.0, -47.0)
 
-    published: list[str] = []
+    ses_sent: list[str] = []
+    topic_published = False
 
     class FakeSNS:
         def get_paginator(self, operation_name):
@@ -207,14 +210,21 @@ def test_publish_skips_subscriber_outside_radius(sns_settings, monkeypatch):
             return {"Attributes": {"PendingConfirmation": "false"}}
 
         def publish(self, **kwargs):
-            published.append(kwargs.get("TargetArn", ""))
+            nonlocal topic_published
+            topic_published = True
             return {"MessageId": "msg-far"}
 
-    monkeypatch.setattr(
-        sns_alerts.boto3,
-        "client",
-        lambda service, region_name: FakeSNS(),
-    )
+    class FakeSES:
+        def send_email(self, **kwargs):
+            ses_sent.append(kwargs["Destination"]["ToAddresses"][0])
+            return {"MessageId": "msg-far"}
+
+    def client_factory(service, region_name):
+        if service == "ses":
+            return FakeSES()
+        return FakeSNS()
+
+    monkeypatch.setattr(sns_alerts.boto3, "client", client_factory)
 
     # Storm near SP — subscriber in Brasília area but outside 50km; use small radius
     monkeypatch.setattr(sns_alerts.settings, "SNS_ALERT_RADIUS_KM", 50.0)
@@ -225,13 +235,14 @@ def test_publish_skips_subscriber_outside_radius(sns_settings, monkeypatch):
         [{"class": "storm", "confidence": 0.9}],
     )
     assert result is None
-    assert published == []
+    assert ses_sent == []
+    assert topic_published is False
 
 
 def test_publish_sends_subscriber_inside_radius(sns_settings, monkeypatch):
     sns_subscriber_store.save_subscriber_location("near@example.com", -23.55, -46.63)
 
-    published: list[str] = []
+    ses_sent: list[str] = []
 
     class FakeSNS:
         def get_paginator(self, operation_name):
@@ -254,15 +265,17 @@ def test_publish_sends_subscriber_inside_radius(sns_settings, monkeypatch):
         def get_subscription_attributes(self, **kwargs):
             return {"Attributes": {"PendingConfirmation": "false"}}
 
-        def publish(self, **kwargs):
-            published.append(kwargs.get("TargetArn", ""))
+    class FakeSES:
+        def send_email(self, **kwargs):
+            ses_sent.append(kwargs["Destination"]["ToAddresses"][0])
             return {"MessageId": "msg-near"}
 
-    monkeypatch.setattr(
-        sns_alerts.boto3,
-        "client",
-        lambda service, region_name: FakeSNS(),
-    )
+    def client_factory(service, region_name):
+        if service == "ses":
+            return FakeSES()
+        return FakeSNS()
+
+    monkeypatch.setattr(sns_alerts.boto3, "client", client_factory)
 
     key = "screenshots/brasil_sudeste_20260609_1530.jpg"
     result = sns_alerts.publish_storm_alert(
@@ -271,14 +284,14 @@ def test_publish_sends_subscriber_inside_radius(sns_settings, monkeypatch):
         [{"class": "storm", "confidence": 0.9}],
     )
     assert result == "msg-near"
-    assert len(published) == 1
+    assert ses_sent == ["near@example.com"]
 
 
 def test_simulated_alert_geo_filter(sns_settings, monkeypatch):
     sns_subscriber_store.save_subscriber_location("near@example.com", -23.55, -46.63)
     sns_subscriber_store.save_subscriber_location("far@example.com", -15.0, -47.0)
 
-    published_emails: list[str] = []
+    ses_sent: list[str] = []
 
     class FakeSNS:
         def get_paginator(self, operation_name):
@@ -306,24 +319,22 @@ def test_simulated_alert_geo_filter(sns_settings, monkeypatch):
         def get_subscription_attributes(self, **kwargs):
             return {"Attributes": {"PendingConfirmation": "false"}}
 
-        def publish(self, **kwargs):
-            arn = kwargs.get("TargetArn", "")
-            if "near" in arn:
-                published_emails.append("near")
-            elif "far" in arn:
-                published_emails.append("far")
-            return {"MessageId": f"msg-{len(published_emails)}"}
+    class FakeSES:
+        def send_email(self, **kwargs):
+            ses_sent.append(kwargs["Destination"]["ToAddresses"][0])
+            return {"MessageId": f"msg-{len(ses_sent)}"}
 
-    monkeypatch.setattr(
-        sns_alerts.boto3,
-        "client",
-        lambda service, region_name: FakeSNS(),
-    )
+    def client_factory(service, region_name):
+        if service == "ses":
+            return FakeSES()
+        return FakeSNS()
+
+    monkeypatch.setattr(sns_alerts.boto3, "client", client_factory)
     monkeypatch.setattr(sns_alerts.settings, "SNS_ALERT_RADIUS_KM", 50.0)
 
     message_id = sns_alerts.publish_simulated_alert(-23.55, -46.63, 0.85)
     assert message_id is not None
-    assert published_emails == ["near"]
+    assert ses_sent == ["near@example.com"]
 
 
 def test_subscriber_location_dynamodb_uses_decimal_not_float(monkeypatch):
@@ -377,7 +388,8 @@ def test_subscriber_location_dynamodb_uses_decimal_not_float(monkeypatch):
 
 
 def test_legacy_subscriber_without_coords_skipped(sns_settings, monkeypatch):
-    published: list[str] = []
+    ses_sent: list[str] = []
+    topic_published = False
 
     class FakeSNS:
         def get_paginator(self, operation_name):
@@ -401,15 +413,23 @@ def test_legacy_subscriber_without_coords_skipped(sns_settings, monkeypatch):
             return {"Attributes": {"PendingConfirmation": "false"}}
 
         def publish(self, **kwargs):
-            published.append(kwargs.get("TargetArn", ""))
+            nonlocal topic_published
+            topic_published = True
             return {"MessageId": "msg-legacy"}
 
-    monkeypatch.setattr(
-        sns_alerts.boto3,
-        "client",
-        lambda service, region_name: FakeSNS(),
-    )
+    class FakeSES:
+        def send_email(self, **kwargs):
+            ses_sent.append(kwargs["Destination"]["ToAddresses"][0])
+            return {"MessageId": "msg-legacy"}
+
+    def client_factory(service, region_name):
+        if service == "ses":
+            return FakeSES()
+        return FakeSNS()
+
+    monkeypatch.setattr(sns_alerts.boto3, "client", client_factory)
 
     result = sns_alerts.publish_simulated_alert(-23.55, -46.63, 0.9)
     assert result is None
-    assert published == []
+    assert ses_sent == []
+    assert topic_published is False

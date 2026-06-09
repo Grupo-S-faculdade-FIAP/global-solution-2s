@@ -80,6 +80,13 @@ def sns_is_configured() -> bool:
     return bool((settings.SNS_TOPIC_ARN or "").strip())
 
 
+def _ses_is_configured() -> bool:
+    """True when SES is enabled and SES_FROM_EMAIL is set."""
+    if not settings.SES_ENABLED:
+        return False
+    return bool((settings.SES_FROM_EMAIL or "").strip())
+
+
 def sns_status() -> dict[str, Any]:
     """Resumo da configuração SNS (sem expor segredos)."""
     topic = (settings.SNS_TOPIC_ARN or "").strip()
@@ -93,6 +100,8 @@ def sns_status() -> dict[str, Any]:
         "region_cooldown_minutes": settings.SNS_REGION_COOLDOWN_MINUTES,
         "alert_radius_km": settings.SNS_ALERT_RADIUS_KM,
         "geo_filtering_enabled": True,
+        "ses_configured": _ses_is_configured(),
+        "ses_from_email": (settings.SES_FROM_EMAIL or "").strip() or None,
     }
     if sns_is_configured():
         status["subscriber_count"] = _count_email_subscriptions(topic)
@@ -182,38 +191,42 @@ def _publish_to_sns_with_retry(topic_arn: str, subject: str, message: str) -> st
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=10),
     before_sleep=lambda retry_state: logger.warning(
-        f"SNS subscription publish retry {retry_state.attempt_number} after error: "
+        f"SES send retry {retry_state.attempt_number} after error: "
         f"{retry_state.outcome.exception()}"
     ),
     reraise=True,
 )
-def _publish_to_subscription_with_retry(
-    subscription_arn: str,
-    subject: str,
-    message: str,
-) -> str:
-    """Publish message to a single SNS email subscription with retry logic."""
+def _send_email_alert_with_retry(to_email: str, subject: str, message: str) -> str:
+    """Send a storm alert e-mail via Amazon SES with retry logic.
+
+    SNS e-mail subscriptions do not support Publish(TargetArn=subscription_arn);
+    SES delivers to individual recipients with geo/rate-limit control.
+    """
     try:
-        sns = boto3.client("sns", region_name=settings.AWS_REGION)
-        response = sns.publish(
-            TargetArn=subscription_arn,
-            Subject=subject,
-            Message=message,
+        ses = boto3.client("ses", region_name=settings.AWS_REGION)
+        response = ses.send_email(
+            Source=settings.SES_FROM_EMAIL.strip(),
+            Destination={"ToAddresses": [to_email]},
+            Message={
+                "Subject": {"Data": subject, "Charset": "UTF-8"},
+                "Body": {"Text": {"Data": message, "Charset": "UTF-8"}},
+            },
         )
         return response.get("MessageId", "")
     except ClientError as exc:
         error_code = exc.response.get("Error", {}).get("Code", "")
         if _is_permanent_error(exc):
             logger.error(
-                "Permanent SNS subscription error (code=%s): %s",
+                "Permanent SES error (code=%s) to %s: %s",
                 error_code,
+                to_email,
                 exc.response.get("Error", {}).get("Message"),
             )
             raise
         if _is_transient_error(exc):
-            logger.warning(f"Transient SNS subscription error (code={error_code}), will retry: {exc}")
+            logger.warning(f"Transient SES error (code={error_code}) to {to_email}, will retry: {exc}")
             raise
-        logger.error(f"SNS subscription error (code={error_code}): {exc}")
+        logger.error(f"SES error (code={error_code}) to {to_email}: {exc}")
         raise
 
 
@@ -515,8 +528,7 @@ def _tombstone_warning_message(email: str) -> str:
     alias_hint = f"{local}+gs2@{domain}" if local and domain else "seuemail+gs2@gmail.com"
     return (
         "A AWS mantém um registro 'Deleted' (tombstone) para este e-mail. "
-        "Mesmo após confirmar um novo link, o envio por TargetArn pode falhar por até ~48 h. "
-        f"Solução imediata: inscreva-se com um alias Gmail (ex.: {alias_hint}) — "
+        f"Inscreva-se com um alias Gmail (ex.: {alias_hint}) — "
         "a mensagem chega na mesma caixa de entrada. "
         "Alternativa: aguarde ~48 h para a AWS remover o tombstone."
     )
@@ -563,8 +575,8 @@ def _publish_alert_message(
 ) -> str | None:
     """Publica alerta respeitando limite diário por e-mail e filtro geográfico.
 
-    Com inscritos confirmados, envia individualmente por subscription ARN.
-    Sem inscritos confirmados, publica no tópico (compatível com testes e tópico vazio).
+    E-mail confirmado: entrega via SES (por destinatário) ou, sem SES configurado,
+    uma publicação no tópico SNS (todos os inscritos confirmados recebem — ver logs).
     """
     topic_arn = settings.SNS_TOPIC_ARN.strip()
     confirmed = [
@@ -580,7 +592,7 @@ def _publish_alert_message(
             _put_cloudwatch_metric("StormAlertsSent")
         return message_id or None
 
-    sent_ids: list[str] = []
+    eligible: list[dict[str, str]] = []
     skipped = 0
     resubscribed: list[str] = []
     sns_client = boto3.client("sns", region_name=settings.AWS_REGION)
@@ -622,31 +634,7 @@ def _publish_alert_message(
                 email,
             )
             continue
-        try:
-            message_id = _publish_to_subscription_with_retry(
-                subscription_arn,
-                subject,
-                message,
-            )
-        except (ClientError, BotoCoreError, RetryError) as exc:
-            root_exc = exc
-            if isinstance(exc, RetryError) and exc.last_attempt is not None:
-                root_exc = exc.last_attempt.exception() or exc
-            if _is_stale_subscription_error(root_exc):
-                recovery = _recover_stale_subscription(
-                    sns_client,
-                    email,
-                    topic_arn,
-                    "publish rejected invalid TargetArn",
-                )
-                if recovery:
-                    resubscribed.append(email)
-            else:
-                logger.error("SNS publish failed for %s: %s", email, exc)
-            continue
-        if message_id:
-            record_alert_sent(email)
-            sent_ids.append(message_id)
+        eligible.append({"email": email, "subscription_arn": subscription_arn})
 
     if resubscribed:
         logger.warning(
@@ -654,6 +642,42 @@ def _publish_alert_message(
             len(resubscribed),
             ", ".join(sorted(set(resubscribed))),
         )
+
+    if not eligible:
+        if skipped:
+            _put_cloudwatch_metric("AlertsSkipped")
+        return None
+
+    sent_ids: list[str] = []
+
+    if _ses_is_configured():
+        for sub in eligible:
+            email = sub["email"]
+            try:
+                message_id = _send_email_alert_with_retry(email, subject, message)
+            except (ClientError, BotoCoreError, RetryError) as exc:
+                logger.error("SES send failed for %s: %s", email, exc)
+                continue
+            if message_id:
+                record_alert_sent(email)
+                sent_ids.append(message_id)
+    else:
+        logger.warning(
+            "SES not configured (SES_FROM_EMAIL empty) — publishing once to SNS topic; "
+            "all confirmed topic subscribers receive the e-mail; geo filter only gates "
+            "whether any alert is sent"
+        )
+        try:
+            message_id = _publish_to_sns_with_retry(topic_arn, subject, message)
+        except (ClientError, BotoCoreError, RetryError) as exc:
+            logger.error("SNS topic publish failed: %s", exc)
+            if skipped:
+                _put_cloudwatch_metric("AlertsSkipped")
+            return None
+        if message_id:
+            for sub in eligible:
+                record_alert_sent(sub["email"])
+            sent_ids.append(message_id)
 
     if not sent_ids:
         if skipped:
