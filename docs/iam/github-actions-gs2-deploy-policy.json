@@ -49,15 +49,20 @@
       ]
     },
     {
-      "Sid": "DynamoDBSnsRateLimitsTable",
+      "Sid": "DynamoDBSnsRateLimitsTableManage",
       "Effect": "Allow",
       "Action": [
         "dynamodb:DescribeTable",
-        "dynamodb:CreateTable",
         "dynamodb:DescribeTimeToLive",
         "dynamodb:UpdateTimeToLive"
       ],
       "Resource": "arn:aws:dynamodb:us-east-1:544785076353:table/sns_rate_limits"
+    },
+    {
+      "Sid": "DynamoDBSnsRateLimitsCreateTable",
+      "Effect": "Allow",
+      "Action": "dynamodb:CreateTable",
+      "Resource": "*"
     }
   ]
 }
