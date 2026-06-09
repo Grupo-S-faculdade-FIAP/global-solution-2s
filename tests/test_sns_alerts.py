@@ -245,6 +245,43 @@ def test_subscribe_email_rejects_when_subscriber_limit_reached(sns_settings, mon
     assert "2" in result["error"]
 
 
+def test_list_email_subscriptions_ignores_deleted(sns_settings, monkeypatch):
+    class FakeSNS:
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [
+                        {
+                            "Subscriptions": [
+                                {
+                                    "Protocol": "email",
+                                    "Endpoint": "deleted@example.com",
+                                    "SubscriptionArn": "Deleted",
+                                },
+                                {
+                                    "Protocol": "email",
+                                    "Endpoint": "active@example.com",
+                                    "SubscriptionArn": "arn:aws:sns:us-east-1:123:sub:active",
+                                },
+                            ]
+                        }
+                    ]
+
+            return Paginator()
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    subs = sns_alerts._list_email_subscriptions(sns_alerts.settings.SNS_TOPIC_ARN)
+    emails = {sub["email"] for sub in subs}
+    assert emails == {"active@example.com"}
+    assert sns_alerts._email_is_subscribed(sns_alerts.settings.SNS_TOPIC_ARN, "deleted@example.com") is False
+    assert sns_alerts._email_is_subscribed(sns_alerts.settings.SNS_TOPIC_ARN, "active@example.com") is True
+
+
 def test_subscribe_email_already_subscribed(sns_settings, monkeypatch):
     class FakeSNS:
         def get_paginator(self, operation_name):

@@ -212,8 +212,28 @@ def _publish_to_subscription_with_retry(
         raise
 
 
+def _normalize_subscription_arn(subscription_arn: str) -> str:
+    return (subscription_arn or "").strip()
+
+
+def _subscription_arn_is_deleted(subscription_arn: str) -> bool:
+    return _normalize_subscription_arn(subscription_arn).lower() == "deleted"
+
+
+def _subscription_arn_is_pending(subscription_arn: str) -> bool:
+    normalized = _normalize_subscription_arn(subscription_arn).lower()
+    return normalized in ("pending confirmation", "pendingconfirmation")
+
+
+def _subscription_arn_is_confirmed(subscription_arn: str) -> bool:
+    normalized = _normalize_subscription_arn(subscription_arn)
+    if not normalized or _subscription_arn_is_deleted(normalized) or _subscription_arn_is_pending(normalized):
+        return False
+    return normalized.lower().startswith("arn:")
+
+
 def _list_email_subscriptions(topic_arn: str) -> list[dict[str, Any]]:
-    """Lista inscrições de e-mail no tópico SNS (confirmadas e pendentes)."""
+    """Lista inscrições de e-mail ativas no tópico SNS (confirmadas e pendentes)."""
     subscriptions: list[dict[str, Any]] = []
     try:
         sns = boto3.client("sns", region_name=settings.AWS_REGION)
@@ -225,14 +245,19 @@ def _list_email_subscriptions(topic_arn: str) -> list[dict[str, Any]]:
                 endpoint = (sub.get("Endpoint") or "").strip().lower()
                 if not endpoint:
                     continue
-                subscription_arn = sub.get("SubscriptionArn", "")
-                confirmed = bool(subscription_arn and subscription_arn != "pending confirmation")
+                subscription_arn = _normalize_subscription_arn(sub.get("SubscriptionArn", ""))
+                if _subscription_arn_is_deleted(subscription_arn):
+                    continue
+                pending = _subscription_arn_is_pending(subscription_arn)
+                confirmed = _subscription_arn_is_confirmed(subscription_arn)
+                if not pending and not confirmed:
+                    continue
                 subscriptions.append(
                     {
                         "email": endpoint,
                         "subscription_arn": subscription_arn if confirmed else None,
                         "confirmed": confirmed,
-                        "pending_confirmation": subscription_arn == "pending confirmation",
+                        "pending_confirmation": pending,
                     }
                 )
     except (ClientError, BotoCoreError, AttributeError) as exc:
@@ -246,8 +271,13 @@ def _count_email_subscriptions(topic_arn: str) -> int:
 
 
 def _email_is_subscribed(topic_arn: str, email: str) -> bool:
+    """True se o e-mail tem inscrição pendente ou confirmada (não Deleted)."""
     endpoint = email.strip().lower()
-    return any(sub["email"] == endpoint for sub in _list_email_subscriptions(topic_arn))
+    return any(
+        sub["email"] == endpoint
+        and (sub.get("pending_confirmation") or sub.get("confirmed"))
+        for sub in _list_email_subscriptions(topic_arn)
+    )
 
 
 def _subscriber_eligible_for_geo_alert(
@@ -528,15 +558,19 @@ def subscribe_email(
     topic_arn = settings.SNS_TOPIC_ARN.strip()
     max_subscribers = max(1, int(settings.SNS_MAX_SUBSCRIBERS))
 
-    if _email_is_subscribed(topic_arn, endpoint):
+    def _save_location_if_needed() -> bool:
         if coords:
             save_subscriber_location(endpoint, coords[0], coords[1])
+            return True
+        return False
+
+    if _email_is_subscribed(topic_arn, endpoint):
         return {
             "success": True,
             "configured": True,
             "email": endpoint,
             "already_subscribed": True,
-            "location_saved": coords is not None,
+            "location_saved": _save_location_if_needed(),
             "message": "Este e-mail já está inscrito (ou aguardando confirmação da AWS).",
         }
 
@@ -566,17 +600,15 @@ def subscribe_email(
             "error": "Falha ao inscrever e-mail no SNS",
         }
 
-    subscription_arn = response.get("SubscriptionArn", "")
-    pending = subscription_arn == "pending confirmation"
-    if coords:
-        save_subscriber_location(endpoint, coords[0], coords[1])
+    subscription_arn = _normalize_subscription_arn(response.get("SubscriptionArn", ""))
+    pending = _subscription_arn_is_pending(subscription_arn)
     return {
         "success": True,
         "configured": True,
         "email": endpoint,
         "subscription_arn": subscription_arn or None,
         "pending_confirmation": pending,
-        "location_saved": coords is not None,
+        "location_saved": _save_location_if_needed(),
         "message": (
             "Enviamos um e-mail de confirmação da AWS. "
             "Abra o link \"Confirm subscription\" para ativar os alertas."

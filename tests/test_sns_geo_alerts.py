@@ -66,6 +66,91 @@ def test_is_within_radius():
     assert not sns_geo.is_within_radius(sp_lat, sp_lon, far_lat, far_lon, 50.0)
 
 
+def test_subscribe_allows_resubscribe_after_deleted_subscription(sns_settings, monkeypatch):
+    """Deleted SNS subscriptions must not block re-subscribe or location save."""
+    captured: dict = {}
+
+    class FakeSNS:
+        def subscribe(self, **kwargs):
+            captured.update(kwargs)
+            return {"SubscriptionArn": "pending confirmation"}
+
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [
+                        {
+                            "Subscriptions": [
+                                {
+                                    "Protocol": "email",
+                                    "Endpoint": "castrocaroline11@gmail.com",
+                                    "SubscriptionArn": "Deleted",
+                                }
+                            ]
+                        }
+                    ]
+
+            return Paginator()
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    result = sns_alerts.subscribe_email(
+        "castrocaroline11@gmail.com",
+        lat=-23.55,
+        lon=-46.63,
+    )
+    assert result["success"] is True
+    assert result.get("already_subscribed") is not True
+    assert result.get("pending_confirmation") is True
+    assert result.get("location_saved") is True
+    assert captured["Endpoint"] == "castrocaroline11@gmail.com"
+
+    stored = sns_subscriber_store.get_subscriber_location("castrocaroline11@gmail.com")
+    assert stored is not None
+    assert stored["lat"] == -23.55
+    assert stored["lon"] == -46.63
+
+
+def test_subscribe_saves_location_when_pending_confirmation(sns_settings, monkeypatch):
+    class FakeSNS:
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [
+                        {
+                            "Subscriptions": [
+                                {
+                                    "Protocol": "email",
+                                    "Endpoint": "pending@example.com",
+                                    "SubscriptionArn": "pending confirmation",
+                                }
+                            ]
+                        }
+                    ]
+
+            return Paginator()
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    result = sns_alerts.subscribe_email("pending@example.com", lat=-23.55, lon=-46.63)
+    assert result["success"] is True
+    assert result.get("already_subscribed") is True
+    assert result.get("location_saved") is True
+
+    stored = sns_subscriber_store.get_subscriber_location("pending@example.com")
+    assert stored is not None
+    assert stored["lat"] == -23.55
+    assert stored["lon"] == -46.63
+
+
 def test_subscribe_saves_location(sns_settings, monkeypatch):
     class FakeSNS:
         def subscribe(self, **kwargs):
