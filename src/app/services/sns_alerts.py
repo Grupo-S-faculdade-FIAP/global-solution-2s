@@ -32,6 +32,7 @@ from app.services.sns_region_cooldown import (
     record_region_alert,
 )
 from app.services.sns_subscriber_store import (
+    clear_subscription_arn,
     get_subscriber_location,
     list_subscribers_with_subscription_arn,
     save_subscriber_location,
@@ -236,6 +237,63 @@ def _subscription_arn_is_confirmed(subscription_arn: str) -> bool:
     return normalized.lower().startswith("arn:")
 
 
+def _is_stale_subscription_error(exc: Exception) -> bool:
+    """True when SNS indicates the subscription ARN is missing or not publishable."""
+    if isinstance(exc, ClientError):
+        error_code = exc.response.get("Error", {}).get("Code", "")
+        message = (exc.response.get("Error", {}).get("Message") or "").lower()
+        if error_code in ("NotFound", "InvalidParameter", "InvalidParameterException"):
+            return True
+        if "not valid to publish" in message:
+            return True
+    return False
+
+
+def _clear_stale_subscription_arn(email: str, reason: str) -> None:
+    clear_subscription_arn(email)
+    logger.warning(
+        "Cleared stale subscription_arn for %s (%s). "
+        "Re-inscreva-se no dashboard para receber alertas por e-mail.",
+        email,
+        reason,
+    )
+
+
+def _subscription_arn_is_publishable(
+    sns_client: Any,
+    subscription_arn: str,
+    *,
+    email: str | None = None,
+    clear_on_stale: bool = True,
+) -> bool:
+    """True when the subscription ARN exists, is confirmed, and can receive publishes."""
+    normalized = _normalize_subscription_arn(subscription_arn)
+    if not _subscription_arn_is_confirmed(normalized):
+        return False
+    try:
+        response = sns_client.get_subscription_attributes(SubscriptionArn=normalized)
+    except ClientError as exc:
+        if _is_stale_subscription_error(exc):
+            if clear_on_stale and email:
+                _clear_stale_subscription_arn(email, "subscription not found or invalid")
+            return False
+        raise
+    except BotoCoreError as exc:
+        logger.warning(
+            "Failed to read SNS subscription attributes for %s: %s",
+            normalized,
+            exc,
+        )
+        return False
+
+    attrs = response.get("Attributes", {})
+    if str(attrs.get("PendingConfirmation", "true")).lower() == "true":
+        return False
+    if str(attrs.get("ConfirmationWasAuthenticated", "true")).lower() == "false":
+        return False
+    return True
+
+
 def _subscription_pending_confirmation(sns_client: Any, subscription_arn: str) -> bool:
     """True when the subscription still requires e-mail confirmation."""
     normalized = _normalize_subscription_arn(subscription_arn)
@@ -283,6 +341,22 @@ def _list_email_subscriptions(topic_arn: str) -> list[dict[str, Any]]:
                     continue
                 pending = _subscription_arn_is_pending(subscription_arn)
                 confirmed = _subscription_arn_is_confirmed(subscription_arn)
+                if confirmed:
+                    try:
+                        if not _subscription_arn_is_publishable(
+                            sns,
+                            subscription_arn,
+                            email=endpoint,
+                            clear_on_stale=True,
+                        ):
+                            confirmed = False
+                    except (ClientError, BotoCoreError) as exc:
+                        logger.warning(
+                            "Failed to verify subscription for %s: %s",
+                            endpoint,
+                            exc,
+                        )
+                        confirmed = False
                 if not pending and not confirmed:
                     continue
                 subscriptions.append(
@@ -307,23 +381,24 @@ def _list_email_subscriptions(topic_arn: str) -> list[dict[str, Any]]:
                 stored_arn = (stored.get("subscription_arn") or "").strip()
                 if email not in tombstoned or not stored_arn.lower().startswith("arn:"):
                     continue
-                try:
-                    attrs = sns_client.get_subscription_attributes(SubscriptionArn=stored_arn)
-                    pending_flag = attrs.get("Attributes", {}).get("PendingConfirmation", "true")
-                    if str(pending_flag).lower() == "false":
-                        subscriptions.append({
-                            "email": email,
-                            "subscription_arn": stored_arn,
-                            "confirmed": True,
-                            "pending_confirmation": False,
-                        })
-                        logger.info(
-                            "Tombstone fallback: merged confirmed ARN for %s (...%s)",
-                            email,
-                            stored_arn[-12:],
-                        )
-                except (ClientError, BotoCoreError) as exc:
-                    logger.warning("Failed to verify stored ARN for %s: %s", email, exc)
+                if not _subscription_arn_is_publishable(
+                    sns_client,
+                    stored_arn,
+                    email=email,
+                    clear_on_stale=True,
+                ):
+                    continue
+                subscriptions.append({
+                    "email": email,
+                    "subscription_arn": stored_arn,
+                    "confirmed": True,
+                    "pending_confirmation": False,
+                })
+                logger.info(
+                    "Tombstone fallback: merged confirmed ARN for %s (...%s)",
+                    email,
+                    stored_arn[-12:],
+                )
         except (ClientError, BotoCoreError) as exc:
             logger.warning("Failed to merge DynamoDB ARNs for tombstoned subscribers: %s", exc)
 
@@ -421,6 +496,19 @@ def _publish_alert_message(
                 settings.SNS_MAX_ALERTS_PER_EMAIL_DAY,
             )
             continue
+        sns_client = boto3.client("sns", region_name=settings.AWS_REGION)
+        if not _subscription_arn_is_publishable(
+            sns_client,
+            subscription_arn,
+            email=email,
+            clear_on_stale=True,
+        ):
+            skipped += 1
+            logger.info(
+                "SNS alert skipped for %s — subscription ARN is not publishable; re-subscribe required",
+                email,
+            )
+            continue
         try:
             message_id = _publish_to_subscription_with_retry(
                 subscription_arn,
@@ -428,7 +516,13 @@ def _publish_alert_message(
                 message,
             )
         except (ClientError, BotoCoreError, RetryError) as exc:
-            logger.error("SNS publish failed for %s: %s", email, exc)
+            root_exc = exc
+            if isinstance(exc, RetryError) and exc.last_attempt is not None:
+                root_exc = exc.last_attempt.exception() or exc
+            if _is_stale_subscription_error(root_exc):
+                _clear_stale_subscription_arn(email, "publish rejected invalid TargetArn")
+            else:
+                logger.error("SNS publish failed for %s: %s", email, exc)
             continue
         if message_id:
             record_alert_sent(email)
@@ -667,11 +761,20 @@ def subscribe_email(
         }
 
     subscription_arn = _normalize_subscription_arn(response.get("SubscriptionArn", ""))
-    # Persist ARN immediately so the tombstone fallback in _list_email_subscriptions
-    # can resolve this subscription even while list-subscriptions-by-topic still
-    # returns a Deleted tombstone for the endpoint.
+    lat_val, lon_val = (coords if coords else (None, None))
+    # Persist ARN immediately (including pending) so tombstone fallback and re-subscribe
+    # flows use the latest subscription from AWS, not a stale DynamoDB copy.
     if subscription_arn.lower().startswith("arn:"):
-        save_subscriber_location(endpoint, subscription_arn=subscription_arn)
+        save_subscriber_location(
+            endpoint,
+            lat=lat_val,
+            lon=lon_val,
+            subscription_arn=subscription_arn,
+        )
+    elif _subscription_arn_is_pending(subscription_arn):
+        clear_subscription_arn(endpoint)
+        if coords:
+            save_subscriber_location(endpoint, lat=lat_val, lon=lon_val)
     pending = _subscription_pending_confirmation(sns, subscription_arn)
     if not pending and not _email_is_subscribed(topic_arn, endpoint):
         pending = True

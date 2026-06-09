@@ -203,6 +203,9 @@ def test_publish_skips_subscriber_outside_radius(sns_settings, monkeypatch):
 
             return Paginator()
 
+        def get_subscription_attributes(self, **kwargs):
+            return {"Attributes": {"PendingConfirmation": "false"}}
+
         def publish(self, **kwargs):
             published.append(kwargs.get("TargetArn", ""))
             return {"MessageId": "msg-far"}
@@ -247,6 +250,9 @@ def test_publish_sends_subscriber_inside_radius(sns_settings, monkeypatch):
                     ]
 
             return Paginator()
+
+        def get_subscription_attributes(self, **kwargs):
+            return {"Attributes": {"PendingConfirmation": "false"}}
 
         def publish(self, **kwargs):
             published.append(kwargs.get("TargetArn", ""))
@@ -296,6 +302,9 @@ def test_simulated_alert_geo_filter(sns_settings, monkeypatch):
                     ]
 
             return Paginator()
+
+        def get_subscription_attributes(self, **kwargs):
+            return {"Attributes": {"PendingConfirmation": "false"}}
 
         def publish(self, **kwargs):
             arn = kwargs.get("TargetArn", "")
@@ -387,6 +396,9 @@ def test_legacy_subscriber_without_coords_skipped(sns_settings, monkeypatch):
                     ]
 
             return Paginator()
+
+        def get_subscription_attributes(self, **kwargs):
+            return {"Attributes": {"PendingConfirmation": "false"}}
 
         def publish(self, **kwargs):
             published.append(kwargs.get("TargetArn", ""))

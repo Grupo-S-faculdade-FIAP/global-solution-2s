@@ -137,6 +137,48 @@ def get_subscriber_record(email: str) -> dict[str, Any] | None:
         return None
 
 
+def clear_subscription_arn(email: str) -> None:
+    """Remove subscription_arn from the subscriber record (keeps lat/lon when present)."""
+    normalized = email.strip().lower()
+    if not normalized:
+        return
+
+    record = get_subscriber_record(normalized)
+    if not record or not record.get("subscription_arn"):
+        return
+
+    record.pop("subscription_arn", None)
+    record["updated_at"] = _now_iso()
+
+    if use_mock_store():
+        store = _load_store()
+        subscribers = store.setdefault("subscribers", {})
+        if not isinstance(subscribers, dict):
+            subscribers = {}
+            store["subscribers"] = subscribers
+        if record.get("lat") is not None and record.get("lon") is not None:
+            subscribers[normalized] = record
+        else:
+            subscribers.pop(normalized, None)
+        _save_store(store)
+        return
+
+    try:
+        table = _dynamodb_table()
+        pk = _subscriber_pk(normalized)
+        if record.get("lat") is not None and record.get("lon") is not None:
+            table.update_item(
+                Key={"pk": pk},
+                UpdateExpression="REMOVE subscription_arn SET updated_at = :ua",
+                ExpressionAttributeValues={":ua": record["updated_at"]},
+            )
+        else:
+            table.delete_item(Key={"pk": pk})
+        logger.info("Cleared stale subscription_arn for %s", normalized)
+    except (ClientError, BotoCoreError) as exc:
+        logger.error("DynamoDB clear subscription_arn failed for %s: %s", normalized, exc)
+
+
 def save_subscriber_location(
     email: str,
     lat: float | None = None,
