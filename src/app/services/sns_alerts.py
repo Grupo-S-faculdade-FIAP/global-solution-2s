@@ -232,6 +232,28 @@ def _subscription_arn_is_confirmed(subscription_arn: str) -> bool:
     return normalized.lower().startswith("arn:")
 
 
+def _subscription_pending_confirmation(sns_client: Any, subscription_arn: str) -> bool:
+    """True when the subscription still requires e-mail confirmation."""
+    normalized = _normalize_subscription_arn(subscription_arn)
+    if not normalized or _subscription_arn_is_deleted(normalized):
+        return False
+    if _subscription_arn_is_pending(normalized):
+        return True
+    if not normalized.lower().startswith("arn:"):
+        return False
+    try:
+        response = sns_client.get_subscription_attributes(SubscriptionArn=normalized)
+        pending = response.get("Attributes", {}).get("PendingConfirmation", "false")
+        return str(pending).lower() == "true"
+    except (ClientError, BotoCoreError) as exc:
+        logger.warning(
+            "Failed to read SNS subscription attributes for %s: %s",
+            normalized,
+            exc,
+        )
+        return True
+
+
 def _list_email_subscriptions(topic_arn: str) -> list[dict[str, Any]]:
     """Lista inscrições de e-mail ativas no tópico SNS (confirmadas e pendentes)."""
     subscriptions: list[dict[str, Any]] = []
@@ -591,6 +613,7 @@ def subscribe_email(
             TopicArn=topic_arn,
             Protocol="email",
             Endpoint=endpoint,
+            ReturnSubscriptionArn=True,
         )
     except (ClientError, BotoCoreError) as exc:
         logger.error("SNS subscribe failed for %s: %s", endpoint, exc)
@@ -601,7 +624,9 @@ def subscribe_email(
         }
 
     subscription_arn = _normalize_subscription_arn(response.get("SubscriptionArn", ""))
-    pending = _subscription_arn_is_pending(subscription_arn)
+    pending = _subscription_pending_confirmation(sns, subscription_arn)
+    if not pending and not _email_is_subscribed(topic_arn, endpoint):
+        pending = True
     return {
         "success": True,
         "configured": True,

@@ -143,6 +143,7 @@ def test_subscribe_email_success(sns_settings, monkeypatch):
     assert result["email"] == "avaliador@fiap.com"
     assert captured["Protocol"] == "email"
     assert captured["Endpoint"] == "avaliador@fiap.com"
+    assert captured.get("ReturnSubscriptionArn") is True
 
 
 def test_publish_simulated_alert_success(sns_settings, monkeypatch):
@@ -280,6 +281,51 @@ def test_list_email_subscriptions_ignores_deleted(sns_settings, monkeypatch):
     assert emails == {"active@example.com"}
     assert sns_alerts._email_is_subscribed(sns_alerts.settings.SNS_TOPIC_ARN, "deleted@example.com") is False
     assert sns_alerts._email_is_subscribed(sns_alerts.settings.SNS_TOPIC_ARN, "active@example.com") is True
+
+
+def test_subscribe_email_deleted_only_calls_subscribe_with_return_arn(sns_settings, monkeypatch):
+    """Deleted-only list entry must still call subscribe with ReturnSubscriptionArn."""
+    captured: dict = {}
+    pending_arn = "arn:aws:sns:us-east-1:123456789012:rain-alerts:pending-sub"
+
+    class FakeSNS:
+        def subscribe(self, **kwargs):
+            captured.update(kwargs)
+            return {"SubscriptionArn": pending_arn}
+
+        def get_subscription_attributes(self, **kwargs):
+            return {"Attributes": {"PendingConfirmation": "true"}}
+
+        def get_paginator(self, operation_name):
+            class Paginator:
+                def paginate(self, **kwargs):
+                    return [
+                        {
+                            "Subscriptions": [
+                                {
+                                    "Protocol": "email",
+                                    "Endpoint": "deleted@example.com",
+                                    "SubscriptionArn": "Deleted",
+                                }
+                            ]
+                        }
+                    ]
+
+            return Paginator()
+
+    monkeypatch.setattr(
+        sns_alerts.boto3,
+        "client",
+        lambda service, region_name: FakeSNS(),
+    )
+
+    result = sns_alerts.subscribe_email("deleted@example.com")
+    assert result["success"] is True
+    assert result.get("already_subscribed") is not True
+    assert result["pending_confirmation"] is True
+    assert result["subscription_arn"] == pending_arn
+    assert captured.get("ReturnSubscriptionArn") is True
+    assert captured["Endpoint"] == "deleted@example.com"
 
 
 def test_subscribe_email_already_subscribed(sns_settings, monkeypatch):

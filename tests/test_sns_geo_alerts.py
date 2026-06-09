@@ -108,6 +108,7 @@ def test_subscribe_allows_resubscribe_after_deleted_subscription(sns_settings, m
     assert result.get("pending_confirmation") is True
     assert result.get("location_saved") is True
     assert captured["Endpoint"] == "castrocaroline11@gmail.com"
+    assert captured.get("ReturnSubscriptionArn") is True
 
     stored = sns_subscriber_store.get_subscriber_location("castrocaroline11@gmail.com")
     assert stored is not None
