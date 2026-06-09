@@ -68,46 +68,40 @@ def _save_store(data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def save_subscriber_location(email: str, lat: float, lon: float) -> None:
-    """Salva lat/lon do inscrito (mock JSON ou DynamoDB)."""
+def _merge_subscriber_record(
+    email: str,
+    lat: float | None = None,
+    lon: float | None = None,
+    subscription_arn: str | None = None,
+) -> dict[str, Any] | None:
+    """Merge new fields into an existing subscriber record (mock or DynamoDB)."""
     normalized = email.strip().lower()
     if not normalized:
-        return
+        return None
 
-    record = {
-        "email": normalized,
-        "lat": float(lat),
-        "lon": float(lon),
-        "updated_at": _now_iso(),
-    }
+    existing = get_subscriber_record(normalized) or {"email": normalized}
+    record: dict[str, Any] = {"email": normalized}
 
-    if use_mock_store():
-        store = _load_store()
-        subscribers = store.setdefault("subscribers", {})
-        if not isinstance(subscribers, dict):
-            subscribers = {}
-            store["subscribers"] = subscribers
-        subscribers[normalized] = record
-        _save_store(store)
-        return
+    if lat is not None and lon is not None:
+        record["lat"] = float(lat)
+        record["lon"] = float(lon)
+    elif existing.get("lat") is not None and existing.get("lon") is not None:
+        record["lat"] = _to_float(existing["lat"])
+        record["lon"] = _to_float(existing["lon"])
 
-    try:
-        table = _dynamodb_table()
-        table.put_item(
-            Item={
-                "pk": _subscriber_pk(normalized),
-                "email": normalized,
-                "lat": _to_decimal(record["lat"]),
-                "lon": _to_decimal(record["lon"]),
-                "updated_at": record["updated_at"],
-            }
-        )
-    except (ClientError, BotoCoreError) as exc:
-        logger.error("DynamoDB put_item failed for subscriber %s: %s", normalized, exc)
+    arn = (subscription_arn or existing.get("subscription_arn") or "").strip()
+    if arn:
+        record["subscription_arn"] = arn
+
+    if "lat" not in record and "subscription_arn" not in record:
+        return None
+
+    record["updated_at"] = _now_iso()
+    return record
 
 
-def get_subscriber_location(email: str) -> dict[str, Any] | None:
-    """Retorna dict com lat, lon, updated_at ou None."""
+def get_subscriber_record(email: str) -> dict[str, Any] | None:
+    """Retorna registro completo do inscrito (lat, lon, subscription_arn) ou None."""
     normalized = email.strip().lower()
     if not normalized:
         return None
@@ -126,19 +120,138 @@ def get_subscriber_location(email: str) -> dict[str, Any] | None:
         item = response.get("Item", {})
         if not item:
             return None
+        record: dict[str, Any] = {"email": normalized}
         lat = item.get("lat")
         lon = item.get("lon")
-        if lat is None or lon is None:
-            return None
-        return {
-            "email": normalized,
-            "lat": _to_float(lat),
-            "lon": _to_float(lon),
-            "updated_at": item.get("updated_at"),
-        }
+        if lat is not None and lon is not None:
+            record["lat"] = _to_float(lat)
+            record["lon"] = _to_float(lon)
+        arn = item.get("subscription_arn")
+        if arn:
+            record["subscription_arn"] = str(arn).strip()
+        if item.get("updated_at"):
+            record["updated_at"] = item.get("updated_at")
+        return record if len(record) > 1 else None
     except (ClientError, BotoCoreError) as exc:
         logger.error("DynamoDB get_item failed for subscriber %s: %s", normalized, exc)
         return None
+
+
+def save_subscriber_location(
+    email: str,
+    lat: float | None = None,
+    lon: float | None = None,
+    subscription_arn: str | None = None,
+) -> None:
+    """Salva lat/lon e/ou subscription_arn do inscrito (mock JSON ou DynamoDB)."""
+    normalized = email.strip().lower()
+    if not normalized:
+        return
+
+    record = _merge_subscriber_record(
+        normalized,
+        lat=lat,
+        lon=lon,
+        subscription_arn=subscription_arn,
+    )
+    if not record:
+        return
+
+    if use_mock_store():
+        store = _load_store()
+        subscribers = store.setdefault("subscribers", {})
+        if not isinstance(subscribers, dict):
+            subscribers = {}
+            store["subscribers"] = subscribers
+        subscribers[normalized] = record
+        _save_store(store)
+        return
+
+    try:
+        item: dict[str, Any] = {
+            "pk": _subscriber_pk(normalized),
+            "email": normalized,
+            "updated_at": record["updated_at"],
+        }
+        if "lat" in record and "lon" in record:
+            item["lat"] = _to_decimal(record["lat"])
+            item["lon"] = _to_decimal(record["lon"])
+        if record.get("subscription_arn"):
+            item["subscription_arn"] = record["subscription_arn"]
+        table = _dynamodb_table()
+        table.put_item(Item=item)
+    except (ClientError, BotoCoreError) as exc:
+        logger.error("DynamoDB put_item failed for subscriber %s: %s", normalized, exc)
+
+
+def get_subscriber_location(email: str) -> dict[str, Any] | None:
+    """Retorna dict com lat, lon, updated_at ou None."""
+    record = get_subscriber_record(email)
+    if not record or record.get("lat") is None or record.get("lon") is None:
+        return None
+    return {
+        "email": record["email"],
+        "lat": _to_float(record["lat"]),
+        "lon": _to_float(record["lon"]),
+        "updated_at": record.get("updated_at"),
+        **(
+            {"subscription_arn": record["subscription_arn"]}
+            if record.get("subscription_arn")
+            else {}
+        ),
+    }
+
+
+def list_subscribers_with_subscription_arn() -> list[dict[str, Any]]:
+    """Lista inscritos com subscription_arn persistido (para merge no publish)."""
+    if use_mock_store():
+        store = _load_store()
+        subscribers = store.get("subscribers", {})
+        if not isinstance(subscribers, dict):
+            return []
+        results: list[dict[str, Any]] = []
+        for raw in subscribers.values():
+            if not isinstance(raw, dict):
+                continue
+            arn = (raw.get("subscription_arn") or "").strip()
+            email = (raw.get("email") or "").strip().lower()
+            if not arn or not email:
+                continue
+            entry: dict[str, Any] = {"email": email, "subscription_arn": arn}
+            if raw.get("lat") is not None and raw.get("lon") is not None:
+                entry["lat"] = _to_float(raw["lat"])
+                entry["lon"] = _to_float(raw["lon"])
+            results.append(entry)
+        return results
+
+    results = []
+    try:
+        table = _dynamodb_table()
+        scan_kwargs: dict[str, Any] = {
+            "FilterExpression": "begins_with(pk, :prefix) AND attribute_exists(subscription_arn)",
+            "ExpressionAttributeValues": {":prefix": "SUBSCRIBER#"},
+        }
+        while True:
+            response = table.scan(**scan_kwargs)
+            for item in response.get("Items", []):
+                arn = (item.get("subscription_arn") or "").strip()
+                email = item.get("email") or str(item.get("pk", "")).replace("SUBSCRIBER#", "", 1)
+                email = str(email).strip().lower()
+                if not arn or not email:
+                    continue
+                entry: dict[str, Any] = {"email": email, "subscription_arn": str(arn)}
+                lat = item.get("lat")
+                lon = item.get("lon")
+                if lat is not None and lon is not None:
+                    entry["lat"] = _to_float(lat)
+                    entry["lon"] = _to_float(lon)
+                results.append(entry)
+            if not response.get("LastEvaluatedKey"):
+                break
+            scan_kwargs["ExclusiveStartKey"] = response["LastEvaluatedKey"]
+    except (ClientError, BotoCoreError) as exc:
+        logger.error("DynamoDB scan failed for subscribers with ARN: %s", exc)
+    return results
 
 
 def list_subscriber_locations() -> list[dict[str, Any]]:
@@ -165,14 +278,16 @@ def list_subscriber_locations() -> list[dict[str, Any]]:
                 email = item.get("email") or str(item.get("pk", "")).replace("SUBSCRIBER#", "", 1)
                 if lat is None or lon is None or not email:
                     continue
-                results.append(
-                    {
-                        "email": str(email).strip().lower(),
-                        "lat": _to_float(lat),
-                        "lon": _to_float(lon),
-                        "updated_at": item.get("updated_at"),
-                    }
-                )
+                entry = {
+                    "email": str(email).strip().lower(),
+                    "lat": _to_float(lat),
+                    "lon": _to_float(lon),
+                    "updated_at": item.get("updated_at"),
+                }
+                arn = item.get("subscription_arn")
+                if arn:
+                    entry["subscription_arn"] = str(arn).strip()
+                results.append(entry)
             if not response.get("LastEvaluatedKey"):
                 break
             scan_kwargs["ExclusiveStartKey"] = response["LastEvaluatedKey"]

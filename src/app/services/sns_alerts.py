@@ -31,7 +31,11 @@ from app.services.sns_region_cooldown import (
     extract_region_from_s3_key,
     record_region_alert,
 )
-from app.services.sns_subscriber_store import get_subscriber_location, save_subscriber_location
+from app.services.sns_subscriber_store import (
+    get_subscriber_location,
+    list_subscribers_with_subscription_arn,
+    save_subscriber_location,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -255,8 +259,14 @@ def _subscription_pending_confirmation(sns_client: Any, subscription_arn: str) -
 
 
 def _list_email_subscriptions(topic_arn: str) -> list[dict[str, Any]]:
-    """Lista inscrições de e-mail ativas no tópico SNS (confirmadas e pendentes)."""
+    """Lista inscrições de e-mail ativas no tópico SNS (confirmadas e pendentes).
+
+    Merges list-subscriptions-by-topic with DynamoDB-stored ARNs to handle
+    AWS tombstones: after re-subscribe+confirm, list may still return Deleted
+    while get_subscription_attributes already shows the subscription as confirmed.
+    """
     subscriptions: list[dict[str, Any]] = []
+    deleted_emails: set[str] = set()
     try:
         sns = boto3.client("sns", region_name=settings.AWS_REGION)
         paginator = sns.get_paginator("list_subscriptions_by_topic")
@@ -269,6 +279,7 @@ def _list_email_subscriptions(topic_arn: str) -> list[dict[str, Any]]:
                     continue
                 subscription_arn = _normalize_subscription_arn(sub.get("SubscriptionArn", ""))
                 if _subscription_arn_is_deleted(subscription_arn):
+                    deleted_emails.add(endpoint)
                     continue
                 pending = _subscription_arn_is_pending(subscription_arn)
                 confirmed = _subscription_arn_is_confirmed(subscription_arn)
@@ -284,6 +295,38 @@ def _list_email_subscriptions(topic_arn: str) -> list[dict[str, Any]]:
                 )
     except (ClientError, BotoCoreError, AttributeError) as exc:
         logger.warning("Failed to list SNS email subscriptions: %s", exc)
+
+    # For emails that only appear as Deleted tombstones, check DynamoDB-stored ARNs.
+    seen_emails = {sub["email"] for sub in subscriptions}
+    tombstoned = deleted_emails - seen_emails
+    if tombstoned:
+        try:
+            sns_client = boto3.client("sns", region_name=settings.AWS_REGION)
+            for stored in list_subscribers_with_subscription_arn():
+                email = stored.get("email", "")
+                stored_arn = (stored.get("subscription_arn") or "").strip()
+                if email not in tombstoned or not stored_arn.lower().startswith("arn:"):
+                    continue
+                try:
+                    attrs = sns_client.get_subscription_attributes(SubscriptionArn=stored_arn)
+                    pending_flag = attrs.get("Attributes", {}).get("PendingConfirmation", "true")
+                    if str(pending_flag).lower() == "false":
+                        subscriptions.append({
+                            "email": email,
+                            "subscription_arn": stored_arn,
+                            "confirmed": True,
+                            "pending_confirmation": False,
+                        })
+                        logger.info(
+                            "Tombstone fallback: merged confirmed ARN for %s (...%s)",
+                            email,
+                            stored_arn[-12:],
+                        )
+                except (ClientError, BotoCoreError) as exc:
+                    logger.warning("Failed to verify stored ARN for %s: %s", email, exc)
+        except (ClientError, BotoCoreError) as exc:
+            logger.warning("Failed to merge DynamoDB ARNs for tombstoned subscribers: %s", exc)
+
     return subscriptions
 
 
@@ -624,6 +667,11 @@ def subscribe_email(
         }
 
     subscription_arn = _normalize_subscription_arn(response.get("SubscriptionArn", ""))
+    # Persist ARN immediately so the tombstone fallback in _list_email_subscriptions
+    # can resolve this subscription even while list-subscriptions-by-topic still
+    # returns a Deleted tombstone for the endpoint.
+    if subscription_arn.lower().startswith("arn:"):
+        save_subscriber_location(endpoint, subscription_arn=subscription_arn)
     pending = _subscription_pending_confirmation(sns, subscription_arn)
     if not pending and not _email_is_subscribed(topic_arn, endpoint):
         pending = True
