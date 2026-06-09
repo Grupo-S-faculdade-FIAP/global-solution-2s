@@ -6,6 +6,7 @@
       "Effect": "Allow",
       "Action": [
         "dynamodb:GetItem",
+        "dynamodb:PutItem",
         "dynamodb:UpdateItem"
       ],
       "Resource": "arn:aws:dynamodb:us-east-1:544785076353:table/sns_rate_limits"
