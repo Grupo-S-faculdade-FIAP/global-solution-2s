@@ -1,7 +1,6 @@
 import pathlib
 
 import cv2
-import numpy as np
 import torch
 from pathlib import Path
 
@@ -36,8 +35,7 @@ model = torch.hub.load(
     weights_path,
     trust_repo=True,
 )
-# Operating point (storm70-l-tiled val): conf=0.55 → P=73.5%
-model.conf = 0.55
+model.conf = 0.25
 
 print(f"Weights: {weights_path}")
 print(f"Image:   {image_path}")
@@ -47,7 +45,25 @@ print(f"Image:   {image_path}")
 results = model(image_path)
 print(results)
 
-frame = np.squeeze(results.render())
+# OpenCV 4.11+ cannot draw on the read-only array returned by results.render().
+frame = cv2.imread(image_path)
+if frame is None:
+    raise FileNotFoundError(f"Could not load image: {image_path}")
+
+for x1, y1, x2, y2, conf, cls in results.xyxy[0].tolist():
+    x1, y1, x2, y2 = map(int, (x1, y1, x2, y2))
+    label = f"{results.names[int(cls)]} {conf:.2f}"
+    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+    cv2.putText(
+        frame,
+        label,
+        (x1, max(y1 - 10, 0)),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (0, 255, 0),
+        2,
+    )
+
 frame = cv2.resize(frame, (1280, 720))
 cv2.imshow("Deteccao", frame)
 cv2.waitKey(0)
